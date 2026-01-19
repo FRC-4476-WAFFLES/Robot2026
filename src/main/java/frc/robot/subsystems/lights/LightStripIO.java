@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems.lights;
 
-public class LightsIOReal implements LightsIO {
+public interface LightStripIO {
+  public default void initFrame() {}
 
+  public default void sendColorsToHardware(int[] currentLEDs) {}
 }

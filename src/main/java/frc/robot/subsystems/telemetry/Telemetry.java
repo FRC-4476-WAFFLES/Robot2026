@@ -3,8 +3,6 @@ package frc.robot.subsystems.telemetry;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import org.littletonrobotics.junction.Logger;
-
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.CANBus.CANBusStatus;
 
@@ -25,208 +23,142 @@ import frc.robot.utils.hardware.DeferredRefresher;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class Telemetry extends VirtualSubsystem {
-    /* Pathplanner data */
-    // private final NetworkTable pathplannerTable = inst.getTable("PathPlanner");
-    // StructPublisher<Pose2d> pathplannerCurrentPoseNT = pathplannerTable
-    //     .getStructTopic("PPCurrentPose", Pose2d.struct).publish();
-    // StructPublisher<Pose2d> pathplannerTargetPoseNT = pathplannerTable
-    //     .getStructTopic("PPTargetPose", Pose2d.struct).publish();
-    // StructArrayPublisher<Pose2d> pathplannerCurrentTrajectory = pathplannerTable
-    //     .getStructArrayTopic("PPCurrentTrajectory", Pose2d.struct).publish();
+  /* Pathplanner data */
+  // private final NetworkTable pathplannerTable = inst.getTable("PathPlanner");
+  // StructPublisher<Pose2d> pathplannerCurrentPoseNT = pathplannerTable
+  //     .getStructTopic("PPCurrentPose", Pose2d.struct).publish();
+  // StructPublisher<Pose2d> pathplannerTargetPoseNT = pathplannerTable
+  //     .getStructTopic("PPTargetPose", Pose2d.struct).publish();
+  // StructArrayPublisher<Pose2d> pathplannerCurrentTrajectory = pathplannerTable
+  //     .getStructArrayTopic("PPCurrentTrajectory", Pose2d.struct).publish();
 
-    // private final Pose2d[] trajTypeArray = new Pose2d[0];
+  // private final Pose2d[] trajTypeArray = new Pose2d[0];
 
-    /*                 */
-    /* Other Variables */
-    /*                 */
+  /*                 */
+  /* Other Variables */
+  /*                 */
 
-    public boolean manipulatorCoralSimLoaded = false;
-    public boolean intakeSimLoaded = false;
-    public boolean intakeHandoffSimLoaded = false;
-    public boolean algeaSimLoaded = false;
+  // CAN checking variables
+  private CANStatus rioCanStatus = new CANStatus();
 
-    // private PowerDistribution powerDistributionHub = new PowerDistribution(1, ModuleType.kRev);
+  private Trigger rioCanStatusTrigger = new Trigger(() -> {
+    CANJNI.getCANStatus(rioCanStatus);
 
-    public final CoralTracking coralTracking = new CoralTracking();
+    return rioCanStatus.receiveErrorCount == 0 && rioCanStatus.transmitErrorCount == 0;
+  }).debounce(2); // If error seen in last two seconds, report issue
 
-    // CAN checking variables
-    private CANStatus rioCanStatus = new CANStatus();
+  // Async CANivore bus status checking
+  private CANBus CANivoreBus = new CANBus(CANIds.CANivoreName);
+  DeferredRefresher<CANBusStatus> canivoreRefresher = new DeferredRefresher<>(
+      "CANivore Status",
+      CodeConstants.PERIODIC_LOOP_TIME,
+      () -> CANivoreBus.getStatus()
+  );
+  private Trigger drivetrainCanStatusTrigger = new Trigger(() -> {
+    var canStatus = canivoreRefresher.getLatestValue();
+    if (canStatus.isPresent()) {
+      return (canStatus.get().Status.isOK()
+          && canStatus.get().TEC == 0
+          && canStatus.get().REC == 0);
+    }
+    return false; // Error if not present
+  }).debounce(2); // If error seen in last two seconds, report issue
 
-    private Trigger rioCanStatusTrigger = new Trigger(() -> {
-        CANJNI.getCANStatus(rioCanStatus);
+  /*                 */
+  /*  Alerts System  */
+  /*                 */
 
-        return rioCanStatus.receiveErrorCount == 0 && rioCanStatus.transmitErrorCount == 0;
-    }).debounce(2); // If error seen in last two seconds, report issue
+  private final Alert canFaultDetected = new Alert("CAN fault detected [See Console]", AlertType.kError);
+  private final Alert rioCanError = new Alert("RIO CAN bus error", AlertType.kError);
+  private final Alert canivoreError = new Alert("CANivore bus error", AlertType.kError);
+  private final Alert visionFaultDetected = new Alert("", AlertType.kError);
+  // private final Alert driverControllerDisconnected = new Alert("Driver controller disconnected [port 0].", AlertType.kWarning);
+  private final Alert leftJoystickDisconnected = new Alert("Left joystick disconnected [port 0].",
+      AlertType.kWarning);
+  private final Alert rightJoystickDisconnected = new Alert("Right joystick disconnected [port 1].",
+      AlertType.kWarning);
+  private final Alert operatorControllerDisconnected = new Alert("Operator controller disconnected [port 2].",
+      AlertType.kWarning);
 
-    // Async CANivore bus status checking
-    private CANBus CANivoreBus = new CANBus(CANIds.CANivoreName);
-    DeferredRefresher<CANBusStatus> canivoreRefresher = new DeferredRefresher<>(
-            "CANivore Status",
-            CodeConstants.PERIODIC_LOOP_TIME,
-            () -> CANivoreBus.getStatus()
-    );
-    private Trigger drivetrainCanStatusTrigger = new Trigger(() -> {
-        var canStatus = canivoreRefresher.getLatestValue();
-        if (canStatus.isPresent()) {
-            return (canStatus.get().Status.isOK()
-                    && canStatus.get().TEC == 0
-                    && canStatus.get().REC == 0);
-        }
-        return false; // Error if not present
-    }).debounce(2); // If error seen in last two seconds, report issue
+  /*                       */
+  /*  Latency Compensation */
+  /*                       */
 
-    /*                 */
-    /*  Alerts System  */
-    /*                 */
+  // Timestamps are in the timebase of Timer.getFPGATimestamp()
+  private ConcurrentTimeInterpolatableBuffer<Pose2d> poseHistoryBuffer = ConcurrentTimeInterpolatableBuffer
+      .createBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
+  private ConcurrentTimeInterpolatableBuffer<Double> yawVelocityHistoryBuffer = ConcurrentTimeInterpolatableBuffer
+      .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
 
-    private final Alert canFaultDetected = new Alert("CAN fault detected [See Console]", AlertType.kError);
-    private final Alert rioCanError = new Alert("RIO CAN bus error", AlertType.kError);
-    private final Alert canivoreError = new Alert("CANivore bus error", AlertType.kError);
-    private final Alert visionFaultDetected = new Alert("", AlertType.kError);
-    // private final Alert driverControllerDisconnected = new Alert("Driver controller disconnected [port 0].", AlertType.kWarning);
-    private final Alert leftJoystickDisconnected = new Alert("Left joystick disconnected [port 0].",
-            AlertType.kWarning);
-    private final Alert rightJoystickDisconnected = new Alert("Right joystick disconnected [port 1].",
-            AlertType.kWarning);
-    private final Alert operatorControllerDisconnected = new Alert("Operator controller disconnected [port 2].",
-            AlertType.kWarning);
+  /**
+   * Construct a telemetry subsystem
+   */
+  public Telemetry() {
 
-    /*                       */
-    /*  Latency Compensation */
-    /*                       */
+  }
 
-    // Timestamps are in the timebase of Timer.getFPGATimestamp()
-    private ConcurrentTimeInterpolatableBuffer<Pose2d> poseHistoryBuffer = ConcurrentTimeInterpolatableBuffer
-            .createBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
-    private ConcurrentTimeInterpolatableBuffer<Double> yawVelocityHistoryBuffer = ConcurrentTimeInterpolatableBuffer
-            .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
+  @Override
+  public void latePeriodic() {
+    // Update controls warnings
+    // driverControllerDisconnected.set(!Controls.driverController.isConnected());
+    leftJoystickDisconnected.set(!Controls.leftJoystick.isConnected());
+    rightJoystickDisconnected.set(!Controls.rightJoystick.isConnected());
+    operatorControllerDisconnected.set(!Controls.operatorController.isConnected());
 
-    /**
-     * Construct a telemetry subsystem
-     */
-    public Telemetry() {
-        // MaxSpeed = PhysicalConstants.maxSpeed;
+    // Check for CAN errors
+    rioCanError.set(!rioCanStatusTrigger.getAsBoolean());
+    canivoreError.set(!drivetrainCanStatusTrigger.getAsBoolean());
 
-        // Set override state once to avoid it sticking around after code reboots
-        publishOperatorOverrideInfo();
+    if (Robot.canConfigFailed || !rioCanStatusTrigger.getAsBoolean()
+        || !drivetrainCanStatusTrigger.getAsBoolean()) {
+      canFaultDetected.set(true);
+    } else {
+      canFaultDetected.set(false);
     }
 
-    @Override
-    public void latePeriodic() {
-        coralTracking.update();
+    checkVisionFault();
 
-        // Update controls warnings
-        // driverControllerDisconnected.set(!Controls.driverController.isConnected());
-        leftJoystickDisconnected.set(!Controls.leftJoystick.isConnected());
-        rightJoystickDisconnected.set(!Controls.rightJoystick.isConnected());
-        operatorControllerDisconnected.set(!Controls.operatorController.isConnected());
+    // Less accurate than high hz odometry thread but probably good enough? 
+    poseHistoryBuffer.addSample(Timer.getTimestamp(), RobotContainer.driveSubsystem.getPose());
+    yawVelocityHistoryBuffer.addSample(Timer.getTimestamp(),
+        RobotContainer.driveSubsystem.getFieldVelocity().omegaRadiansPerSecond);
+  }
 
-        // Check for CAN errors
-        rioCanError.set(!rioCanStatusTrigger.getAsBoolean());
-        canivoreError.set(!drivetrainCanStatusTrigger.getAsBoolean());
+  /**
+   * Gets the robot pose at the given timestamp (FPGA timebase) 
+   */
+  public Optional<Pose2d> getPoseAtTimestamp(double timestamp) {
+    return poseHistoryBuffer.getSample(timestamp);
+  }
 
-        // System.out.println(RobotContainer.canConfigFailed);
-        if (Robot.canConfigFailed || !rioCanStatusTrigger.getAsBoolean()
-                || !drivetrainCanStatusTrigger.getAsBoolean()) {
-            canFaultDetected.set(true);
-        } else {
-            canFaultDetected.set(false);
-        }
+  /**
+   * Gets the robot yaw velocity at the given timestamp (FPGA timebase) 
+   */
+  public Optional<Double> getYawVelocityAtTimestamp(double timestamp) {
+    return yawVelocityHistoryBuffer.getSample(timestamp);
+  }
 
-        // Less accurate than high hz odometry thread but probably good enough? 
-        poseHistoryBuffer.addSample(Timer.getTimestamp(), RobotContainer.driveSubsystem.getPose());
-        yawVelocityHistoryBuffer.addSample(Timer.getTimestamp(),
-                RobotContainer.driveSubsystem.getFieldVelocity().omegaRadiansPerSecond);
+  /**
+   * Indicate that there is a Vision fault
+   */
+  public void checkVisionFault() {
+    var vision = RobotContainer.vision;
+
+    ArrayList<String> details = new ArrayList<>();
+    boolean visionOk = true;
+
+    if (!vision.leftLimelight.isAlive()) {
+      details.add(vision.leftLimelight.getName());
+      visionOk = false;
+    }
+    if (!vision.rightLimelight.isAlive()) {
+      details.add(vision.rightLimelight.getName());
+      visionOk = false;
     }
 
-    /**
-     * Gets the robot pose at the given timestamp (FPGA timebase) 
-     */
-    public Optional<Pose2d> getPoseAtTimestamp(double timestamp) {
-        return poseHistoryBuffer.getSample(timestamp);
+    visionFaultDetected.set(!visionOk);
+    if (!visionOk) {
+      visionFaultDetected.setText("Vision fault detected [" + String.join(", ", details) + "]");
     }
-
-    /**
-     * Gets the robot yaw velocity at the given timestamp (FPGA timebase) 
-     */
-    public Optional<Double> getYawVelocityAtTimestamp(double timestamp) {
-        return yawVelocityHistoryBuffer.getSample(timestamp);
-    }
-
-    // /**
-    //  * Publish data about power usage to networktables for monitoring
-    //  */
-    // public void publishPDHInfo() {
-    //     try {
-    //         busVoltage.set(powerDistributionHub.getVoltage());
-    //         temperature.set(powerDistributionHub.getTemperature());
-    //         currentDraw.set(powerDistributionHub.getTotalCurrent());
-    //         powerDraw.set(powerDistributionHub.getTotalPower());
-    //         energyUsage.set(powerDistributionHub.getTotalEnergy());
-    //     } catch (Exception e) {
-    //         DriverStation.reportWarning("PDH Firmware Failure.", false);
-    //     }
-    // }
-
-    /**
-     * Update the state of the operator override. Should only be called when changing the state
-     */
-    public void publishOperatorOverrideInfo() {
-        Logger.recordOutput("Controls/Override Enabled", RobotContainer.isOperatorOverride);
-    }
-
-    /**
-     * Update the scoring metrics with the latest alignment and scoring durations
-     * @param alignmentTime Time it took to complete the alignment in seconds
-     * @param totalScoringTime Time it took for the entire scoring operation in seconds
-     */
-    public void updateScoringMetrics(double alignmentTime, double totalScoringTime) {
-        // Only publish to SmartDashboard for driver visibility
-        Logger.recordOutput("Telemetry/Recent Alignment Time", alignmentTime);
-        Logger.recordOutput("Telemetry/Recent Total Scoring Time", totalScoringTime);
-    }
-
-    /**
-     * Record a scoring operation timing
-     * @param alignmentTime Time it took for alignment
-     * @param totalTime Total time for the scoring operation
-     */
-    public void recordScoringTime(double alignmentTime, double totalTime) {
-        updateScoringMetrics(alignmentTime, totalTime);
-    }
-
-    /**
-     * Indicate that there is a Vision fault
-     */
-    public void setVisionFault(boolean value) {
-        visionFaultDetected.set(value);
-        if (value) {
-            ArrayList<String> details = new ArrayList<>();
-            var vision = RobotContainer.vision;
-            if (!vision.leftLimelight.isAlive()) {
-                details.add(vision.leftLimelight.getName());
-            }
-            if (!vision.rightLimelight.isAlive()) {
-                details.add(vision.rightLimelight.getName());
-            }
-
-            visionFaultDetected.setText("Vision fault detected [" + String.join(", ", details) + "]");
-        }
-    }
-
-    public void toggleManipulatorCoralSimLoaded() {
-        manipulatorCoralSimLoaded = !manipulatorCoralSimLoaded;
-    }
-
-    public void toggleIntakeSimLoaded() {
-        intakeSimLoaded = !intakeSimLoaded;
-    }
-
-    public void toggleIntakeHandoffSimLoaded() {
-        intakeHandoffSimLoaded = !intakeHandoffSimLoaded;
-    }
-
-    public void toggleAlgeaSimLoaded() {
-        algeaSimLoaded = !algeaSimLoaded;
-    }
+  }
 }
