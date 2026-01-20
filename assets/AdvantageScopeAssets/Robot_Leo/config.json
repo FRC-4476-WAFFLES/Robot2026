@@ -1,0 +1,36 @@
+{
+  "name": "Leo", 
+  "sourceUrl": "https://wafflesrobotics.com",
+  "isFTC": false, 
+  "disableSimplification": true,
+    "rotations": [
+    { "axis": "x", "degrees": 180 },
+    { "axis": "z", "degrees": 90 }
+  ],
+  "position": [-0.56668324, 0, 0], 
+  "cameras": [],
+  "components": [
+    {
+      "zeroedRotations": [
+        { "axis": "x", "degrees": 180 },
+        { "axis": "z", "degrees": 90 }
+      ],
+      "zeroedPosition": [
+        -0.09842500, 
+        0.25082500,  
+        0.5509895
+      ]
+    },
+    {
+      "zeroedRotations": [
+        { "axis": "x", "degrees": 180 },
+        { "axis": "z", "degrees": 90 }
+      ],
+      "zeroedPosition": [
+        0.2, 
+        0.0,
+        0.20320000  
+      ]
+    }
+  ]
+}

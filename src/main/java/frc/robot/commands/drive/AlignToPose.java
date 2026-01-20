@@ -23,8 +23,7 @@ import frc.robot.utils.lib.WafflesUtilities;
 
 public class AlignToPose extends Command {
   /* Approach Constants */
-  public static final double maxAccelerationElevatorUp = 7.0;
-  public static final double maxAccelerationElevatorDown = 7.0;
+  public static final double maxAcceleration = 7.0;
   public static final double defaultMaxVelocity = 4.0;
 
   public static final double maxThetaAcceleration = 20;
@@ -41,7 +40,7 @@ public class AlignToPose extends Command {
 
   /* Controllers */
   private ProfiledPIDController approachPidController = new ProfiledPIDController(2.6, 0, 0.05,
-      new Constraints(defaultMaxVelocity, maxAccelerationElevatorDown));
+      new Constraints(defaultMaxVelocity, maxAcceleration));
   private ProfiledPIDController thetaPidController = new ProfiledPIDController(7.0, 0, 0.1,
       new Constraints(maxThetaVelocity, maxThetaAcceleration));
 
@@ -50,7 +49,6 @@ public class AlignToPose extends Command {
   private Rotation2d RotMaxError = Rotation2d.fromDegrees(0.8);
 
   private double maxVelocity = 4;
-  private double maxAcceleration = maxAccelerationElevatorDown;
 
   /* Data */
   private final Supplier<Pose2d> goalPoseSupplier;
@@ -63,7 +61,7 @@ public class AlignToPose extends Command {
   private boolean allianceFlipping = false;
   private boolean goalPoseChanged = true;
 
-  private double lastMaxAcceleration = maxAccelerationElevatorDown; // Cache acceleration to reduce allocations
+  private double lastMaxAcceleration = maxAcceleration; // Cache acceleration to reduce allocations
 
   private final Timer alignmentTimer = new Timer();
 
@@ -202,10 +200,6 @@ public class AlignToPose extends Command {
 
     updateConstraints(false);
 
-    // Update max acceleration based on elevator height (optimized to reduce allocations)
-    double maxAcceleration = MathUtil.interpolate(maxAccelerationElevatorDown, maxAccelerationElevatorUp,
-        RobotContainer.superstructure.elevator.getElevatorExtendedPercent());
-
     // Only update constraints if acceleration changed (reduces allocations)
     if (Math.abs(maxAcceleration - lastMaxAcceleration) > 0.01) { // 0.1 m/s² threshold
       approachPidController.setConstraints(new Constraints(maxVelocity, maxAcceleration));
@@ -312,10 +306,6 @@ public class AlignToPose extends Command {
   }
 
   private void updateConstraints(boolean forceRefresh) {
-    // Update max acceleration based on elevator height (optimized to reduce allocations)
-    maxAcceleration = MathUtil.interpolate(maxAccelerationElevatorDown, maxAccelerationElevatorUp,
-        RobotContainer.superstructure.elevator.getElevatorExtendedPercent());
-
     // Only update constraints if acceleration changed significantly (reduces allocations)
     if (Math.abs(maxAcceleration - lastMaxAcceleration) > 0.1 || forceRefresh) { // 0.1 m/s² threshold
       approachPidController.setConstraints(new Constraints(maxVelocity, maxAcceleration));
