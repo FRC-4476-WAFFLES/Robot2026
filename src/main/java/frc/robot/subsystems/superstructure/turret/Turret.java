@@ -1,0 +1,169 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
+package frc.robot.subsystems.superstructure.turret;
+
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
+
+import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
+
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotContainer;
+import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.TurretConstants;
+import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
+
+public class Turret extends ExpandedSubsystem {
+  public static enum TurretState {
+    BRAKE,
+    TRACK_FIELD_RELATIVE,
+    TRACK_TURRET_RELATIVE
+  }
+
+  private final TurretIO io;
+  private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
+
+  @AutoLogOutput(key = "Turret/State")
+  private TurretState state;
+  @AutoLogOutput(key = "Turret/Zeroed")
+  private boolean turretZeroed = false;
+
+  private Rotation2d goalHeading = Rotation2d.kZero;
+  private double goalVelocity = 0;
+
+  private TrapezoidProfile profile = new TrapezoidProfile(
+      new TrapezoidProfile.Constraints(TurretConstants.MAX_VELOCITY, TurretConstants.MAX_ACCELERATION));
+  private State profileState = new State();
+
+  public Turret(TurretIO turretIO) {
+    io = turretIO;
+  }
+
+  @Override
+  public void periodic() {
+    io.updateInputs(inputs);
+    Logger.processInputs("Inputs/Turret", inputs);
+  }
+
+  @Override
+  public void latePeriodic() {
+    // Run after commandscheduler so commands can set a target properly
+    if (!DriverStation.isEnabled()) {
+      profileState = new State(inputs.motorData.position(), 0);
+      return;
+    }
+
+    if (!turretZeroed) {
+      runDutyCycle(TurretConstants.ZERO_DUTY_CYCLE);
+      if (inputs.zeroingSensor) {
+        io.setPosition(TurretConstants.ZERO_POSITION);
+        turretZeroed = true;
+      }
+    }
+
+    if (state == TurretState.BRAKE) {
+      runSetpoint(0, 0);
+      return;
+    }
+
+    Rotation2d robotRotation = RobotContainer.state.getRotation();
+    double robotTheta = RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond;
+
+    Rotation2d turretRelativeGoalHeading = goalHeading;
+    double turretRelativeGoalVelocity = goalVelocity;
+
+    if (state == TurretState.TRACK_FIELD_RELATIVE) {
+      turretRelativeGoalHeading = goalHeading.minus(robotRotation);
+      turretRelativeGoalVelocity = goalVelocity - robotTheta;
+    }
+    double chosenHeading = adjustSetpointForWrap(goalHeading.getRotations());
+
+    State goalState = new State(
+        MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
+        turretRelativeGoalVelocity);
+
+    profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
+
+    runSetpoint(profileState.position, profileState.velocity);
+    Logger.recordOutput("Turret/GoalHeading", goalHeading);
+    Logger.recordOutput("Turret/GoalVelocity", goalVelocity);
+    Logger.recordOutput("Turret/ProfileHeading", profileState.position);
+    Logger.recordOutput("Turret/ProfileVelocity", profileState.velocity);
+  }
+
+  // Can be rewritten later to handle different turret capabilities
+  private double adjustSetpointForWrap(double rotationsFromCenter) {
+    // We have two options the raw rotationsFromCenter or +/- 1 rotation.
+    double alternative = rotationsFromCenter - 1.0;
+    if (rotationsFromCenter < 0.0) {
+      alternative = rotationsFromCenter + 1.0;
+    }
+    if (Math.abs(getPosition() - alternative) < Math.abs(getPosition() - rotationsFromCenter)) {
+      return alternative;
+    }
+    return rotationsFromCenter;
+  }
+
+  private void runDutyCycle(double dutyCycle) {
+    Logger.recordOutput("Turret/OutputDutyCycle", dutyCycle);
+    io.runDutyCycle(dutyCycle);
+  }
+
+  private void runSetpoint(double position, double velocity) {
+    Logger.recordOutput("Turret/OutputPosition", position);
+    Logger.recordOutput("Turret/OutputVelocity", velocity);
+    io.runSetpoint(position, velocity);
+  }
+
+  // Public API
+  public void setTargetSetpoint(Rotation2d heading, double velocity) {
+    goalHeading = heading;
+    goalVelocity = velocity;
+  }
+
+  public TurretState getState() {
+    return state;
+  }
+
+  public void setState(TurretState state) {
+    if (this.state == state) {
+      return;
+    }
+    profileState = new State(inputs.motorData.position(), inputs.motorData.velocity());
+    this.state = state;
+  }
+
+  public double getPosition() {
+    return inputs.motorData.position();
+  }
+
+  public double getVelocity() {
+    return inputs.motorData.velocity();
+  }
+
+  // Commands
+  // public Command aimShotCommand() {
+  //   return run(
+  //       () -> {
+  //         // var params = ShotCalculator.getInstance().getParameters();
+  //         setTargetSetpoint(params.turretAngle(), params.turretVelocity());
+  //         setState(TurretState.TRACK_FIELD_RELATIVE);
+  //       }).withName("Aim Shot Command");
+  // }
+
+  public Command runSetpointCommand(Supplier<Rotation2d> heading, DoubleSupplier velocity, boolean fieldRelative) {
+    return run(
+        () -> {
+          setTargetSetpoint(heading.get(), velocity.getAsDouble());
+          setState(fieldRelative ? TurretState.TRACK_FIELD_RELATIVE : TurretState.TRACK_TURRET_RELATIVE);
+        }).withName("Run Turret Setpoint");
+  }
+}

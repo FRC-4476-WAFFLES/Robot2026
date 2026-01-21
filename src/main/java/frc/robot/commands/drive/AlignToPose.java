@@ -164,8 +164,8 @@ public class AlignToPose extends Command {
     alignmentTimer.reset();
     alignmentTimer.start();
 
-    var currentPose = RobotContainer.driveSubsystem.getPose();
-    ChassisSpeeds currentSpeeds = RobotContainer.driveSubsystem.getFieldVelocity();
+    var currentPose = RobotContainer.state.getPose();
+    ChassisSpeeds currentSpeeds = RobotContainer.state.getFieldVelocity();
 
     // Set tolerances (both position AND velocity for proper atGoal() behavior)
     thetaPidController.setTolerance(RotMaxError.getRadians(), Math.toRadians(1.0)); // 5 deg/s velocity tolerance
@@ -173,7 +173,7 @@ public class AlignToPose extends Command {
 
     // Reset theta controller
     thetaPidController.reset(currentPose.getRotation().getRadians(),
-        RobotContainer.driveSubsystem.getFieldVelocity().omegaRadiansPerSecond);
+        RobotContainer.state.getFieldVelocity().omegaRadiansPerSecond);
 
     // Reset approach controller
     double distanceToTarget = currentPose.getTranslation().getDistance(goalPose.getTranslation());
@@ -209,11 +209,11 @@ public class AlignToPose extends Command {
     Logger.recordOutput("AlignmentMetrics/Max Acceleration", maxAcceleration);
 
     // Get current conditions
-    Pose2d currentPose = RobotContainer.driveSubsystem.getPose();
+    Pose2d currentPose = RobotContainer.state.getPose();
     double distanceToTarget = currentPose.getTranslation().getDistance(goalPose.getTranslation());
     Rotation2d angleToTarget = WafflesUtilities.AngleBetweenPoints(currentPose.getTranslation(),
         goalPose.getTranslation());
-    ChassisSpeeds currentSpeeds = RobotContainer.driveSubsystem.getFieldVelocity();
+    ChassisSpeeds currentSpeeds = RobotContainer.state.getFieldVelocity();
     Translation2d velocityTowardsTarget = getVelocityTowardsTarget(currentSpeeds, angleToTarget); // This is in target space
 
     if ((distanceToTarget > 0.3 && Math.abs(velocityTowardsTarget.getY()) > 0.5) ||
@@ -323,7 +323,7 @@ public class AlignToPose extends Command {
         targetVelocity.getX(),
         targetVelocity.getY(),
         targetThetaVelocity
-    ), RobotContainer.driveSubsystem.getRotation()));
+    ), RobotContainer.state.getRotation()));
   }
 
   private void updateGoalPose() {

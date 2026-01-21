@@ -46,7 +46,10 @@ public final class Constants {
   public static class CANIds {
     // Drivetrain IDS are located in TunerConstants
 
-    // Other Motors
+    // Motors
+    public static final int turretMotor = 9;
+
+    // Other
     public static final int CANdle = 22;
 
     // Canivore
@@ -135,14 +138,38 @@ public final class Constants {
     public static final double LL_HEARTBEAT_MIN_FREQ = 0.5;
 
     // Used to read from the raw stddevs array returned by a limelight
-    public static final int kMegatag1XStdDevIndex = 0;
-    public static final int kMegatag1YStdDevIndex = 1;
-    public static final int kMegatag1YawStdDevIndex = 5;
+    public static final int MEGATAG_1_XStdDevIndex = 0;
+    public static final int MEGATAG_1_YStdDevIndex = 1;
+    public static final int MEGATAG_1_YawStdDevIndex = 5;
   }
 
   /* Physical */
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
-    public static final double exampleReduction = 7.1111;
+    public static final double EXAMPLE_REDUCTION = 7.1111;
+    public static final double TURRET_REDUCTION = 2;
+  }
+
+  public static class TurretConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-180);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(180);
+
+    public static final double MAX_VELOCITY = 2;
+    public static final double MAX_ACCELERATION = 10;
+
+    public static final double ZERO_DUTY_CYCLE = 0.25;
+    public static final double ZERO_POSITION = 0;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
   }
 }

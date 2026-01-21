@@ -44,8 +44,8 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants;
@@ -53,8 +53,9 @@ import frc.robot.data.Constants.Mode;
 import frc.robot.data.TunerConstants;
 import frc.robot.utils.external.LocalADStarAK;
 import frc.robot.utils.lib.WafflesUtilities;
+import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 
-public class Drive extends SubsystemBase {
+public class Drive extends ExpandedSubsystem {
   // TunerConstants doesn't include these constants, so they are declared locally
   static final double ODOMETRY_FREQUENCY = TunerConstants.kCANBus.isNetworkFD() ? 250.0 : 100.0;
   public static final double DRIVE_BASE_RADIUS = Math.max(
@@ -157,7 +158,7 @@ public class Drive extends SubsystemBase {
   }
 
   @Override
-  public void periodic() {
+  public void earlyPeriodic() { // Update odometry before the rest of the robot code
     odometryLock.lock(); // Prevents odometry updates while reading data
     gyroIO.updateInputs(gyroInputs);
     Logger.processInputs("Drive/Gyro", gyroInputs);
@@ -215,6 +216,9 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.getMode() != Mode.SIM);
+
+    // Update pose history buffers
+    RobotContainer.state.updateOdometryState(Timer.getTimestamp(), getPose(), getChassisSpeeds());
   }
 
   /**
@@ -303,11 +307,6 @@ public class Drive extends SubsystemBase {
     return kinematics.toChassisSpeeds(getModuleStates());
   }
 
-  @AutoLogOutput(key = "RobotState/FieldVelocity")
-  public ChassisSpeeds getFieldVelocity() {
-    return ChassisSpeeds.fromRobotRelativeSpeeds(getChassisSpeeds(), getRotation());
-  }
-
   /** Returns the position of each module in radians. */
   public double[] getWheelRadiusCharacterizationPositions() {
     double[] values = new double[4];
@@ -328,13 +327,8 @@ public class Drive extends SubsystemBase {
 
   /** Returns the current odometry pose. */
   @AutoLogOutput(key = "RobotState/FieldPose")
-  public Pose2d getPose() {
+  private Pose2d getPose() {
     return poseEstimator.getEstimatedPosition();
-  }
-
-  /** Returns the current odometry rotation. */
-  public Rotation2d getRotation() {
-    return getPose().getRotation();
   }
 
   /** Resets the current odometry pose. */
@@ -346,7 +340,7 @@ public class Drive extends SubsystemBase {
   public void resetGyro() {
     RobotContainer.driveSubsystem.setPose(
         new Pose2d(
-            RobotContainer.driveSubsystem.getPose().getTranslation(),
+            RobotContainer.state.getPose().getTranslation(),
             WafflesUtilities.getDriverForwardAngle()
         )
     );

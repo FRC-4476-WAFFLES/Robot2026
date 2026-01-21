@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
@@ -51,12 +50,8 @@ public class RobotContainer {
   /* Global Robot State */
   private LoggedDashboardChooser<Command> autoChooser;
   private LoggedDashboardChooser<Command> testChooser;
-  public static boolean isOperatorOverride = false;
-  public static boolean isRunningL1Intake = false;
-  public static boolean isGroundIntakingAlgae = false;
-  public static boolean isRunningManualL1 = false;
-  public static Trigger isHeadingLockedToL1;
-  public static Trigger triggerHandoff;
+
+  public static RobotState state = new RobotState();
   public static SimState simState = (Constants.getMode() == Mode.SIM) ? new SimState() : null;
 
   /* Hardware Subsystems */

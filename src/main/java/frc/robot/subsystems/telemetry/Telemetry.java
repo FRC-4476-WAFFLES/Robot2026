@@ -1,24 +1,20 @@
 package frc.robot.subsystems.telemetry;
 
 import java.util.ArrayList;
-import java.util.Optional;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.CANBus.CANBusStatus;
 
 import edu.wpi.first.hal.can.CANJNI;
 import edu.wpi.first.hal.can.CANStatus;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Controls;
 import frc.robot.Robot;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CANIds;
 import frc.robot.data.Constants.CodeConstants;
-import frc.robot.utils.external.ConcurrentTimeInterpolatableBuffer;
 import frc.robot.utils.hardware.DeferredRefresher;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
@@ -80,16 +76,6 @@ public class Telemetry extends VirtualSubsystem {
   private final Alert operatorControllerDisconnected = new Alert("Operator controller disconnected [port 2].",
       AlertType.kWarning);
 
-  /*                       */
-  /*  Latency Compensation */
-  /*                       */
-
-  // Timestamps are in the timebase of Timer.getFPGATimestamp()
-  private ConcurrentTimeInterpolatableBuffer<Pose2d> poseHistoryBuffer = ConcurrentTimeInterpolatableBuffer
-      .createBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
-  private ConcurrentTimeInterpolatableBuffer<Double> yawVelocityHistoryBuffer = ConcurrentTimeInterpolatableBuffer
-      .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
-
   /**
    * Construct a telemetry subsystem
    */
@@ -117,25 +103,6 @@ public class Telemetry extends VirtualSubsystem {
     }
 
     checkVisionFault();
-
-    // Less accurate than high hz odometry thread but probably good enough? 
-    poseHistoryBuffer.addSample(Timer.getTimestamp(), RobotContainer.driveSubsystem.getPose());
-    yawVelocityHistoryBuffer.addSample(Timer.getTimestamp(),
-        RobotContainer.driveSubsystem.getFieldVelocity().omegaRadiansPerSecond);
-  }
-
-  /**
-   * Gets the robot pose at the given timestamp (FPGA timebase) 
-   */
-  public Optional<Pose2d> getPoseAtTimestamp(double timestamp) {
-    return poseHistoryBuffer.getSample(timestamp);
-  }
-
-  /**
-   * Gets the robot yaw velocity at the given timestamp (FPGA timebase) 
-   */
-  public Optional<Double> getYawVelocityAtTimestamp(double timestamp) {
-    return yawVelocityHistoryBuffer.getSample(timestamp);
   }
 
   /**

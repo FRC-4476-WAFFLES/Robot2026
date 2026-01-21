@@ -30,8 +30,7 @@ public class WheelRadiusCharacterization {
   private static final Drive drive = RobotContainer.driveSubsystem;
 
   // Class should not be instanciated, so constructor is private
-  private WheelRadiusCharacterization() {
-  }
+  private WheelRadiusCharacterization() {}
 
   public static Command GetCharacterizationCommand() {
     // Characterization state
@@ -60,12 +59,12 @@ public class WheelRadiusCharacterization {
             Commands.runOnce(() -> {
               state.startingModuleRotations = drive.getWheelRadiusCharacterizationPositions();
               state.accumulatedRotation = 0;
-              state.lastRotation = drive.getRotation();
+              state.lastRotation = RobotContainer.state.getRotation();
             }),
 
             // Update accumuated rotation
             Commands.run(() -> {
-              Rotation2d currentRotation = drive.getRotation();
+              Rotation2d currentRotation = RobotContainer.state.getRotation();
               state.accumulatedRotation += Math.abs(currentRotation.minus(state.lastRotation).getRadians());
 
               //Debugging
@@ -77,7 +76,7 @@ public class WheelRadiusCharacterization {
 
             }).finallyDo(() -> {
               // Finally update last rotation
-              Rotation2d currentRotation = drive.getRotation();
+              Rotation2d currentRotation = RobotContainer.state.getRotation();
               state.accumulatedRotation += Math.abs(currentRotation.minus(state.lastRotation).getRadians());
 
               // Finally calculate radius from accumulated data

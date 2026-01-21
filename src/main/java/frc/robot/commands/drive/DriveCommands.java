@@ -27,6 +27,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
+import frc.robot.RobotContainer;
 import frc.robot.subsystems.drive.Drive;
 
 public class DriveCommands {
@@ -71,8 +72,8 @@ public class DriveCommands {
               ChassisSpeeds.fromFieldRelativeSpeeds(
                   speeds,
                   isFlipped
-                      ? drive.getRotation().plus(Rotation2d.k180deg)
-                      : drive.getRotation()));
+                      ? RobotContainer.state.getRotation().plus(Rotation2d.k180deg)
+                      : RobotContainer.state.getRotation()));
         },
         drive);
   }
@@ -105,7 +106,7 @@ public class DriveCommands {
 
           // Calculate angular speed
           double omega = angleController.calculate(
-              drive.getRotation().getRadians(), rotationSupplier.get().getRadians());
+              RobotContainer.state.getRotation().getRadians(), rotationSupplier.get().getRadians());
 
           // Convert to field relative speeds & send command
           ChassisSpeeds speeds = new ChassisSpeeds(
@@ -118,13 +119,13 @@ public class DriveCommands {
               ChassisSpeeds.fromFieldRelativeSpeeds(
                   speeds,
                   isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+                      ? RobotContainer.state.getRotation().plus(new Rotation2d(Math.PI))
+                      : RobotContainer.state.getRotation()));
         },
         drive)
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+        .beforeStarting(() -> angleController.reset(RobotContainer.state.getRotation().getRadians()));
   }
 
   /**
@@ -221,14 +222,14 @@ public class DriveCommands {
             Commands.runOnce(
                 () -> {
                   state.positions = drive.getWheelRadiusCharacterizationPositions();
-                  state.lastAngle = drive.getRotation();
+                  state.lastAngle = RobotContainer.state.getRotation();
                   state.gyroDelta = 0.0;
                 }),
 
             // Update gyro delta
             Commands.run(
                 () -> {
-                  var rotation = drive.getRotation();
+                  var rotation = RobotContainer.state.getRotation();
                   state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRadians());
                   state.lastAngle = rotation;
                 })
