@@ -4,6 +4,8 @@
 
 package frc.robot.data;
 
+import com.ctre.phoenix6.CANBus;
+
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
@@ -48,12 +50,15 @@ public final class Constants {
 
     // Motors
     public static final int turretMotor = 9;
+    public static final int expanderMotor = 10;
+    public static final int intakeMotor = 11;
 
     // Other
     public static final int CANdle = 22;
 
     // Canivore
     public static final String CANivoreName = "Drivetrain";
+    public static final CANBus CANivoreBus = new CANBus(CANivoreName);
   }
 
   /* PWM Outputs */
@@ -148,17 +153,77 @@ public final class Constants {
     // In number of motor rotations per mechanism rotation
     public static final double EXAMPLE_REDUCTION = 7.1111;
     public static final double TURRET_REDUCTION = 2;
+    public static final double EXTENDER_REDUCTION = 2;
+    public static final double INTAKE_REDUCTION = 2;
   }
 
   public static class TurretConstants {
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-180);
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(180);
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
 
-    public static final double MAX_VELOCITY = 2;
-    public static final double MAX_ACCELERATION = 10;
+    public static final double MAX_VELOCITY = 10;
+    public static final double MAX_ACCELERATION = 20;
 
     public static final double ZERO_DUTY_CYCLE = 0.25;
     public static final double ZERO_POSITION = 0;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+  }
+
+  public static class ExpanderConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(270);
+
+    public static final double MAX_VELOCITY = 4;
+    public static final double MAX_ACCELERATION = 8;
+
+    public static final double ZERO_DUTY_CYCLE = -0.25;
+    public static final double ZERO_POSITION = 0;
+    public static final double ZERO_TORQUE_CURRENT = -40;
+    public static final double ZERO_DEBOUNCE = 0.2;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+
+    // Configured positions
+    public enum ExpanderPosition {
+      STOWED(0.0),
+      EXTENDED(125.0);
+
+      private final double degrees;
+
+      ExpanderPosition(double degrees) {
+        this.degrees = degrees;
+      }
+
+      public double getDegrees() {
+        return degrees;
+      }
+    }
+  }
+
+  public static class IntakeConstants {
+    public static final double MAX_ACCELERATION = 8;
+    public static final double MAX_JERK = 200;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;

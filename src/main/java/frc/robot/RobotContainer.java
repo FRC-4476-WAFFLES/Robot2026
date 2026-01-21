@@ -9,6 +9,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -28,7 +29,16 @@ import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
+import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.intake.Intake.ExpanderState;
+import frc.robot.subsystems.intake.IntakeIO;
+import frc.robot.subsystems.intake.IntakeIOSim;
+import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
+import frc.robot.subsystems.superstructure.turret.Turret;
+import frc.robot.subsystems.superstructure.turret.TurretIO;
+import frc.robot.subsystems.superstructure.turret.TurretIOSim;
+import frc.robot.subsystems.superstructure.turret.TurretIOTalonFX;
 import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
@@ -56,7 +66,9 @@ public class RobotContainer {
 
   /* Hardware Subsystems */
   /* Require an IO layer if receiving any inputs */
-  public static final Drive driveSubsystem;
+  public static final Drive drive;
+  public static final Turret turret;
+  public static final Intake intake;
 
   /* Virtual Subsystems */
   /*
@@ -80,12 +92,16 @@ public class RobotContainer {
         // Real robot, instantiate hardware IO implementations
         // ModuleIOTalonFX is intended for modules with TalonFX drive, TalonFX turn, and
         // a CANcoder
-        driveSubsystem = new Drive(
+        drive = new Drive(
             new GyroIOPigeon2(),
             new ModuleIOTalonFX(TunerConstants.FrontLeft),
             new ModuleIOTalonFX(TunerConstants.FrontRight),
             new ModuleIOTalonFX(TunerConstants.BackLeft),
             new ModuleIOTalonFX(TunerConstants.BackRight));
+
+        turret = new Turret(new TurretIOTalonFX());
+
+        intake = new Intake(new IntakeIOTalonFX());
 
         vision = new Vision(
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
@@ -95,12 +111,16 @@ public class RobotContainer {
 
       case SIM:
         // Sim robot, instantiate physics sim IO implementations
-        driveSubsystem = new Drive(
+        drive = new Drive(
             new GyroIO() {},
             new ModuleIOSim(TunerConstants.FrontLeft),
             new ModuleIOSim(TunerConstants.FrontRight),
             new ModuleIOSim(TunerConstants.BackLeft),
             new ModuleIOSim(TunerConstants.BackRight));
+
+        turret = new Turret(new TurretIOSim());
+
+        intake = new Intake(new IntakeIOSim());
 
         vision = new Vision(
             new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
@@ -114,13 +134,17 @@ public class RobotContainer {
 
       default:
         // Replayed robot, disable IO implementations
-        driveSubsystem = new Drive(
+        drive = new Drive(
             new GyroIO() {},
             new ModuleIO() {},
             new ModuleIO() {},
             new ModuleIO() {},
             new ModuleIO() {}
         );
+
+        turret = new Turret(new TurretIO() {});
+
+        intake = new Intake(new IntakeIO() {});
 
         vision = new Vision(
             new VisionIO() {},
@@ -156,12 +180,15 @@ public class RobotContainer {
    */
   private void configureDefaultCommands() {
     // Swerve telemetry from odometry thread
-    driveSubsystem.setDefaultCommand(DriveCommands.joystickDrive(
-        driveSubsystem,
+    drive.setDefaultCommand(DriveCommands.joystickDrive(
+        drive,
         Controls::getDriveYRaw,
         Controls::getDriveXRaw,
         Controls::getDriveRotationRaw
     ));
+
+    // Testing
+    turret.setDefaultCommand(turret.runSetpointCommand(() -> Rotation2d.k180deg, () -> 0, true));
   }
 
   /**
@@ -184,10 +211,16 @@ public class RobotContainer {
    */
   private void configureBindings() {
     Controls.rightJoystick.button(9).onTrue(Commands.runOnce(() -> {
-
+      drive.resetGyro();
     }));
     // Use the back button to zero both elevator and pivot in sequence
     // Controls.operatorController.back().onTrue(new ZeroMechanisms());
+    Controls.rightJoystick.button(1).onTrue(Commands.runOnce(() -> {
+      intake.setExpanderState(ExpanderState.EXTENDED);
+    }));
+    Controls.rightJoystick.button(1).onFalse(Commands.runOnce(() -> {
+      intake.setExpanderState(ExpanderState.STOWED);
+    }));
 
     // Simulation
     if (RobotBase.isSimulation()) {
@@ -220,25 +253,25 @@ public class RobotContainer {
     // Set up SysId routines
     chooser.addOption(
         "Drive Wheel Radius Characterization (AKit)",
-        DriveCommands.wheelRadiusCharacterization(driveSubsystem));
+        DriveCommands.wheelRadiusCharacterization(drive));
     chooser.addOption(
         "Drive Wheel Radius Characterization (Custom)",
         WheelRadiusCharacterization.GetCharacterizationCommand());
     chooser.addOption(
         "Drive Simple FF Characterization",
-        DriveCommands.feedforwardCharacterization(driveSubsystem));
+        DriveCommands.feedforwardCharacterization(drive));
     chooser.addOption(
         "Drive SysId (Quasistatic Forward)",
-        driveSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+        drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
     chooser.addOption(
         "Drive SysId (Quasistatic Reverse)",
-        driveSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+        drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
     chooser.addOption(
         "Drive SysId (Dynamic Forward)",
-        driveSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
+        drive.sysIdDynamic(SysIdRoutine.Direction.kForward));
     chooser.addOption(
         "Drive SysId (Dynamic Reverse)",
-        driveSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+        drive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
 
     return chooser;
   }

@@ -14,6 +14,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
@@ -75,7 +76,7 @@ public class Turret extends ExpandedSubsystem {
     }
 
     Rotation2d robotRotation = RobotContainer.state.getRotation();
-    double robotTheta = RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond;
+    double robotTheta = Units.radiansToRotations(RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond);
 
     Rotation2d turretRelativeGoalHeading = goalHeading;
     double turretRelativeGoalVelocity = goalVelocity;
@@ -84,19 +85,20 @@ public class Turret extends ExpandedSubsystem {
       turretRelativeGoalHeading = goalHeading.minus(robotRotation);
       turretRelativeGoalVelocity = goalVelocity - robotTheta;
     }
-    double chosenHeading = adjustSetpointForWrap(goalHeading.getRotations());
+    double chosenHeading = adjustSetpointForWrap(turretRelativeGoalHeading.getRotations());
 
     State goalState = new State(
         MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
         turretRelativeGoalVelocity);
 
+    Logger.recordOutput("Turret/MotionProfile/GoalHeading", goalState.position);
+    Logger.recordOutput("Turret/MotionProfile/GoalVelocity", goalState.velocity);
+    Logger.recordOutput("Turret/MotionProfile/ProfileHeading", profileState.position);
+    Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
+
     profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
 
     runSetpoint(profileState.position, profileState.velocity);
-    Logger.recordOutput("Turret/GoalHeading", goalHeading);
-    Logger.recordOutput("Turret/GoalVelocity", goalVelocity);
-    Logger.recordOutput("Turret/ProfileHeading", profileState.position);
-    Logger.recordOutput("Turret/ProfileVelocity", profileState.velocity);
   }
 
   // Can be rewritten later to handle different turret capabilities
@@ -106,10 +108,19 @@ public class Turret extends ExpandedSubsystem {
     if (rotationsFromCenter < 0.0) {
       alternative = rotationsFromCenter + 1.0;
     }
+
+    if (alternative < TurretConstants.MIN_POSITION_ROTATIONS || alternative > TurretConstants.MAX_POSITION_ROTATIONS) {
+      return rotationsFromCenter;
+    }
+
     if (Math.abs(getPosition() - alternative) < Math.abs(getPosition() - rotationsFromCenter)) {
       return alternative;
     }
     return rotationsFromCenter;
+  }
+
+  private double getAbsolutePosition() {
+    return getPosition() % 1.0; // If absolute encoders are added later, just replace this with an input
   }
 
   private void runDutyCycle(double dutyCycle) {
@@ -147,6 +158,15 @@ public class Turret extends ExpandedSubsystem {
 
   public double getVelocity() {
     return inputs.motorData.velocity();
+  }
+
+  public boolean atSetpoint(Rotation2d heading, double tolerancePos) {
+    return Math.abs(heading.getRotations() - getAbsolutePosition()) < tolerancePos;
+  }
+
+  public boolean atSetpoint(Rotation2d heading, double velocity, double tolerancePos, double toleranceVel) {
+    return Math.abs(heading.getRotations() - getAbsolutePosition()) < tolerancePos &&
+        Math.abs(velocity - getVelocity()) < toleranceVel;
   }
 
   // Commands

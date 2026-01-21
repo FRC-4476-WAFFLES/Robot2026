@@ -25,7 +25,7 @@ public class TurretIOTalonFX implements TurretIO {
   private final PositionVoltage setpointRequest = new PositionVoltage(0);
 
   public TurretIOTalonFX() {
-    turret = new TalonFXIO(CANIds.turretMotor);
+    turret = new TalonFXIO(CANIds.turretMotor, CANIds.CANivoreBus);
 
     TalonFXConfiguration turretConfigs = new TalonFXConfiguration();
 
@@ -43,22 +43,23 @@ public class TurretIOTalonFX implements TurretIO {
     slot0Configs.kS = TurretConstants.MOTOR_kS;
     slot0Configs.kV = TurretConstants.MOTOR_kV;
     slot0Configs.kA = TurretConstants.MOTOR_kA;
-
     turretConfigs.Slot0 = slot0Configs;
-
-    turretConfigs.MotorOutput.DutyCycleNeutralDeadband = TurretConstants.MOTOR_DEADBAND;
 
     turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_REDUCTION;
     turretConfigs.Feedback.RotorToSensorRatio = 1;
 
+    turretConfigs.MotorOutput.DutyCycleNeutralDeadband = TurretConstants.MOTOR_DEADBAND;
     turretConfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
     turretConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
-    // Add voltage compensation
-    turretConfigs.Voltage.PeakForwardVoltage = TurretConstants.MOTOR_PEAK_SUPPLY_VOLTAGE; // 12V compensation
+    turretConfigs.Voltage.PeakForwardVoltage = TurretConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;
     turretConfigs.Voltage.PeakReverseVoltage = -TurretConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;
     turretConfigs.Voltage.SupplyVoltageTimeConstant = 0.1;
-    turretConfigs.CurrentLimits.StatorCurrentLimit = 60;
+
+    turretConfigs.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+    turretConfigs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+    turretConfigs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = TurretConstants.MAX_POSITION_ROTATIONS;
+    turretConfigs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = TurretConstants.MIN_POSITION_ROTATIONS;
 
     PhoenixHelpers.tryConfig(() -> turret.getConfigurator().apply(turretConfigs));
   }

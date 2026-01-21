@@ -79,7 +79,7 @@ public class Vision extends VirtualSubsystem {
       if (VisionHelpers.isValidPose(estimate.pose)
           && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
         validPoseNT.set(estimate.pose);
-        RobotContainer.driveSubsystem.addVisionMeasurement(
+        RobotContainer.drive.addVisionMeasurement(
             estimate.pose,
             estimate.timestampSeconds,
             estimate.standardDeviation

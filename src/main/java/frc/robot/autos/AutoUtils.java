@@ -12,14 +12,14 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.lib.WafflesUtilities;
 
 public class AutoUtils {
-        public static Command resetOdometry(Pose2d instantPose) {
-                if (!CodeConstants.RESET_ODOMETRY_AUTO_START) {
-                        return new InstantCommand();
-                }
-                return new InstantCommand(() -> {
-                        RobotContainer.driveSubsystem.setPose(
-                                        WafflesUtilities.FlipIfRedAlliance(instantPose)
-                        );
-                });
-        }
+  public static Command resetOdometry(Pose2d instantPose) {
+    if (!CodeConstants.RESET_ODOMETRY_AUTO_START) {
+      return new InstantCommand();
+    }
+    return new InstantCommand(() -> {
+      RobotContainer.drive.setPose(
+          WafflesUtilities.FlipIfRedAlliance(instantPose)
+      );
+    });
+  }
 }

@@ -70,7 +70,7 @@ public class AlignToPose extends Command {
    * @param targetPoseSupplier The goal pose for the robot to align to as a supplier
    */
   public AlignToPose(Supplier<Pose2d> targetPoseSupplier) {
-    addRequirements(RobotContainer.driveSubsystem);
+    addRequirements(RobotContainer.drive);
 
     thetaPidController.enableContinuousInput(-Math.PI, Math.PI);
 
@@ -319,7 +319,7 @@ public class AlignToPose extends Command {
    * Helper method to apply a chosen field velocity to the drivetrain
    */
   private void applyFieldVelocity(Translation2d targetVelocity, double targetThetaVelocity) {
-    RobotContainer.driveSubsystem.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(new ChassisSpeeds(
+    RobotContainer.drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(new ChassisSpeeds(
         targetVelocity.getX(),
         targetVelocity.getY(),
         targetThetaVelocity

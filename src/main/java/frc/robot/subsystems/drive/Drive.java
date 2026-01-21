@@ -338,7 +338,7 @@ public class Drive extends ExpandedSubsystem {
 
   /** Resets the current gyro heading to face the current driverstation forward angle */
   public void resetGyro() {
-    RobotContainer.driveSubsystem.setPose(
+    RobotContainer.drive.setPose(
         new Pose2d(
             RobotContainer.state.getPose().getTranslation(),
             WafflesUtilities.getDriverForwardAngle()

@@ -27,7 +27,7 @@ public class WheelRadiusCharacterization {
 
   public static final double TEST_DURATION = 60; // seconds
 
-  private static final Drive drive = RobotContainer.driveSubsystem;
+  private static final Drive drive = RobotContainer.drive;
 
   // Class should not be instanciated, so constructor is private
   private WheelRadiusCharacterization() {}
