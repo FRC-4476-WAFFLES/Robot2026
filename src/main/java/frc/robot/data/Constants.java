@@ -53,6 +53,7 @@ public final class Constants {
     public static final int expanderMotor = 10;
     public static final int intakeMotor = 11;
     public static final int hoodMotor = 12;
+    public static final int climberMotor = 13;
 
     // Other
     public static final int CANdle = 22;

@@ -17,7 +17,7 @@ public class HoodIOSim extends HoodIOTalonFX {
   }
 
   @Override
-  public void updateInputs(ClimberIOInputs inputs) {
+  public void updateInputs(HoodIOInputs inputs) {
     var talonFXSim = hood.getSimState();
 
     var simResult = simState.Evaluate(setpointPos, CodeConstants.PERIODIC_LOOP_TIME);
@@ -32,8 +32,8 @@ public class HoodIOSim extends HoodIOTalonFX {
   }
 
   @Override
-  public void runClimberPosition(double position) {
+  public void runHoodPosition(double position) {
     setpointPos = position;
-    super.runClimberPosition(position);
+    super.runHoodPosition(position);
   }
 }

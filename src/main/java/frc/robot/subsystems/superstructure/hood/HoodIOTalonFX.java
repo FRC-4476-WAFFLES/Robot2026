@@ -15,11 +15,10 @@ import edu.wpi.first.math.MathUtil;
 import frc.robot.data.Constants.CANIds;
 import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
-import frc.robot.subsystems.climber.ClimberIO;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
 
-public class HoodIOTalonFX implements ClimberIO {
+public class HoodIOTalonFX implements HoodIO {
   protected final TalonFXIO hood;
 
   private final MotionMagicVoltage setpointRequest = new MotionMagicVoltage(0);
@@ -69,17 +68,17 @@ public class HoodIOTalonFX implements ClimberIO {
   }
 
   @Override
-  public void updateInputs(ClimberIOInputs inputs) {
-    inputs.climberMotor = hood.getSignalData();
+  public void updateInputs(HoodIOInputs inputs) {
+    inputs.hoodMotor = hood.getSignalData();
   }
 
   @Override
-  public void runClimberDutyCycle(double speed) {
+  public void runHoodDutyCycle(double speed) {
     hood.set(speed);
   }
 
   @Override
-  public void runClimberPosition(double position) {
+  public void runHoodPosition(double position) {
     double setpointRotations = MathUtil.clamp(
         position, HoodConstants.MIN_POSITION_ROTATIONS,
         HoodConstants.MAX_POSITION_ROTATIONS);
@@ -88,7 +87,7 @@ public class HoodIOTalonFX implements ClimberIO {
   }
 
   @Override
-  public void setClimberPosition(double position) {
+  public void setHoodPosition(double position) {
     hood.setPosition(position);
   }
 }

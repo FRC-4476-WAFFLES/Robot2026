@@ -24,7 +24,7 @@ public class ClimberIOTalonFX implements ClimberIO {
   private final MotionMagicVoltage setpointRequest = new MotionMagicVoltage(0);
 
   public ClimberIOTalonFX() {
-    climber = new TalonFXIO(CANIds.hoodMotor);
+    climber = new TalonFXIO(CANIds.climberMotor);
 
     ConfigureClimber();
   }

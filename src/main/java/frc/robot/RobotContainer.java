@@ -35,6 +35,10 @@ import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
+import frc.robot.subsystems.superstructure.hood.Hood;
+import frc.robot.subsystems.superstructure.hood.HoodIO;
+import frc.robot.subsystems.superstructure.hood.HoodIOSim;
+import frc.robot.subsystems.superstructure.hood.HoodIOTalonFX;
 import frc.robot.subsystems.superstructure.turret.Turret;
 import frc.robot.subsystems.superstructure.turret.TurretIO;
 import frc.robot.subsystems.superstructure.turret.TurretIOSim;
@@ -69,6 +73,8 @@ public class RobotContainer {
   public static final Drive drive;
   public static final Turret turret;
   public static final Intake intake;
+  public static final Hood hood;
+  // public static final Climber climber; // idk uncomment once hood IOs exist lol
 
   /* Virtual Subsystems */
   /*
@@ -101,6 +107,8 @@ public class RobotContainer {
 
         turret = new Turret(new TurretIOTalonFX());
 
+        hood = new Hood(new HoodIOTalonFX());
+
         intake = new Intake(new IntakeIOTalonFX());
 
         vision = new Vision(
@@ -119,6 +127,8 @@ public class RobotContainer {
             new ModuleIOSim(TunerConstants.BackRight));
 
         turret = new Turret(new TurretIOSim());
+
+        hood = new Hood(new HoodIOSim());
 
         intake = new Intake(new IntakeIOSim());
 
@@ -143,6 +153,8 @@ public class RobotContainer {
         );
 
         turret = new Turret(new TurretIO() {});
+
+        hood = new Hood(new HoodIO() {});
 
         intake = new Intake(new IntakeIO() {});
 
