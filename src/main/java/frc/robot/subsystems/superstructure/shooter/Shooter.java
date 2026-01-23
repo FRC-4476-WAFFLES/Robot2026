@@ -4,14 +4,37 @@
 
 package frc.robot.subsystems.superstructure.shooter;
 
+import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
+
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Shooter extends SubsystemBase {
-  /** Creates a new Shooter. */
-  public Shooter() {}
+  private final ShooterIO io;
+  private final ShooterIOInputsAutoLogged inputs = new ShooterIOInputsAutoLogged();
+
+  @AutoLogOutput(key = "Shooter Goal Velocity")
+  private double shooterGoalVelocity = 0;
+
+  public Shooter(ShooterIO io) {
+    this.io = io;
+  }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
+    io.updateInputs(inputs);
+    Logger.processInputs("Inputs/Shooter", inputs);
+
+    if (!DriverStation.isEnabled()) {
+      io.runShooterVelocity(0);
+      return;
+    }
+
+    io.runShooterVelocity(shooterGoalVelocity);
+  }
+
+  public void setShooterSetpoint(double velocity) {
+    shooterGoalVelocity = velocity;
   }
 }

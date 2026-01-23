@@ -54,7 +54,7 @@ public final class Constants {
     public static final int intakeMotor = 11;
     public static final int hoodMotor = 12;
     public static final int climberMotor = 13;
-
+    public static final int shooterMotor = 14;
     // Other
     public static final int CANdle = 22;
 
@@ -156,6 +156,7 @@ public final class Constants {
     public static final double EXAMPLE_REDUCTION = 7.1111;
     public static final double TURRET_REDUCTION = 2;
     public static final double EXTENDER_REDUCTION = 2;
+    public static final double SHOOTER_REDUCTION = 2;
     public static final double INTAKE_REDUCTION = 2;
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
