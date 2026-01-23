@@ -52,6 +52,7 @@ public final class Constants {
     public static final int turretMotor = 9;
     public static final int expanderMotor = 10;
     public static final int intakeMotor = 11;
+    public static final int hoodMotor = 12;
 
     // Other
     public static final int CANdle = 22;
@@ -155,6 +156,8 @@ public final class Constants {
     public static final double TURRET_REDUCTION = 2;
     public static final double EXTENDER_REDUCTION = 2;
     public static final double INTAKE_REDUCTION = 2;
+    public static final double HOOD_REDUCTION = 2;
+    public static final double CLIMBER_REDUCTION = 2;
   }
 
   public static class TurretConstants {
@@ -236,5 +239,60 @@ public final class Constants {
 
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+  }
+
+  public static class HoodConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(50); // something
+
+    public static final double MAX_VELOCITY = 2;
+    public static final double MAX_ACCELERATION = 2;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+  }
+
+  public static class ClimberConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(50); // something
+
+    public static final double MAX_VELOCITY = 2;
+    public static final double MAX_ACCELERATION = 2;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+
+    public enum ClimberPosition {
+      STOWED(0.0),
+      EXTENDED(125.0);
+
+      private final double degrees;
+
+      ClimberPosition(double degrees) {
+        this.degrees = degrees;
+      }
+
+      public double getDegrees() {
+        return degrees;
+      }
+    }
   }
 }

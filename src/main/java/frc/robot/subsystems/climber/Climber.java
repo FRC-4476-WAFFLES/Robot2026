@@ -2,32 +2,32 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems.superstructure.hood;
+package frc.robot.subsystems.climber;
 
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class Hood extends SubsystemBase {
-  private final HoodIO io;
-  private final HoodIOInputsAutoLogged inputs = new HoodIOInputsAutoLogged();
+public class Climber extends SubsystemBase {
+  private final ClimberIO io;
+  private final ClimberIOInputsAutoLogged inputs = new ClimberIOInputsAutoLogged();
 
-  public Hood(HoodIO io) {
+  public Climber(ClimberIO io) {
     this.io = io;
   }
 
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs("Inputs/Hood", inputs);
+    Logger.processInputs("Inputs/Climber", inputs);
   }
 
   public void setSetpoint(double setpoint) {
-    Logger.recordOutput("Hood/OutputPosition", setpoint);
-    io.runHoodPosition(setpoint);
+    Logger.recordOutput("Climber/OutputPosition", setpoint);
+    io.runClimberPosition(setpoint);
   }
 
   public double getPosition() {
-    return inputs.hoodMotor.position();
+    return inputs.climberMotor.position();
   }
 }

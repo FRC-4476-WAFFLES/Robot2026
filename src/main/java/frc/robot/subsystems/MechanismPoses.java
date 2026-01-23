@@ -17,7 +17,7 @@ public class MechanismPoses extends VirtualSubsystem {
   private Transform3d intakeRestPose = new Transform3d(0, -0.2, 0.2032, Rotation3d.kZero);
 
   public MechanismPoses() {
-    Logger.recordOutput("Telemetry/Zero", Pose3d.kZero);
+    Logger.recordOutput("RobotState/Zero", Pose3d.kZero);
   }
 
   @Override
@@ -35,6 +35,6 @@ public class MechanismPoses extends VirtualSubsystem {
     );
     poseArray[1] = groundIntakePose;
 
-    Logger.recordOutput("Telemetry/MechanismPoses", poseArray);
+    Logger.recordOutput("RobotState/MechanismPoses", poseArray);
   }
 }

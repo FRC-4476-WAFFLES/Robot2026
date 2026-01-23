@@ -46,7 +46,7 @@ public class TagCamera {
    */
   public Optional<TagPoseEstimate> update() {
     visionIO.updateInputs(inputs);
-    Logger.processInputs("Vison/" + cameraName, inputs);
+    Logger.processInputs("Inputs/Vison/" + cameraName, inputs);
 
     // Throttle performance while disabled to prevent overheating
     if (DriverStation.isEnabled()) {

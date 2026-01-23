@@ -21,7 +21,7 @@ public interface IntakeIO {
 
   default void runExpanderDutyCycle(double speed) {}
 
-  default void runExpanderSetpoint(double position) {}
+  default void runExpanderPosition(double position) {}
 
   default void runIntakeVelocity(double velocity) {}
 }

@@ -61,7 +61,7 @@ public class Intake extends SubsystemBase {
     if (expanderState == ExpanderState.EXTENDED) {
       expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
     }
-    io.runExpanderSetpoint(expanderSetpoint);
+    io.runExpanderPosition(expanderSetpoint);
   }
 
   // Public API

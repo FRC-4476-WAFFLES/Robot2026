@@ -161,7 +161,7 @@ public class Drive extends ExpandedSubsystem {
   public void earlyPeriodic() { // Update odometry before the rest of the robot code
     odometryLock.lock(); // Prevents odometry updates while reading data
     gyroIO.updateInputs(gyroInputs);
-    Logger.processInputs("Drive/Gyro", gyroInputs);
+    Logger.processInputs("Inputs/Drive/Gyro", gyroInputs);
     for (var module : modules) {
       module.periodic();
     }

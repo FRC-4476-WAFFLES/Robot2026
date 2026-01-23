@@ -49,7 +49,7 @@ public class EpochTimer {
     if (EpochMap.containsKey(name)) {
       double timeElapsed = Timer.getFPGATimestamp() - EpochMap.get(name).lastTime;
       // EpochMap.get(name).doublePublisher.set(timeElapsed * 1000);
-      Logger.recordOutput("Telemetry/Timing (ms)/" + name, timeElapsed * 1000);
+      Logger.recordOutput("RobotState/Timing (ms)/" + name, timeElapsed * 1000);
 
       EpochMap.get(name).lastTime = -1.0;
       return timeElapsed;

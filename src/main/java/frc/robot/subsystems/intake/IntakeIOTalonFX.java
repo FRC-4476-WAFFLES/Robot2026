@@ -116,7 +116,7 @@ public class IntakeIOTalonFX implements IntakeIO {
   }
 
   @Override
-  public void runExpanderSetpoint(double position) {
+  public void runExpanderPosition(double position) {
     double setpointRotations = MathUtil.clamp(
         position, Constants.ExpanderConstants.MIN_POSITION_ROTATIONS,
         Constants.ExpanderConstants.MAX_POSITION_ROTATIONS);
