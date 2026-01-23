@@ -28,7 +28,7 @@ package frc.robot.utils.obsolete;
 // import frc.robot.data.Constants.VisionConstants;
 
 // /*
-//  * This class is a bit of a mess, and is in serious need of a rewrite. It is currently unused for 2025
+//  * This class is a bit of a mess, and is in serious need of a rewrite. It is currently unused for 2025 onwards
 //  */
 // public class PhotonVisionWrapper {
 //     private final PhotonCamera camera;

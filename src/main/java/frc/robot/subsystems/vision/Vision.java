@@ -6,6 +6,8 @@ package frc.robot.subsystems.vision;
 
 import java.util.Optional;
 
+import org.littletonrobotics.junction.Logger;
+
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -14,9 +16,6 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructPublisher;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
@@ -30,13 +29,6 @@ public class Vision extends VirtualSubsystem {
       int numTags,
       Pose2d odometryAtTimestamp
   ) {}
-
-  /** Networktables */
-  private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
-  private final NetworkTable softwareTable = inst.getTable("SoftwareInfo");
-  private final StructPublisher<Pose2d> validPoseNT = softwareTable
-      .getStructTopic("Validated Pose", Pose2d.struct)
-      .publish();
 
   /** Limelight hardware */
   public final TagCamera leftLimelight;
@@ -78,7 +70,7 @@ public class Vision extends VirtualSubsystem {
 
       if (VisionHelpers.isValidPose(estimate.pose)
           && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
-        validPoseNT.set(estimate.pose);
+        Logger.recordOutput("Vision/Validated Pose", estimate.pose);
         RobotContainer.drive.addVisionMeasurement(
             estimate.pose,
             estimate.timestampSeconds,

@@ -75,6 +75,7 @@ public class VisionHelpers {
     return estStdDevs;
   }
 
+  /* ONLY USE INSIDE AN IO LAYER (!!!) */
   public static double[] getAutomaticStandardDeviations(String limelightName) {
     return NetworkTableInstance.getDefault().getTable(limelightName).getEntry("stddevs")
         .getDoubleArray(DEFAULT_STDDEVS);
