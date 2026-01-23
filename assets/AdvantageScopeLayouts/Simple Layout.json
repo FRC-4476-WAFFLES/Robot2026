@@ -1,0 +1,474 @@
+{
+  "hubs": [
+    {
+      "x": 1912,
+      "y": -8,
+      "width": 1936,
+      "height": 1048,
+      "state": {
+        "sidebar": {
+          "width": 371,
+          "expanded": [
+            "/AdvantageKit",
+            "/AdvantageKit/Drive",
+            "/AdvantageKit/PowerDistribution",
+            "/AdvantageKit/NetworkInputs",
+            "/AdvantageKit/DriverStation",
+            "/AdvantageKit/Drive/Module0",
+            "/AdvantageKit/RadioStatus",
+            "/AdvantageKit/SystemStats",
+            "/CameraPublisher/limelight-left-raw/streams",
+            "/SmartDashboard/VisionSystemSim-main",
+            "/SmartDashboard/VisionSystemSim-main/Sim Field",
+            "/Pivot/PivotData",
+            "/NetworkInputs/SmartDashboard",
+            "/Drive/Gyro",
+            "/Intake/IntakeData",
+            "/Elevator/LeaderMotorData",
+            "/RealOutputs/Pivot",
+            "/ReplayOutputs",
+            "/Vison/limelight-left",
+            "/Vison/limelight-left/RawFiducials/0",
+            "/Vison/limelight-left/RawFiducials/1",
+            "/Vison/limelight-left/MegatagResult",
+            "/Vison/limelight-left/MegatagResult/pose",
+            "/Vison/limelight-left/MegatagResult/pose/rotation",
+            "/Vison/limelight-left/MegatagResult/pose/translation",
+            "/Vison/limelight-right",
+            "/Vison/limelight-right/MegatagResult",
+            "/Vison/limelight-right/MegatagResult/pose",
+            "/Vison/limelight-right/MegatagResult/pose/rotation",
+            "/Vison/limelight-right/MegatagResult/pose/translation",
+            "/SystemStats/NTClients",
+            "/SystemStats/NTClients/AdvantageScope@1",
+            "/RealOutputs/Vision/limelight-left",
+            "/RealOutputs/Vision/SimIO",
+            "/RealOutputs/Vision/limelight-right",
+            "/RealOutputs/RobotState/FieldPose",
+            "/RealOutputs/RobotState/FieldVelocity",
+            "/RealOutputs/Vision/updateSimPose/rotation",
+            "/RealOutputs/Simulation",
+            "/RealOutputs/Vision/UnderlyingFieldPose",
+            "/RealOutputs/Telemetry/Timing",
+            "/RealOutputs/Turret/MotionProfile",
+            "/Inputs/Turret/MotorData",
+            "/RealOutputs",
+            "/Inputs",
+            "/RealOutputs/Telemetry",
+            "/RealOutputs/Alerts",
+            "/RealOutputs/Vision",
+            "/RealOutputs/RobotState",
+            "/RealOutputs/RobotState/Timing (ms)",
+            "/RealOutputs/LoggedRobot"
+          ]
+        },
+        "tabs": {
+          "selected": 2,
+          "tabs": [
+            {
+              "type": 0,
+              "title": "",
+              "controller": null,
+              "controllerUUID": "vvb68hptw7t4dr400elqagpkcls9vhye",
+              "renderer": "",
+              "controlsHeight": 0
+            },
+            {
+              "type": 5,
+              "title": "Console",
+              "controller": "/RealOutputs/Console",
+              "controllerUUID": "jwrdx6nyva6ke3bhyfp50veozn960fpm",
+              "renderer": {
+                "highlight": false
+              },
+              "controlsHeight": 0
+            },
+            {
+              "type": 1,
+              "title": "Performance",
+              "controller": {
+                "leftSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/Timing (ms)/LightStripIO",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#2b66a2",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/Timing (ms)/LightSubsystem",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#e5b31b",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/Timing (ms)/Periodic",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#af2437",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/Timing (ms)/PhoenixRefresh",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#80588e",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/LoggedRobot/FullCycleMS",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#e48b32",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/LoggedRobot/LogPeriodicMS",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#c0b487",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "rightSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/LoggedRobot/GCCounts",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#858584",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "discreteSources": [],
+                "leftLockedRange": null,
+                "rightLockedRange": null,
+                "leftUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "rightUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "leftFilter": 0,
+                "rightFilter": 0
+              },
+              "controllerUUID": "i377edp57wkfi4dqvk5yelw7hgl4plkj",
+              "renderer": null,
+              "controlsHeight": 289
+            },
+            {
+              "type": 6,
+              "title": "Statistics",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "independent",
+                    "logKey": "/RealOutputs/Telemetry/Timing/LightSubsystem",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#2b66a2"
+                    }
+                  }
+                ],
+                "timeRange": "visible",
+                "rangeMin": 0,
+                "rangeMax": 10,
+                "stepSize": 1
+              },
+              "controllerUUID": "2vk3ab5a0cgzsjp8wxuhnudt3md6la7j",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 3,
+              "title": "3D Field",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "robot",
+                    "logKey": "/RealOutputs/RobotState/FieldPose",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {
+                      "model": "Leo"
+                    }
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "/RealOutputs/RobotState/MechanismPoses",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Telemetry/TargetPose Reef",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#00ff00"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/AlignmentMetrics/Goal Pose",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#0000ff"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Vision/limelight-left/Gyro Fused Accepted",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#ffff00"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Vision/limelight-right/Gyro Fused Accepted",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#ff8c00"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Vision/limelight-left/Megatag Accepted",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#ff00ff"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Vision/limelight-right/Megatag Accepted",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#00ffff"
+                    }
+                  },
+                  {
+                    "type": "trajectory",
+                    "logKey": "/RealOutputs/Vision/limelight-left/Target Visualization",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00",
+                      "size": "bold"
+                    }
+                  },
+                  {
+                    "type": "trajectory",
+                    "logKey": "/RealOutputs/Vision/limelight-right/Target Visualization",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#ff0000",
+                      "size": "bold"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "/RealOutputs/Vision/UnderlyingFieldPose",
+                    "logType": "Pose2d",
+                    "visible": false,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#ff0000"
+                    }
+                  }
+                ],
+                "game": "FRC:2026 Field"
+              },
+              "controllerUUID": "cfppbgx1fm5l0lz02hqhmasw90v3r984",
+              "renderer": {
+                "cameraIndex": -1,
+                "orbitFov": 50,
+                "cameraPosition": [
+                  -11.541690529357977,
+                  4.692896730375559,
+                  3.6524467021266105
+                ],
+                "cameraTarget": [
+                  -6.729398889504322,
+                  0.8788959809712058,
+                  3.791771705894643
+                ]
+              },
+              "controlsHeight": 370
+            },
+            {
+              "type": 1,
+              "title": "Turret",
+              "controller": {
+                "leftSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/Turret/MotionProfile/GoalHeading",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#2b66a2",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/Turret/MotionProfile/ProfileHeading",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#e5b31b",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/Inputs/Turret/MotorData/position",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#af2437",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "rightSources": [],
+                "discreteSources": [],
+                "leftLockedRange": null,
+                "rightLockedRange": null,
+                "leftUnitConversion": {
+                  "autoTarget": "rotations",
+                  "preset": null
+                },
+                "rightUnitConversion": {
+                  "autoTarget": "rotations",
+                  "preset": null
+                },
+                "leftFilter": 0,
+                "rightFilter": 0
+              },
+              "controllerUUID": "yo7pxr3pzib9rmh4ryge7m1otaven0u7",
+              "renderer": null,
+              "controlsHeight": 341
+            },
+            {
+              "type": 1,
+              "title": "Compare Odometry",
+              "controller": {
+                "leftSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/FieldPose/rotation/value",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#e5b31b",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/Vision/UnderlyingFieldPose/rotation/value",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#2b66a2",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "rightSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "/RealOutputs/RobotState/FieldVelocity/omega",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#80588e",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "discreteSources": [
+                  {
+                    "type": "stripes",
+                    "logKey": "/RealOutputs/Vision/limelight-left/Estimate Type",
+                    "logType": "String",
+                    "visible": true,
+                    "options": {
+                      "color": "#af2437"
+                    }
+                  },
+                  {
+                    "type": "stripes",
+                    "logKey": "/RealOutputs/Vision/limelight-right/Estimate Type",
+                    "logType": "String",
+                    "visible": true,
+                    "options": {
+                      "color": "#80588e"
+                    }
+                  }
+                ],
+                "leftLockedRange": null,
+                "rightLockedRange": null,
+                "leftUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "rightUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "leftFilter": 0,
+                "rightFilter": 0
+              },
+              "controllerUUID": "dql5b3erkqirqseilkqk6fbqbd0jth9w",
+              "renderer": null,
+              "controlsHeight": 200
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "satellites": [],
+  "version": "26.0.0"
+}
