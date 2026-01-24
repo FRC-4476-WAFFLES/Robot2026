@@ -5,7 +5,7 @@
 package frc.robot.subsystems;
 
 import frc.robot.RobotContainer;
-import frc.robot.RobotState.SuperstructureState;
+import frc.robot.RobotState.ShooterState;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class StateOrchestrator extends VirtualSubsystem {
@@ -17,19 +17,19 @@ public class StateOrchestrator extends VirtualSubsystem {
 
   @Override
   public void periodic() {
-    determineSuperstructureState();
+    determineShooterState();
   }
 
-  private void determineSuperstructureState() {
+  private void determineShooterState() {
     var pose = RobotContainer.state.getPose();
-    SuperstructureState state = SuperstructureState.DISABLED;
+    ShooterState state = ShooterState.DISABLED;
     if (pose.getX() < shootingLineX) {
-      state = SuperstructureState.TARGET_HUB;
+      state = ShooterState.TARGET_HUB;
     }
     if (pose.getX() > passingLineX) {
-      state = SuperstructureState.TARGET_PASS;
+      state = ShooterState.TARGET_PASS;
     }
 
-    RobotContainer.state.setSuperstructureState(state);
+    RobotContainer.state.setShooterState(state);
   }
 }

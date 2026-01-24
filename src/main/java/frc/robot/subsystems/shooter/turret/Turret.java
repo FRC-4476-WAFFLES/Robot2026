@@ -20,7 +20,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.TurretConstants;
-import frc.robot.subsystems.superstructure.turret.TurretIOInputsAutoLogged;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 
 public class Turret extends ExpandedSubsystem {

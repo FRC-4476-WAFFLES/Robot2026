@@ -16,14 +16,14 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 
 public class RobotState {
-  public static enum SuperstructureState {
+  public static enum ShooterState {
     TARGET_PASS,
     TARGET_HUB,
     DISABLED
   }
 
-  @AutoLogOutput(key = "RobotState/Superstructure State")
-  public SuperstructureState superstructureState = SuperstructureState.TARGET_HUB;
+  @AutoLogOutput(key = "RobotState/Shooter State")
+  public ShooterState shooterState = ShooterState.TARGET_HUB;
 
   /*                       */
   /* Latency Compensation */
@@ -89,23 +89,23 @@ public class RobotState {
     latestPose = pose;
   }
 
-  public SuperstructureState getSuperstructureState() {
-    return superstructureState;
+  public ShooterState getShooterState() {
+    return shooterState;
   }
 
-  public void setSuperstructureState(SuperstructureState state) {
-    superstructureState = state;
+  public void setShooterState(ShooterState state) {
+    shooterState = state;
   }
 
-  public Trigger superstructureDisabled() {
-    return new Trigger(() -> superstructureState == SuperstructureState.DISABLED);
+  public Trigger shooterDisabled() {
+    return new Trigger(() -> shooterState == ShooterState.DISABLED);
   }
 
-  public Trigger superstructureTargetPassing() {
-    return new Trigger(() -> superstructureState == SuperstructureState.TARGET_PASS);
+  public Trigger shooterTargetPassing() {
+    return new Trigger(() -> shooterState == ShooterState.TARGET_PASS);
   }
 
-  public Trigger superstructureTargetsHub() {
-    return new Trigger(() -> superstructureState == SuperstructureState.TARGET_HUB);
+  public Trigger shooterTargetsHub() {
+    return new Trigger(() -> shooterState == ShooterState.TARGET_HUB);
   }
 }

@@ -260,7 +260,7 @@ public class RobotContainer {
       intake.setExpanderState(ExpanderState.STOWED);
     }));
 
-    state.superstructureDisabled();
+    state.shooterDisabled();
 
     // Simulation
     if (RobotBase.isSimulation()) {
