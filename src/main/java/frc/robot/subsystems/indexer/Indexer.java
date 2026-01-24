@@ -30,11 +30,11 @@ public class Indexer extends SubsystemBase {
     Logger.processInputs("Inputs/Indexer", inputs);
 
     if (!DriverStation.isEnabled()) {
-      io.runIndexerVelocity(0);
+      io.runIndexerVelocity(0, 0);
       return;
     }
 
-    io.runIndexerVelocity(spindexerGoalVelocity);
+    io.runIndexerVelocity(spindexerGoalVelocity, feederGoalVelocity);
   }
 
   public void setIndexerSetpoint(double spindexerVelocity, double feederVelocity) {
