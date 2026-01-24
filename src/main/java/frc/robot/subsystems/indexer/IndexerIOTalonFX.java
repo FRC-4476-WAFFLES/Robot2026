@@ -16,42 +16,48 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class IndexerIOTalonFX implements IndexerIO {
   // Hardware Components
-  protected final TalonFXIO indexer;
-
+  protected final TalonFXIO spindexer;
+  protected final TalonFXIO feeder;
   // Control Objects
-  private final MotionMagicVelocityVoltage indexerVelocityRequest = new MotionMagicVelocityVoltage(0);
+  private final MotionMagicVelocityVoltage spindexerVelocityRequest = new MotionMagicVelocityVoltage(0);
+  private final MotionMagicVelocityVoltage feederVelocityRequest = new MotionMagicVelocityVoltage(0);
 
   public IndexerIOTalonFX() {
-    indexer = new TalonFXIO(Constants.CANIds.indexerMotor);
+    spindexer = new TalonFXIO(Constants.CANIds.spindexerMotor);
+    feeder = new TalonFXIO(Constants.CANIds.feederMotor);
     // Configure hardware
-    configureIndexerMotor();
+    configureSpindexerMotor();
+    configureFeederMotor();
   }
 
   @Override
   public void updateInputs(IndexerIOInputs inputs) {
-    inputs.indexerMotorData = indexer.getSignalData();
+    inputs.spindexerMotorData = spindexer.getSignalData();
+    inputs.feederMotorData = feeder.getSignalData();
   }
 
   @Override
-  public void runDutyCycle(double speed) {
-    indexer.set(speed);
+  public void runDutyCycle(double spindexerSpeed, double feederSpeed) {
+    spindexer.set(spindexerSpeed);
+    feeder.set(feederSpeed);
   }
 
   @Override
-  public void runIndexerVelocity(double velocity) {
-    indexer.setControl(indexerVelocityRequest.withVelocity(velocity));
+  public void runIndexerVelocity(double spindexerVelocity, double feederVelocity) {
+    spindexer.setControl(spindexerVelocityRequest.withVelocity(spindexerVelocity));
+    feeder.setControl(feederVelocityRequest.withVelocity(feederVelocity));
   }
 
   /**
-   * Configures the indexer motor with current limits
+   * Configures the spindexer motor with current limits
    */
-  private void configureIndexerMotor() {
-    TalonFXConfiguration indexerConfigs = new TalonFXConfiguration();
-    CurrentLimitsConfigs indexerCurrentLimit = new CurrentLimitsConfigs()
+  private void configureSpindexerMotor() {
+    TalonFXConfiguration spindexerConfigs = new TalonFXConfiguration();
+    CurrentLimitsConfigs spindexerCurrentLimit = new CurrentLimitsConfigs()
         .withStatorCurrentLimit(80)
         .withStatorCurrentLimitEnable(true);
 
-    indexerConfigs.CurrentLimits = indexerCurrentLimit;
+    spindexerConfigs.CurrentLimits = spindexerCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
     slot0Configs.kP = 1;
@@ -59,14 +65,40 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kD = 0;
     slot0Configs.kV = 1.5;
     slot0Configs.kG = 0.0;
-    indexerConfigs.Slot0 = slot0Configs;
+    spindexerConfigs.Slot0 = slot0Configs;
 
     // Motion Magic
     MotionMagicConfigs motionMagic = new MotionMagicConfigs();
     motionMagic.MotionMagicAcceleration = 200;
     motionMagic.MotionMagicJerk = 0;
-    indexerConfigs.MotionMagic = motionMagic;
+    spindexerConfigs.MotionMagic = motionMagic;
 
-    PhoenixHelpers.tryConfig(() -> indexer.getConfigurator().apply(indexerConfigs));
+    PhoenixHelpers.tryConfig(() -> spindexer.getConfigurator().apply(spindexerConfigs));
   }
+
+  private void configureFeederMotor() {
+    TalonFXConfiguration feederConfigs = new TalonFXConfiguration();
+    CurrentLimitsConfigs feederCurrentLimit = new CurrentLimitsConfigs()
+        .withStatorCurrentLimit(80)
+        .withStatorCurrentLimitEnable(true);
+
+    feederConfigs.CurrentLimits = feederCurrentLimit;
+
+    var slot0Configs = new Slot0Configs();
+    slot0Configs.kP = 1;
+    slot0Configs.kI = 0;
+    slot0Configs.kD = 0;
+    slot0Configs.kV = 1.5;
+    slot0Configs.kG = 0.0;
+    feederConfigs.Slot0 = slot0Configs;
+
+    // Motion Magic
+    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
+    motionMagic.MotionMagicAcceleration = 200;
+    motionMagic.MotionMagicJerk = 0;
+    feederConfigs.MotionMagic = motionMagic;
+
+    PhoenixHelpers.tryConfig(() -> feeder.getConfigurator().apply(feederConfigs));
+  }
+
 }

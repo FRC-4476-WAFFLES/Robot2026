@@ -14,8 +14,11 @@ public class Indexer extends SubsystemBase {
   private final IndexerIO io;
   private final IndexerIOInputsAutoLogged inputs = new IndexerIOInputsAutoLogged();
 
-  @AutoLogOutput(key = "Indexer Goal Velocity")
-  private double indexerGoalVelocity = 0;
+  @AutoLogOutput(key = "Spindexer Goal Velocity")
+  private double spindexerGoalVelocity = 0;
+
+  @AutoLogOutput(key = "Feeder Goal Velocity")
+  private double feederGoalVelocity = 0;
 
   public Indexer(IndexerIO io) {
     this.io = io;
@@ -24,17 +27,18 @@ public class Indexer extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs("Indexer/Shooter", inputs);
+    Logger.processInputs("Inputs/Indexer", inputs);
 
     if (!DriverStation.isEnabled()) {
       io.runIndexerVelocity(0);
       return;
     }
 
-    io.runIndexerVelocity(indexerGoalVelocity);
+    io.runIndexerVelocity(spindexerGoalVelocity);
   }
 
-  public void setIndexerSetpoint(double velocity) {
-    indexerGoalVelocity = velocity;
+  public void setIndexerSetpoint(double spindexerVelocity, double feederVelocity) {
+    spindexerGoalVelocity = spindexerVelocity;
+    feederGoalVelocity = feederVelocity;
   }
 }
