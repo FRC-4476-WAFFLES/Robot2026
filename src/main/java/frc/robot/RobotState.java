@@ -15,8 +15,17 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.data.Constants.CodeConstants;
 
 public class RobotState {
+  public static enum SuperstructureState {
+    TARGET_PASS,
+    TARGET_HUB,
+    DISABLED
+  }
+
+  @AutoLogOutput(key = "RobotState/Superstructure State")
+  public static SuperstructureState superstructureState = SuperstructureState.TARGET_HUB;
+
   /*                       */
-  /*  Latency Compensation */
+  /* Latency Compensation */
   /*                       */
 
   // Timestamps are in the timebase of Timer.getFPGATimestamp()
@@ -29,14 +38,14 @@ public class RobotState {
   private Pose2d latestPose = new Pose2d();
 
   /**
-  * Gets the robot pose at the given timestamp (FPGA timebase) 
-  */
+   * Gets the robot pose at the given timestamp (FPGA timebase)
+   */
   public Optional<Pose2d> getPoseAtTimestamp(double timestamp) {
     return poseHistoryBuffer.getSample(timestamp);
   }
 
   /**
-   * Gets the robot yaw velocity at the given timestamp (FPGA timebase) 
+   * Gets the robot yaw velocity at the given timestamp (FPGA timebase)
    */
   public Optional<Double> getYawVelocityAtTimestamp(double timestamp) {
     return yawVelocityHistoryBuffer.getSample(timestamp);
@@ -50,14 +59,17 @@ public class RobotState {
   }
 
   /**
-  * Gets the robot velocity in field space
-  */
+   * Gets the robot velocity in field space
+   */
   @AutoLogOutput(key = "RobotState/FieldVelocity")
   public ChassisSpeeds getFieldVelocity() {
     return ChassisSpeeds.fromRobotRelativeSpeeds(latestChassisSpeeds, getRotation());
   }
 
-  /** Returns the current odometry pose. Private to standardize all access through RobotState */
+  /**
+   * Returns the current odometry pose. Private to standardize all access through
+   * RobotState
+   */
   public Pose2d getPose() {
     return latestPose;
   }
@@ -69,10 +81,18 @@ public class RobotState {
 
   // Called once in earlyPeriodic to update odometry state
   public void updateOdometryState(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds) {
-    // Less accurate than high hz odometry thread but probably good enough? 
+    // Less accurate than high hz odometry thread but probably good enough?
     poseHistoryBuffer.addSample(timestamp, pose);
     yawVelocityHistoryBuffer.addSample(timestamp, chassisSpeeds.omegaRadiansPerSecond);
     latestChassisSpeeds = chassisSpeeds;
     latestPose = pose;
+  }
+
+  public SuperstructureState getSuperstructureState() {
+    return superstructureState;
+  }
+
+  public void setSuperstructureState(SuperstructureState state) {
+    superstructureState = state;
   }
 }

@@ -71,7 +71,7 @@ public class TurretIOTalonFX implements TurretIO {
 
   @Override
   public void runDutyCycle(double speed) {
-    turret.set(speed);
+    turret.set(speed); // Applies throttle percentage (-1 to 1)
   }
 
   @Override
@@ -81,10 +81,11 @@ public class TurretIOTalonFX implements TurretIO {
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
     turret.setControl(setpointRequest.withPosition(setpointRotations).withVelocity(velocity));
+    // Run control mode (so a control request from phoneix 6)
   }
 
   @Override
   public void setPosition(double position) {
-    turret.setPosition(position);
+    turret.setPosition(position); // Tells motor where it is
   }
 }
