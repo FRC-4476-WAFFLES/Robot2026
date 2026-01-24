@@ -58,7 +58,7 @@ public final class Constants {
     public static final int intakeMotor = 11;
     public static final int hoodMotor = 12;
     public static final int climberMotor = 13;
-    public static final int shooterMotor = 14;
+    public static final int flywheelMotor = 14;
     public static final int indexerMotor = 15;
     // Other
     public static final int CANdle = 22;
@@ -172,7 +172,7 @@ public final class Constants {
     public static final double EXAMPLE_REDUCTION = 7.1111;
     public static final double TURRET_REDUCTION = 2;
     public static final double EXTENDER_REDUCTION = 2;
-    public static final double SHOOTER_REDUCTION = 2;
+    public static final double FLYWHEEL_REDUCTION = 2;
     public static final double INTAKE_REDUCTION = 2;
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
@@ -202,7 +202,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
   }
 
-  public static class ShooterConstants {
+  public static class FlywheelConstants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);

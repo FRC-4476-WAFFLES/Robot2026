@@ -12,6 +12,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 
 public class RobotState {
@@ -22,7 +23,7 @@ public class RobotState {
   }
 
   @AutoLogOutput(key = "RobotState/Superstructure State")
-  public static SuperstructureState superstructureState = SuperstructureState.TARGET_HUB;
+  public SuperstructureState superstructureState = SuperstructureState.TARGET_HUB;
 
   /*                       */
   /* Latency Compensation */
@@ -94,5 +95,17 @@ public class RobotState {
 
   public void setSuperstructureState(SuperstructureState state) {
     superstructureState = state;
+  }
+
+  public Trigger superstructureDisabled() {
+    return new Trigger(() -> superstructureState == SuperstructureState.DISABLED);
+  }
+
+  public Trigger superstructureTargetPassing() {
+    return new Trigger(() -> superstructureState == SuperstructureState.TARGET_PASS);
+  }
+
+  public Trigger superstructureTargetsHub() {
+    return new Trigger(() -> superstructureState == SuperstructureState.TARGET_HUB);
   }
 }

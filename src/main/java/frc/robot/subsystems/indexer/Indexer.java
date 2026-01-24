@@ -24,7 +24,7 @@ public class Indexer extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs("Indexer/Shooter", inputs);
+    Logger.processInputs("Inputes/Indexer", inputs);
 
     if (!DriverStation.isEnabled()) {
       io.runIndexerVelocity(0);
