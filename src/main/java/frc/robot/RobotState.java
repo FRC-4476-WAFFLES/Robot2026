@@ -12,17 +12,18 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 
 public class RobotState {
-  public static enum SuperstructureState {
+  public static enum ShooterState {
     TARGET_PASS,
     TARGET_HUB,
     DISABLED
   }
 
-  @AutoLogOutput(key = "RobotState/Superstructure State")
-  public static SuperstructureState superstructureState = SuperstructureState.TARGET_HUB;
+  @AutoLogOutput(key = "RobotState/Shooter State")
+  public ShooterState shooterState = ShooterState.TARGET_HUB;
 
   /*                       */
   /* Latency Compensation */
@@ -88,11 +89,23 @@ public class RobotState {
     latestPose = pose;
   }
 
-  public SuperstructureState getSuperstructureState() {
-    return superstructureState;
+  public ShooterState getShooterState() {
+    return shooterState;
   }
 
-  public void setSuperstructureState(SuperstructureState state) {
-    superstructureState = state;
+  public void setShooterState(ShooterState state) {
+    shooterState = state;
+  }
+
+  public Trigger shooterDisabled() {
+    return new Trigger(() -> shooterState == ShooterState.DISABLED);
+  }
+
+  public Trigger shooterTargetPassing() {
+    return new Trigger(() -> shooterState == ShooterState.TARGET_PASS);
+  }
+
+  public Trigger shooterTargetsHub() {
+    return new Trigger(() -> shooterState == ShooterState.TARGET_HUB);
   }
 }

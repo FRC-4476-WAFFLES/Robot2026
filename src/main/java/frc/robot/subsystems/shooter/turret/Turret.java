@@ -2,7 +2,7 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems.superstructure.turret;
+package frc.robot.subsystems.shooter.turret;
 
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -171,12 +171,12 @@ public class Turret extends ExpandedSubsystem {
 
   // Commands
   // public Command aimShotCommand() {
-  //   return run(
-  //       () -> {
-  //         // var params = ShotCalculator.getInstance().getParameters();
-  //         setTargetSetpoint(params.turretAngle(), params.turretVelocity());
-  //         setState(TurretState.TRACK_FIELD_RELATIVE);
-  //       }).withName("Aim Shot Command");
+  // return run(
+  // () -> {
+  // // var params = ShotCalculator.getInstance().getParameters();
+  // setTargetSetpoint(params.turretAngle(), params.turretVelocity());
+  // setState(TurretState.TRACK_FIELD_RELATIVE);
+  // }).withName("Aim Shot Command");
   // }
 
   public Command runSetpointCommand(Supplier<Rotation2d> heading, DoubleSupplier velocity, boolean fieldRelative) {

@@ -9,7 +9,6 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -23,6 +22,7 @@ import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
+import frc.robot.subsystems.StateOrchestrator;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOPigeon2;
@@ -39,18 +39,18 @@ import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
-import frc.robot.subsystems.superstructure.hood.Hood;
-import frc.robot.subsystems.superstructure.hood.HoodIO;
-import frc.robot.subsystems.superstructure.hood.HoodIOSim;
-import frc.robot.subsystems.superstructure.hood.HoodIOTalonFX;
-import frc.robot.subsystems.superstructure.shooter.Shooter;
-import frc.robot.subsystems.superstructure.shooter.ShooterIO;
-import frc.robot.subsystems.superstructure.shooter.ShooterIOSim;
-import frc.robot.subsystems.superstructure.shooter.ShooterIOTalonFX;
-import frc.robot.subsystems.superstructure.turret.Turret;
-import frc.robot.subsystems.superstructure.turret.TurretIO;
-import frc.robot.subsystems.superstructure.turret.TurretIOSim;
-import frc.robot.subsystems.superstructure.turret.TurretIOTalonFX;
+import frc.robot.subsystems.shooter.flywheel.Flywheel;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIOTalonFX;
+import frc.robot.subsystems.shooter.hood.Hood;
+import frc.robot.subsystems.shooter.hood.HoodIO;
+import frc.robot.subsystems.shooter.hood.HoodIOSim;
+import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
+import frc.robot.subsystems.shooter.turret.Turret;
+import frc.robot.subsystems.shooter.turret.TurretIO;
+import frc.robot.subsystems.shooter.turret.TurretIOSim;
+import frc.robot.subsystems.shooter.turret.TurretIOTalonFX;
 import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
@@ -83,7 +83,7 @@ public class RobotContainer {
   public static final Intake intake;
   public static final Hood hood;
   public static final Indexer indexer;
-  public static final Shooter shooter;
+  public static final Flywheel flywheel;
   // public static final Climber climber; // idk uncomment once hood IOs exist lol
 
   /* Virtual Subsystems */
@@ -100,6 +100,7 @@ public class RobotContainer {
   public static final Telemetry telemetry;
   public static final MechanismPoses mechanismPoses;
   public static final Lights lightsSubsystem;
+  public static final StateOrchestrator stateOrchestrator;
 
   /* Commands */
 
@@ -124,7 +125,7 @@ public class RobotContainer {
 
         indexer = new Indexer(new IndexerIOTalonFX());
 
-        shooter = new Shooter(new ShooterIOTalonFX());
+        flywheel = new Flywheel(new FlywheelIOTalonFX());
 
         vision = new Vision(
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
@@ -149,7 +150,7 @@ public class RobotContainer {
 
         indexer = new Indexer(new IndexerIOSim());
 
-        shooter = new Shooter(new ShooterIOSim());
+        flywheel = new Flywheel(new FlywheelIOSim());
 
         vision = new Vision(
             new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
@@ -179,7 +180,7 @@ public class RobotContainer {
 
         indexer = new Indexer(new IndexerIO() {});
 
-        shooter = new Shooter(new ShooterIO() {});
+        flywheel = new Flywheel(new FlywheelIO() {});
 
         vision = new Vision(
             new VisionIO() {},
@@ -193,6 +194,7 @@ public class RobotContainer {
     telemetry = new Telemetry();
     mechanismPoses = new MechanismPoses();
     lightsSubsystem = new Lights();
+    stateOrchestrator = new StateOrchestrator();
   }
 
   /**
@@ -223,7 +225,8 @@ public class RobotContainer {
     ));
 
     // Testing
-    turret.setDefaultCommand(turret.runSetpointCommand(() -> Rotation2d.k180deg, () -> 0, true));
+    // turret.setDefaultCommand(turret.runSetpointCommand(() -> Rotation2d.k180deg,
+    // () -> 0, true));
   }
 
   /**
@@ -256,6 +259,8 @@ public class RobotContainer {
     Controls.rightJoystick.button(1).onFalse(Commands.runOnce(() -> {
       intake.setExpanderState(ExpanderState.STOWED);
     }));
+
+    state.shooterDisabled();
 
     // Simulation
     if (RobotBase.isSimulation()) {
