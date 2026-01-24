@@ -14,7 +14,7 @@ public class Shooter extends SubsystemBase {
   private final ShooterIO io;
   private final ShooterIOInputsAutoLogged inputs = new ShooterIOInputsAutoLogged();
 
-  @AutoLogOutput(key = "Shooter Goal Velocity")
+  @AutoLogOutput(key = "Shooter/Shooter Goal Velocity")
   private double shooterGoalVelocity = 0;
 
   public Shooter(ShooterIO io) {
@@ -30,7 +30,6 @@ public class Shooter extends SubsystemBase {
       io.runShooterVelocity(0);
       return;
     }
-
     io.runShooterVelocity(shooterGoalVelocity);
   }
 

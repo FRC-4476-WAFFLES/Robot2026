@@ -185,6 +185,52 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
   }
 
+  public static class ShooterConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
+
+    public static final double MAX_VELOCITY = 10;
+    public static final double MAX_ACCELERATION = 20;
+
+    public static final double ZERO_DUTY_CYCLE = 0.25;
+    public static final double ZERO_POSITION = 0;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+  }
+
+  public static class SpindexerConstants {
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
+
+    public static final double MAX_VELOCITY = 10;
+    public static final double MAX_ACCELERATION = 20;
+
+    public static final double ZERO_DUTY_CYCLE = 0.25;
+    public static final double ZERO_POSITION = 0;
+
+    // Motor configs
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+
+    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kA = 0;
+
+    public static final double MOTOR_DEADBAND = 0;
+    public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+  }
+
   public static class ExpanderConstants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(270);

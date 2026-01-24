@@ -16,7 +16,7 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class ShooterIOTalonFX implements ShooterIO {
     // Hardware Components
-    private final TalonFXIO shooter;
+    protected final TalonFXIO shooter;
 
     // Control Objects
     private final MotionMagicVelocityVoltage shooterVelocityRequest = new MotionMagicVelocityVoltage(0);
@@ -24,7 +24,7 @@ public class ShooterIOTalonFX implements ShooterIO {
     public ShooterIOTalonFX() {
       shooter = new TalonFXIO(Constants.CANIds.shooterMotor);
         // Configure hardware
-        configureIntakeMotor();
+        configureShooterMotor();
     }
 
     @Override
@@ -45,7 +45,7 @@ public class ShooterIOTalonFX implements ShooterIO {
     /**
     * Configures the shooter motor with current limits
     */
-    private void configureIntakeMotor() {
+    private void configureShooterMotor() {
         TalonFXConfiguration shooterConfigs = new TalonFXConfiguration();
         CurrentLimitsConfigs shooterCurrentLimit = new CurrentLimitsConfigs()
                 .withStatorCurrentLimit(80)
