@@ -19,11 +19,15 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
- * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
- * constants. This class should not be used for any other purpose. All constants should be declared
+ * The Constants class provides a convenient place for teams to hold robot-wide
+ * numerical or boolean
+ * constants. This class should not be used for any other purpose. All constants
+ * should be declared
  * globally (i.e. public static). Do not put anything functional in this class.
  *
- * <p>It is advised to statically import this class (or one of its inner classes) wherever the
+ * <p>
+ * It is advised to statically import this class (or one of its inner classes)
+ * wherever the
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
@@ -44,7 +48,7 @@ public final class Constants {
     REPLAY
   }
 
-  /* CAN IDs  */
+  /* CAN IDs */
   public static class CANIds {
     // Drivetrain IDS are located in TunerConstants
 
@@ -55,6 +59,7 @@ public final class Constants {
     public static final int hoodMotor = 12;
     public static final int climberMotor = 13;
     public static final int shooterMotor = 14;
+    public static final int indexerMotor = 15;
     // Other
     public static final int CANdle = 22;
 
@@ -78,9 +83,11 @@ public final class Constants {
     public static final double PERIODIC_LOOP_TIME = 0.02;
     public static final double TELEMETRY_LOOKBACK_TIME = 1; // s
 
-    public static final int SUBSYSTEM_NT_UPDATE_RATE = 20; // How many times a second subsystems will publish to NT. Reduce if performance is suffering.
+    public static final int SUBSYSTEM_NT_UPDATE_RATE = 20; // How many times a second subsystems will publish to NT.
+                                                           // Reduce if performance is suffering.
 
-    // Disable all nonessential CAN status signals, potentially reducing CAN pressure
+    // Disable all nonessential CAN status signals, potentially reducing CAN
+    // pressure
     public static final boolean DISABLE_UNUSED_STATUS_SIGNALS = true;
 
     // Frequencies in hertz for CAN refresh rates
@@ -96,7 +103,8 @@ public final class Constants {
 
   /* Vision */
   public static class VisionConstants {
-    // Used in place of Double.maxValue to stay far away from under/overflows when performing arithematic
+    // Used in place of Double.maxValue to stay far away from under/overflows when
+    // performing arithematic
     public static final double LARGE_VARIANCE = 1e7;
 
     public static final Matrix<N3, N1> defaultkSingleTagStdDevsMT1 = VecBuilder.fill(0.04, 0.04, 4);
@@ -109,7 +117,8 @@ public final class Constants {
     // Number of frames to skip processing while disabled to prevent overheating
     public static final int LIMELIGHT_DISABLED_THROTTLE = 80;
 
-    // Use standard deviations reported by the limelight as opposed to hand calculating them
+    // Use standard deviations reported by the limelight as opposed to hand
+    // calculating them
     public static final boolean USE_AUTOMATIC_STANDARD_DEVIATIONS = true;
 
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
@@ -128,20 +137,27 @@ public final class Constants {
         .loadField(AprilTagFields.k2025ReefscapeWelded);
 
     // Vision validation thresholds
-    public static final double AMBIGUITY_THRESHOLD = 0.7; // Max ambiguity for single tag (0-1, lower is better), 0.19 is what 254 used
-    public static final double MIN_TAG_AREA_SINGLE_TAG = 1.0; // Minimum tag area (% of image, 0-100 scale) for single tag
+    public static final double AMBIGUITY_THRESHOLD = 0.7; // Max ambiguity for single tag (0-1, lower is better), 0.19
+                                                          // is what 254 used
+    public static final double MIN_TAG_AREA_SINGLE_TAG = 1.0; // Minimum tag area (% of image, 0-100 scale) for single
+                                                              // tag
     public static final double MIN_TAG_AREA_FOR_YAW_CHECK = 1.9; // Tag area threshold (% of image) for yaw validation
-    public static final double MAX_Z_ERROR = 0.2; // Maximum acceptable Z-axis error in meters (robot should be on ground)
-    public static final double MAX_YAW_DIFFERENCE_DEG = 5.0; // Max degrees difference between vision and odometry yaw for single tag
-    public static final double MIN_POSE_DISTANCE_FROM_ORIGIN = 1.0; // Minimum distance from field origin (0,0) in meters
-    public static final double MEGATAG1_MAX_DISTANCE_THRESHOLD = 1; // Max distance at which MT1 estimates are used raw from cameras
+    public static final double MAX_Z_ERROR = 0.2; // Maximum acceptable Z-axis error in meters (robot should be on
+                                                  // ground)
+    public static final double MAX_YAW_DIFFERENCE_DEG = 5.0; // Max degrees difference between vision and odometry yaw
+                                                             // for single tag
+    public static final double MIN_POSE_DISTANCE_FROM_ORIGIN = 1.0; // Minimum distance from field origin (0,0) in
+                                                                    // meters
+    public static final double MEGATAG1_MAX_DISTANCE_THRESHOLD = 1; // Max distance at which MT1 estimates are used raw
+                                                                    // from cameras
     public static final double MAX_YAW_RATE_RADS = 5.0;
 
     // Names of limelights
     public static final String LIMELIGHT_NAME_L = "limelight-right";
     public static final String LIMELIGHT_NAME_R = "limelight-left";
 
-    // Limelights are considered disconnected if their heartbeat value is older than this many seconds
+    // Limelights are considered disconnected if their heartbeat value is older than
+    // this many seconds
     public static final double LL_HEARTBEAT_MIN_FREQ = 0.5;
 
     // Used to read from the raw stddevs array returned by a limelight
@@ -163,7 +179,8 @@ public final class Constants {
   }
 
   public static class TurretConstants {
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
+                                                                                        // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
 
     public static final double MAX_VELOCITY = 10;
@@ -186,7 +203,8 @@ public final class Constants {
   }
 
   public static class ShooterConstants {
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
+                                                                                        // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
 
     public static final double MAX_VELOCITY = 10;
@@ -209,7 +227,8 @@ public final class Constants {
   }
 
   public static class SpindexerConstants {
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg without breaking logic
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
+                                                                                        // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
 
     public static final double MAX_VELOCITY = 10;

@@ -29,6 +29,10 @@ import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
+import frc.robot.subsystems.indexer.Indexer;
+import frc.robot.subsystems.indexer.IndexerIO;
+import frc.robot.subsystems.indexer.IndexerIOSim;
+import frc.robot.subsystems.indexer.IndexerIOTalonFX;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
@@ -39,6 +43,10 @@ import frc.robot.subsystems.superstructure.hood.Hood;
 import frc.robot.subsystems.superstructure.hood.HoodIO;
 import frc.robot.subsystems.superstructure.hood.HoodIOSim;
 import frc.robot.subsystems.superstructure.hood.HoodIOTalonFX;
+import frc.robot.subsystems.superstructure.shooter.Shooter;
+import frc.robot.subsystems.superstructure.shooter.ShooterIO;
+import frc.robot.subsystems.superstructure.shooter.ShooterIOSim;
+import frc.robot.subsystems.superstructure.shooter.ShooterIOTalonFX;
 import frc.robot.subsystems.superstructure.turret.Turret;
 import frc.robot.subsystems.superstructure.turret.TurretIO;
 import frc.robot.subsystems.superstructure.turret.TurretIOSim;
@@ -74,16 +82,19 @@ public class RobotContainer {
   public static final Turret turret;
   public static final Intake intake;
   public static final Hood hood;
+  public static final Indexer indexer;
+  public static final Shooter shooter;
   // public static final Climber climber; // idk uncomment once hood IOs exist lol
 
   /* Virtual Subsystems */
   /*
    * - May control hardware (like coprocessors), and have state and or periodic
-   * methods. 
+   * methods.
    * - Cannot be required by commands, and execute periodic loops *before* other
    * subsystems
    * - Do not nessesarily require an IO layer if not interacting with inputs
-   * - Must be initialized in the static initializer block in sequence to avoid ordering issues
+   * - Must be initialized in the static initializer block in sequence to avoid
+   * ordering issues
    */
   public static final Vision vision;
   public static final Telemetry telemetry;
@@ -111,6 +122,10 @@ public class RobotContainer {
 
         intake = new Intake(new IntakeIOTalonFX());
 
+        indexer = new Indexer(new IndexerIOTalonFX());
+
+        shooter = new Shooter(new ShooterIOTalonFX());
+
         vision = new Vision(
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_R));
@@ -131,6 +146,10 @@ public class RobotContainer {
         hood = new Hood(new HoodIOSim());
 
         intake = new Intake(new IntakeIOSim());
+
+        indexer = new Indexer(new IndexerIOSim());
+
+        shooter = new Shooter(new ShooterIOSim());
 
         vision = new Vision(
             new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
@@ -157,6 +176,10 @@ public class RobotContainer {
         hood = new Hood(new HoodIO() {});
 
         intake = new Intake(new IntakeIO() {});
+
+        indexer = new Indexer(new IndexerIO() {});
+
+        shooter = new Shooter(new ShooterIO() {});
 
         vision = new Vision(
             new VisionIO() {},
@@ -236,9 +259,9 @@ public class RobotContainer {
 
     // Simulation
     if (RobotBase.isSimulation()) {
-      //     Controls.simController.button(1).onTrue(
-      //             Commands.runOnce(() -> telemetry.toggleIntakeSimLoaded())
-      //     );
+      // Controls.simController.button(1).onTrue(
+      // Commands.runOnce(() -> telemetry.toggleIntakeSimLoaded())
+      // );
     }
   }
 
