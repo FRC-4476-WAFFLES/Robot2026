@@ -23,6 +23,10 @@ import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
 import frc.robot.subsystems.StateOrchestrator;
+import frc.robot.subsystems.climber.Climber;
+import frc.robot.subsystems.climber.ClimberIO;
+import frc.robot.subsystems.climber.ClimberIOSim;
+import frc.robot.subsystems.climber.ClimberIOTalonFX;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOPigeon2;
@@ -84,7 +88,7 @@ public class RobotContainer {
   public static final Hood hood;
   public static final Indexer indexer;
   public static final Flywheel flywheel;
-  // public static final Climber climber; // idk uncomment once hood IOs exist lol
+  public static final Climber climber;
 
   /* Virtual Subsystems */
   /*
@@ -127,6 +131,8 @@ public class RobotContainer {
 
         flywheel = new Flywheel(new FlywheelIOTalonFX());
 
+        climber = new Climber(new ClimberIOTalonFX());
+
         vision = new Vision(
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_R));
@@ -151,6 +157,8 @@ public class RobotContainer {
         indexer = new Indexer(new IndexerIOSim());
 
         flywheel = new Flywheel(new FlywheelIOSim());
+
+        climber = new Climber(new ClimberIOSim());
 
         vision = new Vision(
             new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
@@ -181,6 +189,8 @@ public class RobotContainer {
         indexer = new Indexer(new IndexerIO() {});
 
         flywheel = new Flywheel(new FlywheelIO() {});
+
+        climber = new Climber(new ClimberIO() {});
 
         vision = new Vision(
             new VisionIO() {},
@@ -259,6 +269,9 @@ public class RobotContainer {
     Controls.rightJoystick.button(1).onFalse(Commands.runOnce(() -> {
       intake.setExpanderState(ExpanderState.STOWED);
     }));
+    Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
+        .onFalse(climber.moveElevator(0));
+    ;
 
     state.shooterDisabled();
 
