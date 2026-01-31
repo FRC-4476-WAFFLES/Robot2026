@@ -4,7 +4,6 @@
 
 package frc.robot.subsystems.shooter.turret;
 
-import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -23,6 +22,11 @@ import frc.robot.data.Constants.TurretConstants;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 
 public class Turret extends ExpandedSubsystem {
+  public static record TurretSetpoint(
+      Rotation2d heading,
+      double velocity
+  ) {}
+
   public static enum TurretState {
     BRAKE,
     TRACK_FIELD_RELATIVE,
@@ -179,11 +183,16 @@ public class Turret extends ExpandedSubsystem {
   // }).withName("Aim Shot Command");
   // }
 
-  public Command runSetpointCommand(Supplier<Rotation2d> heading, DoubleSupplier velocity, boolean fieldRelative) {
+  public void runSetpoint(TurretSetpoint setpoint, boolean fieldRelative) {
+    setTargetSetpoint(setpoint.heading(), setpoint.velocity());
+    setState(fieldRelative ? TurretState.TRACK_FIELD_RELATIVE : TurretState.TRACK_TURRET_RELATIVE);
+  }
+
+  public Command runSetpointCommand(Supplier<TurretSetpoint> setpoint, boolean fieldRelative) {
     return run(
         () -> {
-          setTargetSetpoint(heading.get(), velocity.getAsDouble());
-          setState(fieldRelative ? TurretState.TRACK_FIELD_RELATIVE : TurretState.TRACK_TURRET_RELATIVE);
-        }).withName("Run Turret Setpoint");
+          runSetpoint(setpoint.get(), fieldRelative);
+        }
+    ).withName("Run Turret Setpoint");
   }
 }

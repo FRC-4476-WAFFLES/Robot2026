@@ -14,10 +14,10 @@ public class Indexer extends SubsystemBase {
   private final IndexerIO io;
   private final IndexerIOInputsAutoLogged inputs = new IndexerIOInputsAutoLogged();
 
-  @AutoLogOutput(key = "Spindexer Goal Velocity")
+  @AutoLogOutput(key = "Indexer/Spindexer Goal Velocity")
   private double spindexerGoalVelocity = 0;
 
-  @AutoLogOutput(key = "Feeder Goal Velocity")
+  @AutoLogOutput(key = "Indexer/Feeder Goal Velocity")
   private double feederGoalVelocity = 0;
 
   public Indexer(IndexerIO io) {

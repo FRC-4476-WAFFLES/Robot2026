@@ -39,6 +39,7 @@ import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
+import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
@@ -260,7 +261,21 @@ public class RobotContainer {
       intake.setExpanderState(ExpanderState.STOWED);
     }));
 
-    state.shooterDisabled();
+    // Passing mode
+    state.shooterTargetPassing().whileTrue(Commands.run(() -> {
+      var parms = ShotPlanner.aimToPass();
+      turret.runSetpoint(parms.turretSetpoint(), true);
+      flywheel.runSetpoint(parms.flywheelSpeed());
+      hood.runSetpoint(parms.hoodAngle());
+    }).withName("Shooter Pass"));
+
+    // Hub mode
+    state.shooterTargetsHub().whileTrue(Commands.run(() -> {
+      var parms = ShotPlanner.aimToHub();
+      turret.runSetpoint(parms.turretSetpoint(), true);
+      flywheel.runSetpoint(parms.flywheelSpeed());
+      hood.runSetpoint(parms.hoodAngle());
+    }).withName("Shooter Hub"));
 
     // Simulation
     if (RobotBase.isSimulation()) {

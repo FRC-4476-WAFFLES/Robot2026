@@ -6,12 +6,14 @@ package frc.robot.subsystems;
 
 import frc.robot.RobotContainer;
 import frc.robot.RobotState.ShooterState;
+import frc.robot.data.FieldConstants;
+import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class StateOrchestrator extends VirtualSubsystem {
   // All coordinates are blue alliance relative
   private double shootingLineX = 4.0;
-  private double passingLineX = 5.65;
+  private double passingLineX = FieldConstants.LinesVertical.neutralZoneNear;
 
   public StateOrchestrator() {}
 
@@ -21,7 +23,7 @@ public class StateOrchestrator extends VirtualSubsystem {
   }
 
   private void determineShooterState() {
-    var pose = RobotContainer.state.getPose();
+    var pose = WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose());
     ShooterState state = ShooterState.DISABLED;
     if (pose.getX() < shootingLineX) {
       state = ShooterState.TARGET_HUB;

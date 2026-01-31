@@ -65,11 +65,24 @@ public class WafflesUtilities {
   }
 
   /**
+  * Takes a translation and flips it to the other side of the field if the robot is on the red alliance.
+  * @param position The input Translation2d
+  * @return The output Translation2d
+  */
+  public static Translation2d FlipIfRedAlliance(Translation2d position) {
+    if (IsRedAlliance()) {
+      return FlippingUtil.flipFieldPosition(position);
+    }
+
+    return position;
+  }
+
+  /**
    * Takes an angle and flips it to the other side of the field if the robot is on the red alliance.
    * @param angle The input angle (degrees)
    * @return The output angle 
    */
-  public static Rotation2d FlipAngleIfRedAlliance(Rotation2d angle) {
+  public static Rotation2d FlipIfRedAlliance(Rotation2d angle) {
     if (IsRedAlliance()) {
       return FlippingUtil.flipFieldRotation(angle);
     }
@@ -124,7 +137,8 @@ public class WafflesUtilities {
   */
   public static Rotation2d AngleBetweenPoints(Translation2d p1, Translation2d p2) {
     // Trig implementation
-    // return Rotation2d.fromRadians(Math.atan2(p2.getY() - p1.getY(), p2.getX() - p1.getX()));
+    // return Rotation2d.fromRadians(Math.atan2(p2.getY() - p1.getY(), p2.getX() -
+    // p1.getX()));
 
     // WPILIB implementation
     return p2.minus(p1).getAngle();

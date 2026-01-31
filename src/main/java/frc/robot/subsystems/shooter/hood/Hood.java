@@ -4,8 +4,12 @@
 
 package frc.robot.subsystems.shooter.hood;
 
+import java.util.function.DoubleSupplier;
+
 import org.littletonrobotics.junction.Logger;
 
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Hood extends SubsystemBase {
@@ -22,12 +26,18 @@ public class Hood extends SubsystemBase {
     Logger.processInputs("Inputs/Hood", inputs);
   }
 
-  public void setSetpoint(double setpoint) {
+  public void runSetpoint(double setpoint) {
     Logger.recordOutput("Hood/OutputPosition", setpoint);
     io.runHoodPosition(setpoint);
   }
 
   public double getPosition() {
     return inputs.hoodMotor.position();
+  }
+
+  public Command runSetpointCommand(DoubleSupplier angle) {
+    return Commands.run(() -> {
+      runSetpoint(angle.getAsDouble());
+    });
   }
 }

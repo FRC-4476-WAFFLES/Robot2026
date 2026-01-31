@@ -17,6 +17,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
+import frc.robot.utils.lib.Spline1D.NodePoint;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -135,7 +136,7 @@ public final class Constants {
     );
 
     public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = AprilTagFieldLayout
-        .loadField(AprilTagFields.k2025ReefscapeWelded);
+        .loadField(AprilTagFields.k2026RebuiltAndymark);
 
     // Vision validation thresholds
     public static final double AMBIGUITY_THRESHOLD = 0.7; // Max ambiguity for single tag (0-1, lower is better), 0.19
@@ -225,6 +226,15 @@ public final class Constants {
 
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+
+    // In the format of x -> distance (m), y -> flywheel speed (rps)
+    public static final NodePoint[] DistanceMap = new NodePoint[] {
+        new NodePoint(0, 30),
+        new NodePoint(1, 40),
+        new NodePoint(2, 50),
+        new NodePoint(3, 60),
+        new NodePoint(4, 70)
+    };
   }
 
   public static class SpindexerConstants {
@@ -327,6 +337,15 @@ public final class Constants {
 
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+
+    // In the format of x -> distance (m), y -> hood angle (rotations)
+    public static final NodePoint[] DistanceMap = new NodePoint[] {
+        new NodePoint(0, 1),
+        new NodePoint(0.1, 1),
+        new NodePoint(0.2, 1),
+        new NodePoint(0.4, 1),
+        new NodePoint(0.6, 1)
+    };
   }
 
   public static class ClimberConstants {
