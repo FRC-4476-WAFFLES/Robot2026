@@ -6,6 +6,8 @@ package frc.robot.subsystems.climber;
 
 import org.littletonrobotics.junction.Logger;
 
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Climber extends SubsystemBase {
@@ -29,5 +31,9 @@ public class Climber extends SubsystemBase {
 
   public double getPosition() {
     return inputs.climberMotor.position();
+  }
+
+  public Command moveElevator(double setpoint) {
+    return Commands.runOnce(() -> setSetpoint(setpoint));
   }
 }

@@ -349,6 +349,8 @@ public final class Constants {
   }
 
   public static class ClimberConstants {
+    public static final double CLIMBER_ROTATIONS = 23;
+
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(50); // something
 
