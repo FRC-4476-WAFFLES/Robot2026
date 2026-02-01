@@ -238,6 +238,8 @@ public final class Constants {
   }
 
   public static class SpindexerConstants {
+    public static final double TEST_VELOCITY = 5;
+
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);

@@ -272,7 +272,8 @@ public class RobotContainer {
     }));
     Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
         .onFalse(climber.moveElevator(0));
-    ;
+    Controls.operatorController.a().onTrue(indexer.runSpindexer(Constants.SpindexerConstants.TEST_VELOCITY))
+        .onFalse(indexer.runSpindexer(0));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
