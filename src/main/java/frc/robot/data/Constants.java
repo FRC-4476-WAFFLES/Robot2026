@@ -61,6 +61,7 @@ public final class Constants {
     public static final int climberMotor = 13;
     public static final int flywheelMotor = 14;
     public static final int spindexerMotor = 15;
+    public static final int spindexerMotorTwo = 15;
     public static final int feederMotor = 16;
     // Other
     public static final int CANdle = 22;
