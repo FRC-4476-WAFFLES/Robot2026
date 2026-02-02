@@ -60,9 +60,9 @@ public final class Constants {
     public static final int hoodMotor = 12;
     public static final int climberMotor = 13;
     public static final int flywheelMotor = 14;
-    public static final int spindexerMotor = 15;
-    public static final int spindexerMotorTwo = 15;
-    public static final int feederMotor = 16;
+    public static final int indexerMotor1 = 15;
+    public static final int indexerMotor2 = 16;
+    public static final int feederMotor = 17;
     // Other
     public static final int CANdle = 22;
 
@@ -239,7 +239,7 @@ public final class Constants {
   }
 
   public static class SpindexerConstants {
-    public static final double TEST_VELOCITY = 5;
+    public static final double TEST_VELOCITY = 1.0;
 
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic

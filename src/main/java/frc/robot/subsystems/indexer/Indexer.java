@@ -27,6 +27,7 @@ public class Indexer extends SubsystemBase {
   }
 
   @Override
+
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Indexer", inputs);
@@ -47,4 +48,5 @@ public class Indexer extends SubsystemBase {
   public Command runSpindexer(double velocity) {
     return Commands.runOnce(() -> setIndexerSetpoint(velocity, 0));
   }
+
 }

@@ -8,7 +8,9 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import frc.robot.data.Constants;
 import frc.robot.utils.hardware.PhoenixHelpers;
@@ -16,54 +18,57 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class IndexerIOTalonFX implements IndexerIO {
   // Hardware Components
-  protected final TalonFXIO spindexer;
-  protected final TalonFXIO spindexerTwo;
+  protected final TalonFXIO indexer1;
+  protected final TalonFXIO indexer2;
+
+  // protected final TalonFXIO spindexerTwo;
   protected final TalonFXIO feeder;
   // Control Objects
-  private final MotionMagicVelocityVoltage spindexerVelocityRequest = new MotionMagicVelocityVoltage(0);
-  private final MotionMagicVelocityVoltage spindexerTwoVelocityRequest = new MotionMagicVelocityVoltage(0);
+  private final MotionMagicVelocityVoltage indexerVelocityRequest1 = new MotionMagicVelocityVoltage(0);
+  private final Follower indexerFollowerRequest2;
   private final MotionMagicVelocityVoltage feederVelocityRequest = new MotionMagicVelocityVoltage(0);
 
   public IndexerIOTalonFX() {
-    spindexer = new TalonFXIO(Constants.CANIds.spindexerMotor);
-    spindexerTwo = new TalonFXIO(Constants.CANIds.spindexerMotorTwo);
+    indexer1 = new TalonFXIO(Constants.CANIds.indexerMotor1);
+    indexer2 = new TalonFXIO(Constants.CANIds.indexerMotor2);
+
+    indexerFollowerRequest2 = new Follower(indexer1.getDeviceID(), MotorAlignmentValue.Aligned);
+
     feeder = new TalonFXIO(Constants.CANIds.feederMotor);
+
     // Configure hardware
-    configureSpindexerMotor();
     configureFeederMotor();
-    configureSecondSpindexerMotor();
+    configureIndexerMotors();
   }
 
   @Override
   public void updateInputs(IndexerIOInputs inputs) {
-    inputs.spindexerMotorData = spindexer.getSignalData();
+    // inputs.spindexerMotorData = spindexer.getSignalData();
     inputs.feederMotorData = feeder.getSignalData();
   }
 
   @Override
-  public void runDutyCycle(double spindexerSpeed, double feederSpeed) {
-    spindexer.set(spindexerSpeed);
-    spindexerTwo.set(spindexerSpeed);
-    feeder.set(feederSpeed);
+  public void runDutyCycle(double spindexerSpeed) {
+    // spindexer.set(spindexerSpeed);
+    // spindexerTwo.set(spindexerSpeed);
+    // feeder.set(feederSpeed);
   }
 
   @Override
   public void runIndexerVelocity(double spindexerVelocity, double feederVelocity) {
-    spindexer.setControl(spindexerVelocityRequest.withVelocity(spindexerVelocity));
-    spindexerTwo.setControl(spindexerTwoVelocityRequest.withVelocity(spindexerVelocity));
+    indexer1.setControl(indexerVelocityRequest1.withVelocity(spindexerVelocity));
+    indexer1.setControl(indexerFollowerRequest2);
+
     feeder.setControl(feederVelocityRequest.withVelocity(feederVelocity));
   }
 
-  /**
-   * Configures the spindexer motor with current limits
-   */
-  private void configureSpindexerMotor() {
-    TalonFXConfiguration spindexerConfigs = new TalonFXConfiguration();
-    CurrentLimitsConfigs spindexerCurrentLimit = new CurrentLimitsConfigs()
+  private void configureIndexerMotors() {
+    TalonFXConfiguration indexerConfigs = new TalonFXConfiguration();
+    CurrentLimitsConfigs indexerCurrentLimit = new CurrentLimitsConfigs()
         .withStatorCurrentLimit(80)
         .withStatorCurrentLimitEnable(true);
 
-    spindexerConfigs.CurrentLimits = spindexerCurrentLimit;
+    indexerConfigs.CurrentLimits = indexerCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
     slot0Configs.kP = 1;
@@ -71,42 +76,16 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kD = 0;
     slot0Configs.kV = 1.5;
     slot0Configs.kG = 0.0;
-    spindexerConfigs.Slot0 = slot0Configs;
+    indexerConfigs.Slot0 = slot0Configs;
 
     // Motion Magic
     MotionMagicConfigs motionMagic = new MotionMagicConfigs();
     motionMagic.MotionMagicAcceleration = 200;
     motionMagic.MotionMagicJerk = 0;
-    spindexerConfigs.MotionMagic = motionMagic;
+    indexerConfigs.MotionMagic = motionMagic;
 
-    PhoenixHelpers.tryConfig(() -> spindexer.getConfigurator().apply(spindexerConfigs));
-  }
-/**
-   * Configures the spindexer motor with current limits
-   */
-  private void configureSecondSpindexerMotor() {
-    TalonFXConfiguration spindexerConfigs = new TalonFXConfiguration();
-    CurrentLimitsConfigs spindexerCurrentLimit = new CurrentLimitsConfigs()
-        .withStatorCurrentLimit(80)
-        .withStatorCurrentLimitEnable(true);
-
-    spindexerConfigs.CurrentLimits = spindexerCurrentLimit;
-
-    var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 1;
-    slot0Configs.kI = 0;
-    slot0Configs.kD = 0;
-    slot0Configs.kV = 1.5;
-    slot0Configs.kG = 0.0;
-    spindexerConfigs.Slot0 = slot0Configs;
-
-    // Motion Magic
-    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
-    motionMagic.MotionMagicAcceleration = 200;
-    motionMagic.MotionMagicJerk = 0;
-    spindexerConfigs.MotionMagic = motionMagic;
-
-    PhoenixHelpers.tryConfig(() -> spindexerTwo.getConfigurator().apply(spindexerConfigs));
+    PhoenixHelpers.tryConfig(() -> indexer1.getConfigurator().apply(indexerConfigs));
+    PhoenixHelpers.tryConfig(() -> indexer2.getConfigurator().apply(indexerConfigs));
   }
 
   private void configureFeederMotor() {
@@ -133,5 +112,4 @@ public class IndexerIOTalonFX implements IndexerIO {
 
     PhoenixHelpers.tryConfig(() -> feeder.getConfigurator().apply(feederConfigs));
   }
-
 }
