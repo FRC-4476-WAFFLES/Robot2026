@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.data.Constants.SpindexerConstants;
 
 public class Indexer extends SubsystemBase {
   private final IndexerIO io;
@@ -45,8 +46,12 @@ public class Indexer extends SubsystemBase {
     feederGoalVelocity = feederVelocity;
   }
 
-  public Command runSpindexer(double velocity) {
+  public Command runIndexer(double velocity) {
     return Commands.runOnce(() -> setIndexerSetpoint(velocity, 0));
   }
 
+  public Command runIndexer() {
+    return Commands.runOnce(
+        () -> setIndexerSetpoint(SpindexerConstants.SHOOT_INDEXER_SPEED, SpindexerConstants.SHOOT_FEEDER_SPEED));
+  }
 }

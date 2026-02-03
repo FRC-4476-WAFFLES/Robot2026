@@ -80,6 +80,11 @@ public class RobotState {
     return getPose().getRotation();
   }
 
+  public boolean notMoving() {
+    var vel = getRobotVelocity();
+    return Math.abs(vel.vxMetersPerSecond) < 0.1 && Math.abs(vel.vyMetersPerSecond) < 0.1;
+  }
+
   // Called once in earlyPeriodic to update odometry state
   public void updateOdometryState(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds) {
     // Less accurate than high hz odometry thread but probably good enough?
@@ -107,5 +112,11 @@ public class RobotState {
 
   public Trigger shooterTargetsHub() {
     return new Trigger(() -> shooterState == ShooterState.TARGET_HUB);
+  }
+
+  public Trigger shouldFire() {
+    return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
+        RobotContainer.hood.atSetpoint()
+    ).and(Controls.rightJoystick.button(0)).and(shooterDisabled().negate());
   }
 }

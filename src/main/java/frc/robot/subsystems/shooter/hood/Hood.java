@@ -11,10 +11,12 @@ import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.data.Constants.HoodConstants;
 
 public class Hood extends SubsystemBase {
   private final HoodIO io;
   private final HoodIOInputsAutoLogged inputs = new HoodIOInputsAutoLogged();
+  private double setpoint = 0;
 
   public Hood(HoodIO io) {
     this.io = io;
@@ -27,12 +29,17 @@ public class Hood extends SubsystemBase {
   }
 
   public void runSetpoint(double setpoint) {
+    this.setpoint = setpoint;
     Logger.recordOutput("Hood/OutputPosition", setpoint);
     io.runHoodPosition(setpoint);
   }
 
   public double getPosition() {
     return inputs.hoodMotor.position();
+  }
+
+  public boolean atSetpoint() {
+    return (inputs.hoodMotor.velocity() - setpoint) < HoodConstants.ANGLE_RANGE;
   }
 
   public Command runSetpointCommand(DoubleSupplier angle) {

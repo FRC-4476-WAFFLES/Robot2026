@@ -265,4 +265,8 @@ public class DriveCommands {
     Rotation2d lastAngle = Rotation2d.kZero;
     double gyroDelta = 0.0;
   }
+
+  public static Command stopWithX(Drive drive) {
+    return Commands.run(() -> drive.stopWithX(), drive);
+  }
 }

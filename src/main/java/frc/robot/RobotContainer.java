@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.drive.DriveCommands;
+import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
@@ -288,8 +289,8 @@ public class RobotContainer {
     }));
     Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
         .onFalse(climber.moveElevator(0));
-    Controls.operatorController.a().onTrue(indexer.runSpindexer(Constants.SpindexerConstants.TEST_VELOCITY))
-        .onFalse(indexer.runSpindexer(0));
+    Controls.operatorController.a().onTrue(indexer.runIndexer(Constants.SpindexerConstants.TEST_VELOCITY))
+        .onFalse(indexer.runIndexer(0));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
@@ -306,6 +307,8 @@ public class RobotContainer {
       flywheel.runSetpoint(parms.flywheelSpeed());
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Hub"));
+
+    state.shouldFire().whileTrue(ShooterCommands.shootCommand());
 
     // Simulation
     if (RobotBase.isSimulation()) {

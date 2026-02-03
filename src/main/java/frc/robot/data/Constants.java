@@ -248,6 +248,8 @@ public final class Constants {
         new NodePoint(3, 60),
         new NodePoint(4, 70)
     };
+
+    public static final double RPM_RANGE = 30; // Within 30 rpm of goal
   }
 
   public static class SpindexerConstants {
@@ -262,6 +264,9 @@ public final class Constants {
 
     public static final double ZERO_DUTY_CYCLE = 0.25;
     public static final double ZERO_POSITION = 0;
+
+    public static final double SHOOT_INDEXER_SPEED = 40;
+    public static final double SHOOT_FEEDER_SPEED = 40;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
@@ -361,6 +366,8 @@ public final class Constants {
         new NodePoint(0.4, 1),
         new NodePoint(0.6, 1)
     };
+
+    public static final double ANGLE_RANGE = 2.0;
   }
 
   public static class ClimberConstants {

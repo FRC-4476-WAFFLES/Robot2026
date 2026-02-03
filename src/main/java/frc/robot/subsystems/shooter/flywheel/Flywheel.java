@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.data.Constants.FlywheelConstants;
 
 public class Flywheel extends SubsystemBase {
   private final FlywheelIO io;
@@ -39,6 +40,10 @@ public class Flywheel extends SubsystemBase {
 
   public void runSetpoint(double velocity) {
     flywheelGoalVelocity = velocity;
+  }
+
+  public boolean atSetpoint() {
+    return (inputs.flywheelMotorData.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {
