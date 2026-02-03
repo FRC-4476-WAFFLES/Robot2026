@@ -31,7 +31,7 @@ public class MechanismPoses extends VirtualSubsystem {
     // Create ground intake pose
     Pose3d groundIntakePose = new Pose3d(
         intakeRestPose.getTranslation(),
-        new Rotation3d(Units.degreesToRadians(RobotContainer.intake.getExtenderPosition()), 0, 0)
+        new Rotation3d(Units.degreesToRadians(RobotContainer.intake.getExpanderPosition()), 0, 0)
     );
     poseArray[1] = groundIntakePose;
 

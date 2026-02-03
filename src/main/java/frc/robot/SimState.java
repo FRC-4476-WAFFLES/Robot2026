@@ -13,23 +13,29 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 
 public class SimState {
-    private SwerveDrivePoseEstimator underlyingPoseEstimator = null;
+  private SwerveDrivePoseEstimator underlyingPoseEstimator = null;
+  @AutoLogOutput(key = "RobotState/Fuel Loaded")
+  private int fuelCount = 0;
 
-    public void initializeUnderlyingPoseEstimator(SwerveDriveKinematics kinematics, Rotation2d rawGyroRotation,
-            SwerveModulePosition[] lastModulePositions) {
-        underlyingPoseEstimator = new SwerveDrivePoseEstimator(kinematics, rawGyroRotation,
-                lastModulePositions, Pose2d.kZero);
-    }
+  public void initializeUnderlyingPoseEstimator(SwerveDriveKinematics kinematics, Rotation2d rawGyroRotation,
+      SwerveModulePosition[] lastModulePositions) {
+    underlyingPoseEstimator = new SwerveDrivePoseEstimator(kinematics, rawGyroRotation,
+        lastModulePositions, Pose2d.kZero);
+  }
 
-    public SwerveDrivePoseEstimator getSwerveDrivePoseEstimator() {
-        return underlyingPoseEstimator;
-    }
+  public SwerveDrivePoseEstimator getSwerveDrivePoseEstimator() {
+    return underlyingPoseEstimator;
+  }
 
-    @AutoLogOutput(key = "Vision/UnderlyingFieldPose")
-    public Pose2d getPose() {
-        if (underlyingPoseEstimator != null) {
-            return underlyingPoseEstimator.getEstimatedPosition();
-        }
-        return Pose2d.kZero;
+  @AutoLogOutput(key = "Vision/UnderlyingFieldPose")
+  public Pose2d getPose() {
+    if (underlyingPoseEstimator != null) {
+      return underlyingPoseEstimator.getEstimatedPosition();
     }
+    return Pose2d.kZero;
+  }
+
+  public void simIntake() {
+    fuelCount++;
+  }
 }

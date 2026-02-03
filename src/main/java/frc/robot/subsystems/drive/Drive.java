@@ -51,9 +51,9 @@ import frc.robot.RobotContainer;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.TunerConstants;
-import frc.robot.utils.external.LocalADStarAK;
 import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
+import frc.robot.utils.vendor.LocalADStarAK;
 
 public class Drive extends ExpandedSubsystem {
   // TunerConstants doesn't include these constants, so they are declared locally

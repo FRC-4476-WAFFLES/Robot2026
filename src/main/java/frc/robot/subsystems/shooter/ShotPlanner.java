@@ -11,9 +11,14 @@ import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Twist2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants;
+import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.utils.lib.Spline1D;
@@ -33,18 +38,32 @@ public class ShotPlanner {
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
       WafflesUtilities.FlipYIfRedAlliance(passingTargetLeft.getY()));
+  public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
-  public static ShootingParameters aimAtField(Translation2d fieldPose) {
-    var pose = RobotContainer.state.getPose();
-    double distance = pose.getTranslation().getDistance(fieldPose);
+  public static ShootingParameters aimAtField(Translation2d fieldPose) { // Pose is flipped before this function
+    Pose2d robotPose = RobotContainer.state.getPose();
+    ChassisSpeeds robotChassisSpeeds = RobotContainer.state.getRobotVelocity();
+    robotPose = robotPose.exp(
+        new Twist2d(
+            robotChassisSpeeds.vxMetersPerSecond * latencyCompensationStep,
+            robotChassisSpeeds.vyMetersPerSecond * latencyCompensationStep,
+            robotChassisSpeeds.omegaRadiansPerSecond * latencyCompensationStep));
+
+    Pose2d turretPose = robotPose.transformBy(
+        new Transform2d(PhysicalConstants.ROBOT_TO_TURRET.toTranslation2d(), Rotation2d.kZero)
+    );
+
+    double distanceToTarget = turretPose.getTranslation().getDistance(fieldPose);
+
     Logger.recordOutput("RobotState/Shooter Target", new Pose2d(fieldPose, Rotation2d.kZero));
+    Logger.recordOutput("RobotState/Turret Position", turretPose);
 
-    Rotation2d turretAngle = fieldPose.minus(pose.getTranslation()).getAngle();
+    Rotation2d turretAngle = fieldPose.minus(turretPose.getTranslation()).getAngle();
 
     parameters = new ShootingParameters(
         new TurretSetpoint(turretAngle, 0),
-        hoodAngle.interpolate(distance),
-        flywheelSpeeds.interpolate(distance)
+        hoodAngle.interpolate(distanceToTarget),
+        flywheelSpeeds.interpolate(distanceToTarget)
     );
 
     return parameters;

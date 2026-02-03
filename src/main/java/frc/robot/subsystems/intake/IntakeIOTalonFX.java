@@ -85,7 +85,7 @@ public class IntakeIOTalonFX implements IntakeIO {
     slot0Configs.kA = ExpanderConstants.MOTOR_kA;
     extensionConfigs.Slot0 = slot0Configs;
 
-    extensionConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.EXTENDER_REDUCTION;
+    extensionConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.EXPANDER_REDUCTION;
     extensionConfigs.Feedback.RotorToSensorRatio = 1;
 
     extensionConfigs.MotorOutput.DutyCycleNeutralDeadband = ExpanderConstants.MOTOR_DEADBAND;

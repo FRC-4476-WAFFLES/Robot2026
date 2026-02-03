@@ -4,6 +4,8 @@
 
 package frc.robot.data;
 
+import static edu.wpi.first.units.Units.Meters;
+
 import com.ctre.phoenix6.CANBus;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -16,6 +18,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.utils.lib.Spline1D.NodePoint;
 
@@ -102,6 +105,9 @@ public final class Constants {
 
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
+
+    public static final boolean USE_FUEL_SIMULATION = true;
+    public static final boolean USE_VISION_SIMULATION = false;
   }
 
   /* Vision */
@@ -174,11 +180,17 @@ public final class Constants {
     // In number of motor rotations per mechanism rotation
     public static final double EXAMPLE_REDUCTION = 7.1111;
     public static final double TURRET_REDUCTION = 2;
-    public static final double EXTENDER_REDUCTION = 2;
+    public static final double EXPANDER_REDUCTION = 2;
     public static final double FLYWHEEL_REDUCTION = 2;
     public static final double INTAKE_REDUCTION = 2;
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
+
+    public static final Translation3d ROBOT_TO_TURRET = new Translation3d(0.45, 0.2, 1.0);
+    public static final Distance FULL_WIDTH = Meters.of(0.6604);
+    public static final Distance FULL_LENGTH = Meters.of(0.762);
+    public static final Distance BUMPER_HEIGHT = Meters.of(0.1);
+
   }
 
   public static class TurretConstants {
@@ -239,7 +251,7 @@ public final class Constants {
   }
 
   public static class SpindexerConstants {
-    public static final double TEST_VELOCITY = 1.0;
+    public static final double TEST_VELOCITY = 60.0;
 
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic

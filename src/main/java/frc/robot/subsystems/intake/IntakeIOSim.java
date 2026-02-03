@@ -25,8 +25,8 @@ public class IntakeIOSim extends IntakeIOTalonFX {
     // apply the new rotor position and velocity to the TalonFX;
     // note that this is rotor position/velocity (before gear ratio), but
     // WPILIB sim objects return mechanism position/velocity (after gear ratio)
-    talonFXSim.setRawRotorPosition(simResult.get(0) * PhysicalConstants.EXTENDER_REDUCTION);
-    talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.EXTENDER_REDUCTION);
+    talonFXSim.setRawRotorPosition(simResult.get(0) * PhysicalConstants.EXPANDER_REDUCTION);
+    talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.EXPANDER_REDUCTION);
 
     super.updateInputs(inputs);
   }

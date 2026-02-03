@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file
 // at the root directory of this project.
 
-package frc.robot.utils.external;
+package frc.robot.utils.vendor;
 
 import java.util.ArrayList;
 import java.util.Collections;

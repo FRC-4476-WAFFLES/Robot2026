@@ -81,7 +81,7 @@ public class Intake extends SubsystemBase {
     this.expanderState = state;
   }
 
-  public double getExtenderPosition() {
+  public double getExpanderPosition() {
     return inputs.expanderMotor.position();
   }
 }

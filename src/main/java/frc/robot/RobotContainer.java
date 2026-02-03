@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Meters;
+
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -19,6 +22,7 @@ import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.Mode;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
@@ -61,6 +65,7 @@ import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.utils.vendor.FuelSim;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -161,13 +166,20 @@ public class RobotContainer {
 
         climber = new Climber(new ClimberIOSim());
 
-        vision = new Vision(
-            new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
-                VisionConstants.LEFT_CAMERA_TRANSFORM,
-                simState::getPose),
-            new SimVisionIO(VisionConstants.LIMELIGHT_NAME_R,
-                VisionConstants.RIGHT_CAMERA_TRANSFORM,
-                simState::getPose));
+        if (CodeConstants.USE_VISION_SIMULATION) {
+          vision = new Vision(
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
+                  VisionConstants.LEFT_CAMERA_TRANSFORM,
+                  simState::getPose),
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_R,
+                  VisionConstants.RIGHT_CAMERA_TRANSFORM,
+                  simState::getPose));
+        } else {
+          vision = new Vision(
+              new VisionIO() {},
+              new VisionIO() {}
+          );
+        }
 
         break;
 
@@ -218,6 +230,10 @@ public class RobotContainer {
 
     registerNamedCommands();
     configureCommandChoosers();
+
+    if (Constants.getMode() == Mode.SIM && CodeConstants.USE_FUEL_SIMULATION) {
+      configureFuelSim();
+    }
 
     // Warmup pathplanner to reduce delay when dynamic pathing
     FollowPathCommand.warmupCommand().schedule();
@@ -361,5 +377,25 @@ public class RobotContainer {
    */
   public Command getTestCommand() {
     return testChooser.get();
+  }
+
+  private void configureFuelSim() {
+    FuelSim instance = FuelSim.getInstance();
+    instance.spawnStartingFuel();
+    instance.registerRobot(
+        PhysicalConstants.FULL_WIDTH.in(Meters),
+        PhysicalConstants.FULL_LENGTH.in(Meters),
+        PhysicalConstants.BUMPER_HEIGHT.in(Meters),
+        state::getPose,
+        state::getFieldVelocity);
+    instance.registerIntake(
+        -PhysicalConstants.FULL_LENGTH.div(2).in(Meters),
+        PhysicalConstants.FULL_LENGTH.div(2).in(Meters),
+        -PhysicalConstants.FULL_WIDTH.div(2).plus(Inches.of(7)).in(Meters),
+        -PhysicalConstants.FULL_WIDTH.div(2).in(Meters),
+        () -> intake.getExpanderState() == ExpanderState.EXTENDED,
+        simState::simIntake);
+
+    instance.start();
   }
 }

@@ -19,9 +19,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.data.BuildConstants;
 import frc.robot.data.Constants;
+import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.Mode;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystemManager;
+import frc.robot.utils.vendor.FuelSim;
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -83,7 +86,8 @@ public class Robot extends LoggedRobot {
           case 1 -> "Uncommitted changes";
           default -> "Unknown";
         });
-    Logger.start(); // Start logging! No more data receivers, replay sources, or metadata values may be added.
+    Logger.start(); // Start logging! No more data receivers, replay sources, or metadata values may
+                    // be added.
     System.out.println("Logger initialized. Robot program starting...");
 
     // LaserCAN stuff
@@ -93,7 +97,7 @@ public class Robot extends LoggedRobot {
     // other threads ie. networktables
     // Threads.setCurrentThreadPriority(true, 10);
 
-    // Instantiate our RobotContainer. 
+    // Instantiate our RobotContainer.
     m_robotContainer = new RobotContainer();
 
     // Log when commands start
@@ -162,7 +166,7 @@ public class Robot extends LoggedRobot {
     // Ensure both auto and test commands are canceled
     cancelControllingCommands();
 
-    // Disable controller vibration in case disabled while rumbling 
+    // Disable controller vibration in case disabled while rumbling
     Controls.operatorController.getHID().setRumble(GenericHID.RumbleType.kBothRumble, 0);
   }
 
@@ -230,7 +234,11 @@ public class Robot extends LoggedRobot {
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+    if (Constants.getMode() == Mode.SIM && CodeConstants.USE_FUEL_SIMULATION) {
+      FuelSim.getInstance().updateSim();
+    }
+  }
 
   /** Cancels both the auto and test commands if present */
   private void cancelControllingCommands() {
