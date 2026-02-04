@@ -7,6 +7,8 @@
 
 package frc.robot.commands.drive;
 
+import static edu.wpi.first.units.Units.MetersPerSecond;
+
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedList;
@@ -14,8 +16,12 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
+import com.therekrab.autopilot.APTarget;
+import com.therekrab.autopilot.Autopilot.APResult;
+
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -29,6 +35,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class DriveCommands {
   private static final double ANGLE_KP = 5.0;
@@ -268,5 +275,53 @@ public class DriveCommands {
 
   public static Command stopWithX(Drive drive) {
     return Commands.run(() -> drive.stopWithX(), drive);
+  }
+
+  /**
+   * Flips pose automatically from blue alliance
+   */
+  public static Command autoToPose(Pose2d target) {
+    var pose = new BlueRelativeTarget(target);
+    return autoToFieldPose(() -> pose.getFieldRelative());
+  }
+
+  /**
+  * Flips pose automatically from blue alliance
+  */
+  public static Command autoToPose(BlueRelativeTarget target) {
+    return autoToFieldPose(() -> target.getFieldRelative());
+  }
+
+  public static Command autoToFieldPose(APTarget target) {
+    return autoToFieldPose(() -> target);
+  }
+
+  public static Command autoToFieldPose(Supplier<APTarget> target) {
+    ProfiledPIDController angleController = new ProfiledPIDController(
+        ANGLE_KP,
+        0.0,
+        ANGLE_KD,
+        new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
+    angleController.enableContinuousInput(-Math.PI, Math.PI);
+
+    var state = RobotContainer.state;
+    var drive = RobotContainer.drive;
+
+    return Commands.run(() -> {
+      ChassisSpeeds robotRelativeSpeeds = state.getRobotVelocity();
+      Pose2d pose = state.getPose();
+
+      APResult output = state.autopilot().calculate(pose, robotRelativeSpeeds, target.get());
+
+      double omega = angleController.calculate(
+          RobotContainer.state.getRotation().getRadians(), output.targetAngle().getRadians());
+
+      var robotVel = new ChassisSpeeds(output.vx().in(MetersPerSecond), output.vy().in(MetersPerSecond), omega);
+
+      drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(robotVel, pose.getRotation()));
+    }, RobotContainer.drive)
+        .until(() -> state.autopilot().atTarget(state.getPose(), target.get()))
+        .beforeStarting(() -> angleController.reset(RobotContainer.state.getRotation().getRadians()))
+        .finallyDo(() -> RobotContainer.drive.stop());
   }
 }

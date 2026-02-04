@@ -31,6 +31,7 @@ public class FuelSim {
   private static final double FRICTION = 0.1; // proportion of horizontal velocity to lose per second while on ground
 
   private static FuelSim instance = null;
+  private static double logThrottler = 0;
 
   private static final Translation3d[] FIELD_XZ_LINE_STARTS = {
       new Translation3d(0, 0, 0),
@@ -427,7 +428,12 @@ public class FuelSim {
       }
     }
 
-    logFuels();
+    if (logThrottler >= 1) {
+      logFuels();
+      logThrottler = 0;
+    } else {
+      logThrottler++;
+    }
   }
 
   /**

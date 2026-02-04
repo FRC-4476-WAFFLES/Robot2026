@@ -4,9 +4,16 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Centimeters;
+import static edu.wpi.first.units.Units.Degrees;
+
 import java.util.Optional;
 
 import org.littletonrobotics.junction.AutoLogOutput;
+
+import com.therekrab.autopilot.APConstraints;
+import com.therekrab.autopilot.APProfile;
+import com.therekrab.autopilot.Autopilot;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -37,6 +44,21 @@ public class RobotState {
 
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
+
+  private static final APConstraints autopilotConstraints = new APConstraints()
+      .withAcceleration(CodeConstants.AUTO_MAX_ACCEL)
+      .withJerk(CodeConstants.AUTO_MAX_JERK);
+
+  private static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
+      .withErrorXY(Centimeters.of(2))
+      .withErrorTheta(Degrees.of(0.5))
+      .withBeelineRadius(Centimeters.of(8));
+
+  private Autopilot autopilot = new Autopilot(autopilotProfile);
+
+  public Autopilot autopilot() {
+    return autopilot;
+  }
 
   /**
    * Gets the robot pose at the given timestamp (FPGA timebase)

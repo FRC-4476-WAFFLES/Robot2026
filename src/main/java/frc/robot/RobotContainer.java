@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.autos.TemplateAuto;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
@@ -266,6 +267,7 @@ public class RobotContainer {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser", AutoBuilder.buildAutoChooser());
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
+      autoChooser.addOption("Template", new TemplateAuto());
       // autoChooser.addOption("OPP2 Lolipop", new OPP2Lolipop());
     }
 
