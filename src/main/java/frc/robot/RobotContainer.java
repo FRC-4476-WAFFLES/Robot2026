@@ -142,8 +142,8 @@ public class RobotContainer {
         climber = new Climber(new ClimberIOTalonFX());
 
         vision = new Vision(
-            new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
-            new LimelightIO(VisionConstants.LIMELIGHT_NAME_R));
+            new LimelightIO(VisionConstants.LIMELIGHT_NAME_FRAME),
+            new LimelightIO(VisionConstants.LIMELIGHT_NAME_TURRET));
 
         break;
 
@@ -170,11 +170,11 @@ public class RobotContainer {
 
         if (CodeConstants.USE_VISION_SIMULATION) {
           vision = new Vision(
-              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
-                  VisionConstants.LEFT_CAMERA_TRANSFORM,
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_FRAME,
+                  VisionConstants.FRAME_CAMERA_TRANSFORM,
                   simState::getPose),
-              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_R,
-                  VisionConstants.RIGHT_CAMERA_TRANSFORM,
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_TURRET,
+                  VisionConstants.TURRET_CENTER_TRANSFORM,
                   simState::getPose));
         } else {
           vision = new Vision(

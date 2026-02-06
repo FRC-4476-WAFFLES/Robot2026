@@ -13,6 +13,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -30,37 +31,39 @@ public class Vision extends VirtualSubsystem {
       Pose2d odometryAtTimestamp
   ) {}
 
-  /** Limelight hardware */
-  public final TagCamera leftLimelight;
-  public final TagCamera rightLimelight;
+  /** hardware */
+  public final TagCamera frameCamera;
+  public final TagCamera turretCamera;
 
-  public Vision(VisionIO leftIO, VisionIO rightIO) {
-    leftLimelight = new TagCamera(leftIO,
-        VisionConstants.LIMELIGHT_NAME_L, VisionConstants.LEFT_CAMERA_TRANSFORM);
-    rightLimelight = new TagCamera(rightIO,
-        VisionConstants.LIMELIGHT_NAME_R, VisionConstants.RIGHT_CAMERA_TRANSFORM);
+  public Vision(VisionIO frameIO, VisionIO turretIO) {
+    frameCamera = new TagCamera(frameIO,
+        VisionConstants.LIMELIGHT_NAME_FRAME, (timestamp) -> VisionConstants.FRAME_CAMERA_TRANSFORM);
+    turretCamera = new TagCamera(turretIO,
+        VisionConstants.LIMELIGHT_NAME_TURRET, this::calculateTurretCamPose);
   }
 
   @Override
   public void earlyPeriodic() {
     // Updates odometry from vision.
     // Does not flush networktables.
-    var leftEstimate = leftLimelight.update();
-    var rightEstimate = rightLimelight.update();
+    var frameEstimate = frameCamera.update();
+    var turretEstimate = turretCamera.update();
 
     // Leftover from when MegaTag2 was in use
     // {
-    //     // Flush networktables explicitly once to avoid network latency
-    //     // Do not flush once per limelight, since flushing NT is ratelimited to once every 10ms
-    //     // With one or more cameras each flushing periodically, you start seeing loop overruns
-    //     NetworkTableInstance.getDefault().flush();
+    // // Flush networktables explicitly once to avoid network latency
+    // // Do not flush once per limelight, since flushing NT is ratelimited to once
+    // every 10ms
+    // // With one or more cameras each flushing periodically, you start seeing loop
+    // overruns
+    // NetworkTableInstance.getDefault().flush();
     // }
 
     Optional<TagPoseEstimate> chosenEstimate = Optional.empty();
-    if (leftEstimate.isPresent() != rightEstimate.isPresent()) {
-      chosenEstimate = leftEstimate.isPresent() ? leftEstimate : rightEstimate;
-    } else if (leftEstimate.isPresent() && rightEstimate.isPresent()) {
-      chosenEstimate = combineEstimates(leftEstimate.get(), rightEstimate.get());
+    if (frameEstimate.isPresent() != turretEstimate.isPresent()) {
+      chosenEstimate = frameEstimate.isPresent() ? frameEstimate : turretEstimate;
+    } else if (frameEstimate.isPresent() && turretEstimate.isPresent()) {
+      chosenEstimate = combineEstimates(frameEstimate.get(), turretEstimate.get());
     }
 
     // Only fuse in one estimate to avoid "double tapping" the Kalman filter
@@ -147,6 +150,11 @@ public class Vision extends VirtualSubsystem {
    * @return true if both limelights see a tag
    */
   public boolean limelightsSeeTag() {
-    return leftLimelight.canSeeTag() && rightLimelight.canSeeTag();
+    return frameCamera.canSeeTag() && turretCamera.canSeeTag();
+  }
+
+  private Transform3d calculateTurretCamPose(double timestamp) {
+
+    return Transform3d.kZero;
   }
 }

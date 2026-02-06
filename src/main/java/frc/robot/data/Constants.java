@@ -135,11 +135,11 @@ public final class Constants {
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
     public static final int MOVING_LL_IMU_MODE = 2; // Uses internal IMU
 
-    public static final Transform3d LEFT_CAMERA_TRANSFORM = new Transform3d(
+    public static final Transform3d FRAME_CAMERA_TRANSFORM = new Transform3d(
         new Translation3d(0.35, -0.35, 0.2),
         new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(20))
     );
-    public static final Transform3d RIGHT_CAMERA_TRANSFORM = new Transform3d(
+    public static final Transform3d TURRET_CENTER_TRANSFORM = new Transform3d(
         new Translation3d(0.35, 0.35, 0.2),
         new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(-20))
     );
@@ -164,8 +164,8 @@ public final class Constants {
     public static final double MAX_YAW_RATE_RADS = 5.0;
 
     // Names of limelights
-    public static final String LIMELIGHT_NAME_L = "limelight-right";
-    public static final String LIMELIGHT_NAME_R = "limelight-left";
+    public static final String LIMELIGHT_NAME_FRAME = "limelight-frame";
+    public static final String LIMELIGHT_NAME_TURRET = "limelight-turret";
 
     // Limelights are considered disconnected if their heartbeat value is older than
     // this many seconds
