@@ -139,10 +139,6 @@ public final class Constants {
         new Translation3d(0.35, -0.35, 0.2),
         new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(20))
     );
-    public static final Transform3d TURRET_CENTER_TRANSFORM = new Transform3d(
-        new Translation3d(0.35, 0.35, 0.2),
-        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(-20))
-    );
 
     public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = AprilTagFieldLayout
         .loadField(AprilTagFields.k2026RebuiltAndymark);
@@ -188,7 +184,15 @@ public final class Constants {
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
 
-    public static final Translation3d ROBOT_TO_TURRET = new Translation3d(0.45, 0.2, 1.0);
+    public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
+        new Translation3d(0.45, 0.2, 1),
+        new Rotation3d(0, 0, 0)
+    );
+    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER = new Transform3d(
+        new Translation3d(0.1, 0, 0.05),
+        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(-20))
+    );
+
     public static final Distance FULL_WIDTH = Meters.of(0.6604);
     public static final Distance FULL_LENGTH = Meters.of(0.762);
     public static final Distance BUMPER_HEIGHT = Meters.of(0.1);

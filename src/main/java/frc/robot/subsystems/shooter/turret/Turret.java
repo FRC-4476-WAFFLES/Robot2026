@@ -56,6 +56,7 @@ public class Turret extends ExpandedSubsystem {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Turret", inputs);
+    RobotContainer.state.updateTurret();
   }
 
   @Override

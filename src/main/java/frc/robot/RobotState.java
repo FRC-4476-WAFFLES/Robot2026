@@ -42,6 +42,11 @@ public class RobotState {
   private TimeInterpolatableBuffer<Double> yawVelocityHistoryBuffer = TimeInterpolatableBuffer
       .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
 
+  private TimeInterpolatableBuffer<Double> turretVelocityHistoryBuffer = TimeInterpolatableBuffer
+      .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
+  private TimeInterpolatableBuffer<Double> turretAngleBuffer = TimeInterpolatableBuffer
+      .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
+
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
 
@@ -58,6 +63,14 @@ public class RobotState {
 
   public Autopilot autopilot() {
     return autopilot;
+  }
+
+  public Optional<Double> getTurretAngleTimestamp(double timestamp) {
+    return turretAngleBuffer.getSample(timestamp);
+  }
+
+  public Optional<Double> getTurretVelocityTimestamp(double timestamp) {
+    return turretVelocityHistoryBuffer.getSample(timestamp);
   }
 
   /**
@@ -108,12 +121,17 @@ public class RobotState {
   }
 
   // Called once in earlyPeriodic to update odometry state
-  public void updateOdometryState(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds) {
+  public void updateOdometry(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds) {
     // Less accurate than high hz odometry thread but probably good enough?
     poseHistoryBuffer.addSample(timestamp, pose);
     yawVelocityHistoryBuffer.addSample(timestamp, chassisSpeeds.omegaRadiansPerSecond);
     latestChassisSpeeds = chassisSpeeds;
     latestPose = pose;
+  }
+
+  public void updateTurret(double timestamp, double position, double velocity) {
+    turretAngleBuffer.addSample(timestamp, position);
+    turretVelocityHistoryBuffer.addSample(timestamp, velocity);
   }
 
   public ShooterState getShooterState() {

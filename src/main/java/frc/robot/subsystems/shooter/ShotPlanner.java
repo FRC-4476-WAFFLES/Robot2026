@@ -50,7 +50,7 @@ public class ShotPlanner {
             robotChassisSpeeds.omegaRadiansPerSecond * latencyCompensationStep));
 
     Pose2d turretPose = robotPose.transformBy(
-        new Transform2d(PhysicalConstants.ROBOT_TO_TURRET.toTranslation2d(), Rotation2d.kZero)
+        new Transform2d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation().toTranslation2d(), Rotation2d.kZero)
     );
 
     double distanceToTarget = turretPose.getTranslation().getDistance(fieldPose);

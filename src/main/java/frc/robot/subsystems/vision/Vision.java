@@ -12,12 +12,14 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 import frc.robot.utils.vision.VisionHelpers;
@@ -153,8 +155,16 @@ public class Vision extends VirtualSubsystem {
     return frameCamera.canSeeTag() && turretCamera.canSeeTag();
   }
 
+  // Calculates turret pose in robot space
   private Transform3d calculateTurretCamPose(double timestamp) {
+    var turretAngle = RobotContainer.state.getTurretAngleTimestamp(timestamp);
+    double turretAngleRadians = 0;
+    if (turretAngle.isPresent()) {
+      turretAngleRadians = turretAngle.get();
+    }
 
-    return Transform3d.kZero;
+    var robotToTurret = new Transform3d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation(),
+        new Rotation3d(0, 0, turretAngleRadians));
+    return robotToTurret.plus(PhysicalConstants.TURRET_CAMERA_OFFSET_FROM_CENTER);
   }
 }
