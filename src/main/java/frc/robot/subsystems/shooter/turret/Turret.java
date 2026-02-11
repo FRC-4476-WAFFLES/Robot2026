@@ -15,6 +15,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CodeConstants;
@@ -38,8 +39,6 @@ public class Turret extends ExpandedSubsystem {
 
   @AutoLogOutput(key = "Turret/State")
   private TurretState state;
-  @AutoLogOutput(key = "Turret/Zeroed")
-  private boolean turretZeroed = false;
 
   private Rotation2d goalHeading = Rotation2d.kZero;
   private double goalVelocity = 0;
@@ -56,23 +55,15 @@ public class Turret extends ExpandedSubsystem {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Turret", inputs);
-    RobotContainer.state.updateTurret();
+    RobotContainer.state.updateTurret(Timer.getTimestamp(), inputs.absolutePosition, inputs.velocity);
   }
 
   @Override
   public void latePeriodic() {
     // Run after commandscheduler so commands can set a target properly
     if (!DriverStation.isEnabled()) {
-      profileState = new State(inputs.motorData.position(), 0);
+      profileState = new State(inputs.relativePosition, 0);
       return;
-    }
-
-    if (!turretZeroed) {
-      runDutyCycle(TurretConstants.ZERO_DUTY_CYCLE);
-      if (inputs.zeroingSensor) {
-        io.setPosition(TurretConstants.ZERO_POSITION);
-        turretZeroed = true;
-      }
     }
 
     if (state == TurretState.BRAKE) {
@@ -153,16 +144,16 @@ public class Turret extends ExpandedSubsystem {
     if (this.state == state) {
       return;
     }
-    profileState = new State(inputs.motorData.position(), inputs.motorData.velocity());
+    profileState = new State(inputs.relativePosition, inputs.velocity);
     this.state = state;
   }
 
   public double getPosition() {
-    return inputs.motorData.position();
+    return inputs.relativePosition;
   }
 
   public double getVelocity() {
-    return inputs.motorData.velocity();
+    return inputs.velocity;
   }
 
   public boolean atSetpoint(Rotation2d heading, double tolerancePos) {

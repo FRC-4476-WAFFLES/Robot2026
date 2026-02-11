@@ -44,8 +44,8 @@ public class RobotState {
 
   private TimeInterpolatableBuffer<Double> turretVelocityHistoryBuffer = TimeInterpolatableBuffer
       .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
-  private TimeInterpolatableBuffer<Double> turretAngleBuffer = TimeInterpolatableBuffer
-      .createDoubleBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
+  private TimeInterpolatableBuffer<Rotation2d> turretAngleBuffer = TimeInterpolatableBuffer
+      .createBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
 
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
@@ -65,7 +65,7 @@ public class RobotState {
     return autopilot;
   }
 
-  public Optional<Double> getTurretAngleTimestamp(double timestamp) {
+  public Optional<Rotation2d> getTurretAngleTimestamp(double timestamp) {
     return turretAngleBuffer.getSample(timestamp);
   }
 
@@ -129,7 +129,7 @@ public class RobotState {
     latestPose = pose;
   }
 
-  public void updateTurret(double timestamp, double position, double velocity) {
+  public void updateTurret(double timestamp, Rotation2d position, double velocity) {
     turretAngleBuffer.addSample(timestamp, position);
     turretVelocityHistoryBuffer.addSample(timestamp, velocity);
   }

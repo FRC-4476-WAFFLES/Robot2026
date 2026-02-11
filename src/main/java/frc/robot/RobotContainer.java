@@ -12,6 +12,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -171,10 +172,10 @@ public class RobotContainer {
         if (CodeConstants.USE_VISION_SIMULATION) {
           vision = new Vision(
               new SimVisionIO(VisionConstants.LIMELIGHT_NAME_FRAME,
-                  VisionConstants.FRAME_CAMERA_TRANSFORM,
+                  Transform3d.kZero,
                   simState::getPose),
               new SimVisionIO(VisionConstants.LIMELIGHT_NAME_TURRET,
-                  VisionConstants.TURRET_CENTER_TRANSFORM,
+                  Transform3d.kZero,
                   simState::getPose));
         } else {
           vision = new Vision(

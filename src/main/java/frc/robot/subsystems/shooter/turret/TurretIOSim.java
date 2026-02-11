@@ -29,8 +29,6 @@ public class TurretIOSim extends TurretIOTalonFX {
     talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.TURRET_REDUCTION);
 
     super.updateInputs(inputs);
-
-    inputs.zeroingSensor = true;
   }
 
   @Override

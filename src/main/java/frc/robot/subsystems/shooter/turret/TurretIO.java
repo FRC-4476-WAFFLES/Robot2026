@@ -6,13 +6,15 @@ package frc.robot.subsystems.shooter.turret;
 
 import org.littletonrobotics.junction.AutoLog;
 
-import frc.robot.utils.hardware.TalonFXIO.TalonFXIOData;
+import edu.wpi.first.math.geometry.Rotation2d;
 
 public interface TurretIO {
   @AutoLog
   class TurretIOInputs {
-    public TalonFXIOData motorData = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
-    public boolean zeroingSensor = false;
+    // public TalonFXIOData motorData = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
+    public Rotation2d absolutePosition = Rotation2d.kZero;
+    public double relativePosition = 0;
+    public double velocity = 0;
   }
 
   default void updateInputs(TurretIOInputs inputs) {}
