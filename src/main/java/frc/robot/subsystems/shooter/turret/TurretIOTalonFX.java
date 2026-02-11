@@ -21,6 +21,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.TurretConstants;
 import frc.robot.utils.hardware.CANcoderIO;
@@ -98,14 +99,17 @@ public class TurretIOTalonFX implements TurretIO {
     turretConfigs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = TurretConstants.MIN_POSITION_ROTATIONS;
 
     // Standard reduction control
-    // turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_REDUCTION;
+    if (Constants.getMode() == Mode.SIM) {
+      turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_REDUCTION;
+    } else {
+      // Fuse to 36t cancoder
+      turretConfigs.Feedback.RotorToSensorRatio = PhysicalConstants.TURRET_REDUCTION
+          / PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
+      turretConfigs.Feedback.FeedbackRemoteSensorID = cancoder1.getDeviceID();
+      turretConfigs.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
+      turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
 
-    // Fuse to 36t cancoder
-    turretConfigs.Feedback.RotorToSensorRatio = PhysicalConstants.TURRET_REDUCTION
-        / PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
-    turretConfigs.Feedback.FeedbackRemoteSensorID = cancoder1.getDeviceID();
-    turretConfigs.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
-    turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
+    }
 
     PhoenixHelpers.tryConfig(() -> turret.getConfigurator().apply(turretConfigs));
   }
@@ -119,9 +123,6 @@ public class TurretIOTalonFX implements TurretIO {
 
     double z = cancoder0.getRawSignals().absolutePosition().getValueAsDouble(); // 35t
     double y = cancoder1.getRawSignals().absolutePosition().getValueAsDouble(); // 36t
-
-    y = 0;
-    z = 0;
 
     double difference = z - y;
     if (difference < 0)
@@ -139,10 +140,12 @@ public class TurretIOTalonFX implements TurretIO {
       // n -= 36; // Cursed
     }
 
-    // Removes noise from simpleVernier if the gear is off by less than a tooth or two 
+    // Removes noise from simpleVernier if the gear is off by less than a tooth or
+    // two
     // Actually makes things worse if there's more significant error
     double x1 = PhysicalConstants.ENCODER_1_TEETH * (Math.round(n) + y) / PhysicalConstants.TURRET_GEAR_TEETH;
-    // double x1 = PhysicalConstants.ENCODER_0_TEETH * (Math.round(n) + z) / PhysicalConstants.TURRET_GEAR_TEETH; // Cursed
+    // double x1 = PhysicalConstants.ENCODER_0_TEETH * (Math.round(n) + z) /
+    // PhysicalConstants.TURRET_GEAR_TEETH; // Cursed
     return x1;
   }
 
@@ -155,11 +158,12 @@ public class TurretIOTalonFX implements TurretIO {
     }
     // inputs.motorData = turret.getSignalData();
 
-    inputs.absolutePosition = Rotation2d
-        .fromRotations(BaseStatusSignal.getLatencyCompensatedValue(cancoder1.getRawSignals().absolutePosition(),
-            cancoder1.getRawSignals().velocity()).in(Rotations));
+    // inputs.absolutePosition = Rotation2d
+    // .fromRotations(BaseStatusSignal.getLatencyCompensatedValue(cancoder1.getRawSignals().absolutePosition(),
+    // cancoder1.getRawSignals().velocity()).in(Rotations));
     inputs.relativePosition = BaseStatusSignal.getLatencyCompensatedValue(turret.getRawSignals().position(),
         turret.getRawSignals().velocity()).in(Rotations);
+    inputs.absolutePosition = Rotation2d.fromRotations(inputs.relativePosition).plus(Rotation2d.kZero); // Wrap rotation
     inputs.velocity = turret.getRawSignals().velocity().getValueAsDouble();
   }
 

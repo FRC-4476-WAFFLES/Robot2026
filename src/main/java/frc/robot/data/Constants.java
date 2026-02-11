@@ -113,7 +113,7 @@ public final class Constants {
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
 
     public static final boolean USE_FUEL_SIMULATION = false;
-    public static final boolean USE_VISION_SIMULATION = false;
+    public static final boolean USE_VISION_SIMULATION = true;
   }
 
   /* Vision */

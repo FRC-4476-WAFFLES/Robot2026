@@ -57,7 +57,7 @@ public interface VisionIO {
       boolean isMegaTag2
   ) {}
 
-  public default void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraTransform) {}
+  public default void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraOffset) {}
 
   public default void setEnabled() {};
 

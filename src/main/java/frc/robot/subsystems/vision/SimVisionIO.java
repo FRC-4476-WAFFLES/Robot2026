@@ -66,12 +66,13 @@ public class SimVisionIO implements VisionIO {
   }
 
   @Override
-  public void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraTransform) {
+  public void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraOffset) {
     inputs.isAlive = true;
 
     Pose2d estimatedPose = poseSupplier.get();
     if (estimatedPose != null) {
       visionSim.update(estimatedPose);
+      visionSim.adjustCamera(cameraSim, cameraOffset.apply(Timer.getTimestamp()));
       // Logger.recordOutput("Vision/updateSimPose", estimatedPose);
     }
 
@@ -161,7 +162,7 @@ public class SimVisionIO implements VisionIO {
 
     Optional<Transform3d> optRobotToCamera = visionSim.getRobotToCamera(cameraSim, Timer.getFPGATimestamp());
     Pose3d fieldToRobot;
-    if (optRobotToCamera.isPresent()) {
+    if (optRobotToCamera.isPresent() && false) {
       Transform3d cameraToRobot = optRobotToCamera.get().inverse();
       Pose3d robotPose3d = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation())
           .transformBy(cameraToRobot);

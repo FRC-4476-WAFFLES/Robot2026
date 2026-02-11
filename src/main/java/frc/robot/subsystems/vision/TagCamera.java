@@ -25,6 +25,8 @@ import frc.robot.data.Constants.VisionConstants;
 import frc.robot.subsystems.vision.Vision.TagPoseEstimate;
 import frc.robot.subsystems.vision.VisionIO.PoseEstimateRecord;
 import frc.robot.subsystems.vision.VisionIO.RawFiducialRecord;
+import frc.robot.subsystems.vision.VisionIO.VisionIOInputs;
+import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.vision.VisionHelpers;
 
 public class TagCamera {
@@ -42,6 +44,21 @@ public class TagCamera {
     visionIO = io;
     cameraName = name;
     cameraOffset = offset;
+  }
+
+  public void applyOffsetToInputs(VisionIOInputs inputs) {
+    var inverseCameraTransform = cameraOffset.apply(inputs.megatagResult.timestampSeconds()).inverse();
+
+    var oldResult = inputs.megatagResult;
+    inputs.megatagResult = new PoseEstimateRecord(
+        oldResult.pose().transformBy(WafflesUtilities.Transform3dTo2d(inverseCameraTransform)),
+        oldResult.timestampSeconds(),
+        oldResult.latency(),
+        oldResult.tagCount(), oldResult.tagSpan(), oldResult.avgTagDist(),
+        oldResult.avgTagArea(), oldResult.isMegaTag2()
+    );
+
+    inputs.rawPose3d = inputs.rawPose3d.transformBy(inverseCameraTransform);
   }
 
   /**
@@ -68,6 +85,9 @@ public class TagCamera {
       cleanDebugLines();
       return Optional.empty();
     }
+
+    applyOffsetToInputs(inputs); // Abuse inputs to allow replay debugging of turret
+    // transformations with simpler code
 
     if (inputs.megatagResult != null && inputs.megatagResult.tagCount() > 0) {
       // Skip duplicates

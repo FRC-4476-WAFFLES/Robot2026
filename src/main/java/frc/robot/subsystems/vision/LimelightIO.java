@@ -10,7 +10,6 @@ import java.util.function.DoubleFunction;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.data.Constants.VisionConstants;
-import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.vision.LimelightHelpers;
 import frc.robot.utils.vision.VisionHelpers;
 
@@ -27,7 +26,7 @@ public class LimelightIO implements VisionIO {
   }
 
   @Override
-  public void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraTransform) {
+  public void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraOffset) {
     double heartBeat = LimelightHelpers.getLimelightNTDouble(limelightName, "hb");
     if (lastHeartbeatValue != heartBeat) {
       lastHeartbeatValue = heartBeat;
@@ -51,10 +50,9 @@ public class LimelightIO implements VisionIO {
 
     // Process MegaTag1
     var result = LimelightHelpers.getBotPoseEstimate_wpiBlue(limelightName);
-    var inverseCameraTransform = cameraTransform.apply(result.timestampSeconds).inverse();
 
     inputs.megatagResult = new PoseEstimateRecord(
-        result.pose.transformBy(WafflesUtilities.Transform3dTo2d(inverseCameraTransform)), result.timestampSeconds,
+        result.pose, result.timestampSeconds,
         result.latency,
         result.tagCount, result.tagSpan, result.avgTagDist,
         result.avgTagArea, result.isMegaTag2
@@ -81,7 +79,7 @@ public class LimelightIO implements VisionIO {
       inputs.rawFiducials[i] = null;
     }
 
-    inputs.rawPose3d = LimelightHelpers.getBotPose3d_wpiBlue(limelightName).transformBy(inverseCameraTransform);
+    inputs.rawPose3d = LimelightHelpers.getBotPose3d_wpiBlue(limelightName);
     // Get latest standard deviations from cameras
     inputs.rawStandardDeviationArray = VisionHelpers.getAutomaticStandardDeviations(limelightName);
   }
