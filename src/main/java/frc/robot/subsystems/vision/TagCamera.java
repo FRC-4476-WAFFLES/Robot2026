@@ -15,6 +15,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -26,7 +27,6 @@ import frc.robot.subsystems.vision.Vision.TagPoseEstimate;
 import frc.robot.subsystems.vision.VisionIO.PoseEstimateRecord;
 import frc.robot.subsystems.vision.VisionIO.RawFiducialRecord;
 import frc.robot.subsystems.vision.VisionIO.VisionIOInputs;
-import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.vision.VisionHelpers;
 
 public class TagCamera {
@@ -49,9 +49,15 @@ public class TagCamera {
   public void applyOffsetToInputs(VisionIOInputs inputs) {
     var inverseCameraTransform = cameraOffset.apply(inputs.megatagResult.timestampSeconds()).inverse();
 
+    Pose3d pose3dBeforeOffset = new Pose3d(
+        inputs.megatagResult.pose().getX(),
+        inputs.megatagResult.pose().getY(),
+        0.0,
+        new Rotation3d(0, 0, inputs.megatagResult.pose().getRotation().getRadians())
+    );
     var oldResult = inputs.megatagResult;
     inputs.megatagResult = new PoseEstimateRecord(
-        oldResult.pose().transformBy(WafflesUtilities.Transform3dTo2d(inverseCameraTransform)),
+        pose3dBeforeOffset.plus(inverseCameraTransform).toPose2d(),
         oldResult.timestampSeconds(),
         oldResult.latency(),
         oldResult.tagCount(), oldResult.tagSpan(), oldResult.avgTagDist(),
@@ -64,7 +70,7 @@ public class TagCamera {
   /**
    * Call every periodic loop to fetch vision reported poses. 
    */
-  public Optional<TagPoseEstimate> update() {
+  public Optional<TagPoseEstimate> update(boolean isTurret) {
     visionIO.updateInputs(inputs, cameraOffset);
     Logger.processInputs("Inputs/Vison/" + cameraName, inputs);
 
@@ -78,11 +84,18 @@ public class TagCamera {
     // Skip if disconnected
     if (!inputs.isAlive) {
       cleanDebugLines();
+      Logger.recordOutput("Vision/" + cameraName + "/Estimate Type", "NONE");
+
       return Optional.empty();
     }
+
+    drawCameraPose();
+
     // Skip if no tags visible
     if (!inputs.canSeeTag) {
       cleanDebugLines();
+      Logger.recordOutput("Vision/" + cameraName + "/Estimate Type", "NONE");
+
       return Optional.empty();
     }
 
@@ -95,7 +108,7 @@ public class TagCamera {
         if (VisionHelpers.isValidPose(inputs.megatagResult.pose())) {
           // Validate Z-axis
           if (Math.abs(inputs.rawPose3d.getZ()) <= VisionConstants.MAX_Z_ERROR) {
-            var megatagEstimate = filterMegatagEstimate();
+            var megatagEstimate = filterMegatagEstimate(isTurret);
             var gyroEstimate = calculateGyroEstimate();
 
             if (megatagEstimate.isPresent()) {
@@ -164,6 +177,19 @@ public class TagCamera {
     Logger.recordOutput("Vision/" + cameraName + "/Target Visualization", output);
   }
 
+  private void drawCameraPose() {
+    if (!VISUALIZE_TARGETS) {
+      return;
+    }
+
+    Pose3d robotPose = new Pose3d(RobotContainer.state.getPose());
+
+    // Transform3d camOffset = Transform3d.kZero;
+
+    Pose3d cameraPose = robotPose.transformBy(cameraOffset.apply(Timer.getTimestamp()));
+    Logger.recordOutput("Vision/" + cameraName + "/Camera Position", cameraPose);
+  }
+
   /**
    * Returns true if the camera can see a tag
    * @return A boolean
@@ -187,8 +213,15 @@ public class TagCamera {
     return cameraName;
   }
 
-  private Optional<TagPoseEstimate> filterMegatagEstimate() {
+  private Optional<TagPoseEstimate> filterMegatagEstimate(boolean isTurret) {
     var megatagResult = inputs.megatagResult;
+
+    if (Math.abs(RobotContainer.state.getTurretVelocityTimestamp(
+        megatagResult.timestampSeconds()
+    ).orElse(Double.POSITIVE_INFINITY)) > VisionConstants.MAX_TURRET_YAW_RATE_ROTATIONS) {
+
+      return Optional.empty();
+    }
 
     // Single-tag validation
     if (megatagResult.tagCount() == 1) {
@@ -286,7 +319,7 @@ public class TagCamera {
     // it's limits)
     if (Math.abs(RobotContainer.state.getYawVelocityAtTimestamp(
         megatagResult.timestampSeconds()
-    ).orElse(Double.POSITIVE_INFINITY)) > VisionConstants.MAX_YAW_RATE_RADS) {
+    ).orElse(Double.POSITIVE_INFINITY)) > VisionConstants.MAX_YAW_RATE_RADS_GYRO_ESTIMATE) {
 
       return Optional.empty();
     }

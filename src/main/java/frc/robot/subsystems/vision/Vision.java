@@ -48,8 +48,8 @@ public class Vision extends VirtualSubsystem {
   public void earlyPeriodic() {
     // Updates odometry from vision.
     // Does not flush networktables.
-    var frameEstimate = frameCamera.update();
-    var turretEstimate = turretCamera.update();
+    var frameEstimate = frameCamera.update(false);
+    var turretEstimate = turretCamera.update(true);
 
     // Leftover from when MegaTag2 was in use
     // {
@@ -165,6 +165,6 @@ public class Vision extends VirtualSubsystem {
 
     var robotToTurret = new Transform3d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation(),
         new Rotation3d(0, 0, turretAngleRadians));
-    return robotToTurret.plus(PhysicalConstants.TURRET_CAMERA_OFFSET_FROM_CENTER);
+    return robotToTurret.plus(PhysicalConstants.TURRET_CAMERA_OFFSET_FROM_CENTER_CALCULATION);
   }
 }

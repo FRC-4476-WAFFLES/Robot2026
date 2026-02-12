@@ -157,6 +157,8 @@ public final class Constants {
     public static final double MEGATAG1_MAX_DISTANCE_THRESHOLD = 1; // Max distance at which MT1 estimates are used raw
                                                                     // from cameras
     public static final double MAX_YAW_RATE_RADS = 5.0;
+    public static final double MAX_YAW_RATE_RADS_GYRO_ESTIMATE = 1.5;
+    public static final double MAX_TURRET_YAW_RATE_ROTATIONS = 2;
 
     // Names of limelights
     public static final String LIMELIGHT_NAME_FRAME = "limelight-frame";
@@ -190,12 +192,17 @@ public final class Constants {
     public static final double TURRET_ENCODER_1_REDUCTION = TURRET_GEAR_TEETH / ENCODER_1_TEETH;
 
     public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
-        new Translation3d(0.45, 0.2, 1),
+        new Translation3d(0.22542500, 0.07302500, 0.5),
         new Rotation3d(0, 0, 0)
     );
     public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER = new Transform3d(
-        new Translation3d(0.1, 0, 0.05),
-        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(-20))
+        new Translation3d(-0.09576931, 0, 0.24856043),
+        new Rotation3d(0, Units.degreesToRadians(-20), 0)
+    );
+
+    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER_CALCULATION = new Transform3d(
+        new Translation3d(-0.09576931, 0, 0.24856043),
+        new Rotation3d(0, 0, 0)
     );
 
     public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(

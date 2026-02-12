@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.function.DoubleFunction;
 import java.util.function.Supplier;
 
+import org.littletonrobotics.junction.Logger;
 import org.photonvision.PhotonCamera;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
@@ -27,6 +28,7 @@ public class SimVisionIO implements VisionIO {
   private final Supplier<Pose2d> poseSupplier;
   private final PhotonCameraSim cameraSim;
   private final PhotonCamera camera;
+  private final String name;
 
   private final int kResWidth = 1280;
   private final int kResHeight = 800;
@@ -39,6 +41,7 @@ public class SimVisionIO implements VisionIO {
   */
   public SimVisionIO(String name, Transform3d robotToCamera, Supplier<Pose2d> poseSupplier) {
     this.poseSupplier = poseSupplier;
+    this.name = name;
     camera = new PhotonCamera(name);
 
     if (visionSim == null) {
@@ -51,7 +54,7 @@ public class SimVisionIO implements VisionIO {
     var cameraProperties = new SimCameraProperties();
     cameraProperties.setCalibration(kResWidth, kResHeight, Rotation2d.fromDegrees(97.7));
     cameraProperties.setCalibError(0.35, 0.5);
-    cameraProperties.setFPS(45);
+    cameraProperties.setFPS(50);
     cameraProperties.setAvgLatencyMs(20);
     cameraProperties.setLatencyStdDevMs(5);
     cameraProperties.setExposureTimeMs(0.65);
@@ -72,7 +75,10 @@ public class SimVisionIO implements VisionIO {
     Pose2d estimatedPose = poseSupplier.get();
     if (estimatedPose != null) {
       visionSim.update(estimatedPose);
-      visionSim.adjustCamera(cameraSim, cameraOffset.apply(Timer.getTimestamp()));
+      var transform = cameraOffset.apply(Timer.getTimestamp());
+      visionSim.adjustCamera(cameraSim, transform);
+      Logger.recordOutput("Vision/" + name + "/Sim Camera Position",
+          new Pose3d(estimatedPose).plus(transform));
       // Logger.recordOutput("Vision/updateSimPose", estimatedPose);
     }
 

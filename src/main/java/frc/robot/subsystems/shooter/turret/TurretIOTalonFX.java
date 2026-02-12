@@ -6,6 +6,8 @@ package frc.robot.subsystems.shooter.turret;
 
 import static edu.wpi.first.units.Units.Rotations;
 
+import org.littletonrobotics.junction.Logger;
+
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -98,17 +100,17 @@ public class TurretIOTalonFX implements TurretIO {
     turretConfigs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = TurretConstants.MAX_POSITION_ROTATIONS;
     turretConfigs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = TurretConstants.MIN_POSITION_ROTATIONS;
 
-    // Standard reduction control
     if (Constants.getMode() == Mode.SIM) {
       turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_REDUCTION;
+
     } else {
       // Fuse to 36t cancoder
+
       turretConfigs.Feedback.RotorToSensorRatio = PhysicalConstants.TURRET_REDUCTION
           / PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
       turretConfigs.Feedback.FeedbackRemoteSensorID = cancoder1.getDeviceID();
       turretConfigs.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
       turretConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
-
     }
 
     PhoenixHelpers.tryConfig(() -> turret.getConfigurator().apply(turretConfigs));
@@ -123,6 +125,11 @@ public class TurretIOTalonFX implements TurretIO {
 
     double z = cancoder0.getRawSignals().absolutePosition().getValueAsDouble(); // 35t
     double y = cancoder1.getRawSignals().absolutePosition().getValueAsDouble(); // 36t
+
+    // Debugging
+    // double xValue = -0.96;
+    // y = (xValue * 400 / 36) - Math.floor(xValue * 400 / 36);
+    // z = (xValue * 400 / 35) - Math.floor(xValue * 400 / 35);
 
     double difference = z - y;
     if (difference < 0)
@@ -157,6 +164,7 @@ public class TurretIOTalonFX implements TurretIO {
       turretZeroed = true;
     }
     // inputs.motorData = turret.getSignalData();
+    Logger.recordOutput("Turret/Zeroing Diagnostic", calculateTurretStartupPosition(false));
 
     // inputs.absolutePosition = Rotation2d
     // .fromRotations(BaseStatusSignal.getLatencyCompensatedValue(cancoder1.getRawSignals().absolutePosition(),
