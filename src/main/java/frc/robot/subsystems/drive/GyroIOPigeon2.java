@@ -15,10 +15,12 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
+import frc.robot.data.Constants;
 import frc.robot.data.TunerConstants;
 
 /** IO implementation for Pigeon 2. */
@@ -56,5 +58,19 @@ public class GyroIOPigeon2 implements GyroIO {
         .toArray(Rotation2d[]::new);
     yawTimestampQueue.clear();
     yawPositionQueue.clear();
+
+    inputs.levelOnGround = !isOnBumpGravity();
+  }
+
+  public double getTiltMagnitude() {
+    // The gravity vector as [X, Y, Z]
+    // On a flat surface, X and Y are near 0, and Z is near 1
+    double gz = pigeon.getGravityVectorZ().getValueAsDouble();
+    double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
+    return Math.toDegrees(tiltRad);
+  }
+
+  public boolean isOnBumpGravity() {
+    return getTiltMagnitude() > Constants.CodeConstants.ON_BUMP_TILT;
   }
 }

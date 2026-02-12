@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -19,6 +20,7 @@ import frc.robot.RobotContainer;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.utils.lib.Spline1D;
@@ -81,6 +83,14 @@ public class ShotPlanner {
 
   public static ShootingParameters aimToHub() {
     return aimAtField(WafflesUtilities.FlipIfRedAlliance(FieldConstants.Hub.topCenterPoint.toTranslation2d()));
+  }
+
+  public static ShootingParameters aimToTag() {
+    return aimAtField(
+        WafflesUtilities
+            .FlipIfRedAlliance(
+                VisionConstants.APRIL_TAG_FIELD_LAYOUT.getTagPose(19).orElse(Pose3d.kZero).toPose2d().getTranslation())
+    );
   }
 
   public static ShootingParameters getLatestParameters() {

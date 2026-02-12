@@ -311,6 +311,12 @@ public class RobotContainer {
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Hub"));
 
+    state.shooterTargetTag().whileTrue(Commands.run(() -> {
+      var parms = ShotPlanner.aimToTag();
+      turret.runSetpoint(parms.turretSetpoint(), true);
+      flywheel.runSetpoint(parms.flywheelSpeed());
+      hood.runSetpoint(parms.hoodAngle());
+    }).withName("Shooter Tag"));
     state.shouldFire().whileTrue(ShooterCommands.shootCommand());
 
     // Simulation

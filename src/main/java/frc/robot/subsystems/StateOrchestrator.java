@@ -13,13 +13,29 @@ import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 public class StateOrchestrator extends VirtualSubsystem {
   // All coordinates are blue alliance relative
   private double shootingLineX = 4.0;
-  private double passingLineX = FieldConstants.LinesVertical.neutralZoneNear;
+  private double tagZoneLength = 2.0;
+  private double bumpEndLineX = FieldConstants.LinesVertical.neutralZoneNear;
+  private double passingLineX = bumpEndLineX + tagZoneLength;
 
   public StateOrchestrator() {}
 
   @Override
   public void periodic() {
     determineShooterState();
+    determineOnBump();
+  }
+
+  private void determineOnBump() {
+    var pose = WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose());
+    if (pose.getX() > shootingLineX && pose.getX() < bumpEndLineX) {
+      RobotContainer.state.onBump = true;
+      return;
+    }
+    if (!RobotContainer.drive.isLevelOnGround()) {
+      RobotContainer.state.onBump = true;
+      return;
+    }
+    RobotContainer.state.onBump = false;
   }
 
   private void determineShooterState() {
@@ -27,9 +43,10 @@ public class StateOrchestrator extends VirtualSubsystem {
     ShooterState state = ShooterState.DISABLED;
     if (pose.getX() < shootingLineX) {
       state = ShooterState.TARGET_HUB;
-    }
-    if (pose.getX() > passingLineX) {
+    } else if (pose.getX() > passingLineX) {
       state = ShooterState.TARGET_PASS;
+    } else {
+      state = ShooterState.TARGET_TAG;
     }
 
     RobotContainer.state.setShooterState(state);

@@ -346,6 +346,11 @@ public class Drive extends ExpandedSubsystem {
     );
   }
 
+  /** Returns if the robot is resting flat on the ground */
+  public boolean isLevelOnGround() {
+    return gyroInputs.levelOnGround;
+  }
+
   /** Adds a new timestamped vision measurement. */
   public void addVisionMeasurement(
       Pose2d visionRobotPoseMeters,

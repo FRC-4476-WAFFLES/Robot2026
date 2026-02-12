@@ -51,6 +51,14 @@ public class Vision extends VirtualSubsystem {
     var frameEstimate = frameCamera.update(false);
     var turretEstimate = turretCamera.update(true);
 
+    if (RobotContainer.state.onBump || RobotContainer.state.isManualMode()) { // Ignore vision when on bump or manual
+                                                                              // mode
+      frameEstimate = Optional.empty();
+      turretEstimate = Optional.empty();
+      Logger.recordOutput("Vision/Vision Enabled", false);
+    } else {
+      Logger.recordOutput("Vision/Vision Enabled", true);
+    }
     // Leftover from when MegaTag2 was in use
     // {
     // // Flush networktables explicitly once to avoid network latency

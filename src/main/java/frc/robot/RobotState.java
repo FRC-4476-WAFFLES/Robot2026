@@ -26,11 +26,18 @@ public class RobotState {
   public static enum ShooterState {
     TARGET_PASS,
     TARGET_HUB,
+    TARGET_TAG, // Look at tag after crossing bump
     DISABLED
   }
 
   @AutoLogOutput(key = "RobotState/Shooter State")
   public ShooterState shooterState = ShooterState.TARGET_HUB;
+
+  @AutoLogOutput(key = "RobotState/On Bump")
+  public boolean onBump = false;
+
+  @AutoLogOutput(key = "RobotState/Manual Mode")
+  private boolean manualMode = false;
 
   /*                       */
   /* Latency Compensation */
@@ -142,12 +149,24 @@ public class RobotState {
     shooterState = state;
   }
 
+  public void toggleManualMode() {
+    manualMode = !manualMode;
+  }
+
+  public boolean isManualMode() {
+    return manualMode;
+  }
+
   public Trigger shooterDisabled() {
     return new Trigger(() -> shooterState == ShooterState.DISABLED);
   }
 
   public Trigger shooterTargetPassing() {
     return new Trigger(() -> shooterState == ShooterState.TARGET_PASS);
+  }
+
+  public Trigger shooterTargetTag() {
+    return new Trigger(() -> shooterState == ShooterState.TARGET_TAG);
   }
 
   public Trigger shooterTargetsHub() {

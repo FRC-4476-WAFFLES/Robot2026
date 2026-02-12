@@ -301,6 +301,10 @@ public class TagCamera {
   }
 
   private Optional<TagPoseEstimate> calculateGyroEstimate() {
+    if (VisionConstants.IGNORE_SINGLE_TAG) {
+      return Optional.empty();
+    }
+
     var megatagResult = inputs.megatagResult;
 
     // Prefer megatag 1 when more than one tag is visible

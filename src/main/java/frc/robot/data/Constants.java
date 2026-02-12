@@ -105,6 +105,8 @@ public final class Constants {
     public static final double BASE_CAN_FREQUENCY = 50;
     public static final double LOW_IMPORTANCE_CAN_FREQUENCY = 20;
 
+    public static final double ON_BUMP_TILT = 5.0; // Degrees, how much off vertical axis is considered the bump
+
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
     public static final double AUTO_MAX_ACCEL = 5.0;
     public static final double AUTO_MAX_JERK = 2.0;
@@ -172,6 +174,8 @@ public final class Constants {
     public static final int MEGATAG_1_XStdDevIndex = 0;
     public static final int MEGATAG_1_YStdDevIndex = 1;
     public static final int MEGATAG_1_YawStdDevIndex = 5;
+
+    public static final boolean IGNORE_SINGLE_TAG = true;
   }
 
   /* Physical */
