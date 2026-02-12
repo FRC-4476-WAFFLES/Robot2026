@@ -22,11 +22,11 @@ public class Telemetry extends VirtualSubsystem {
   /* Pathplanner data */
   // private final NetworkTable pathplannerTable = inst.getTable("PathPlanner");
   // StructPublisher<Pose2d> pathplannerCurrentPoseNT = pathplannerTable
-  //     .getStructTopic("PPCurrentPose", Pose2d.struct).publish();
+  // .getStructTopic("PPCurrentPose", Pose2d.struct).publish();
   // StructPublisher<Pose2d> pathplannerTargetPoseNT = pathplannerTable
-  //     .getStructTopic("PPTargetPose", Pose2d.struct).publish();
+  // .getStructTopic("PPTargetPose", Pose2d.struct).publish();
   // StructArrayPublisher<Pose2d> pathplannerCurrentTrajectory = pathplannerTable
-  //     .getStructArrayTopic("PPCurrentTrajectory", Pose2d.struct).publish();
+  // .getStructArrayTopic("PPCurrentTrajectory", Pose2d.struct).publish();
 
   // private final Pose2d[] trajTypeArray = new Pose2d[0];
 
@@ -61,14 +61,15 @@ public class Telemetry extends VirtualSubsystem {
   }).debounce(2); // If error seen in last two seconds, report issue
 
   /*                 */
-  /*  Alerts System  */
+  /* Alerts System */
   /*                 */
 
   private final Alert canFaultDetected = new Alert("CAN fault detected [See Console]", AlertType.kError);
   private final Alert rioCanError = new Alert("RIO CAN bus error", AlertType.kError);
   private final Alert canivoreError = new Alert("CANivore bus error", AlertType.kError);
   private final Alert visionFaultDetected = new Alert("", AlertType.kError);
-  // private final Alert driverControllerDisconnected = new Alert("Driver controller disconnected [port 0].", AlertType.kWarning);
+  // private final Alert driverControllerDisconnected = new Alert("Driver
+  // controller disconnected [port 0].", AlertType.kWarning);
   private final Alert leftJoystickDisconnected = new Alert("Left joystick disconnected [port 0].",
       AlertType.kWarning);
   private final Alert rightJoystickDisconnected = new Alert("Right joystick disconnected [port 1].",
@@ -114,12 +115,12 @@ public class Telemetry extends VirtualSubsystem {
     ArrayList<String> details = new ArrayList<>();
     boolean visionOk = true;
 
-    if (!vision.leftLimelight.isAlive()) {
-      details.add(vision.leftLimelight.getName());
+    if (!vision.frameCamera.isAlive()) {
+      details.add(vision.frameCamera.getName());
       visionOk = false;
     }
-    if (!vision.rightLimelight.isAlive()) {
-      details.add(vision.rightLimelight.getName());
+    if (!vision.turretCamera.isAlive()) {
+      details.add(vision.turretCamera.getName());
       visionOk = false;
     }
 

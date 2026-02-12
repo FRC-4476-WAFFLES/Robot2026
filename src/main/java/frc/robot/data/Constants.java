@@ -56,22 +56,26 @@ public final class Constants {
   public static class CANIds {
     // Drivetrain IDS are located in TunerConstants
 
-    // Motors
-    public static final int turretMotor = 9;
+    // RIO bus
     public static final int expanderMotor = 10;
     public static final int intakeMotor = 11;
     public static final int hoodMotor = 12;
-    public static final int climberMotor = 13;
     public static final int flywheelMotor = 14;
+    public static final int climberMotor = 13;
     public static final int indexerMotor1 = 15;
     public static final int indexerMotor2 = 16;
     public static final int feederMotor = 17;
-    // Other
+
     public static final int CANdle = 22;
 
     // Canivore
-    public static final String CANivoreName = "Drivetrain";
+    public static final String CANivoreName = "CANivore";
     public static final CANBus CANivoreBus = new CANBus(CANivoreName);
+
+    // CANivore bus
+    public static final int turretMotor = 9;
+    public static final int turretEncoder0 = 18;
+    public static final int turretEncoder1 = 19;
   }
 
   /* PWM Outputs */
@@ -94,7 +98,7 @@ public final class Constants {
 
     // Disable all nonessential CAN status signals, potentially reducing CAN
     // pressure
-    public static final boolean DISABLE_UNUSED_STATUS_SIGNALS = true;
+    public static final boolean DISABLE_UNUSED_STATUS_SIGNALS = false;
 
     // Frequencies in hertz for CAN refresh rates
     public static final double FD_CAN_FREQUENCY = 100;
@@ -108,8 +112,8 @@ public final class Constants {
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
 
-    public static final boolean USE_FUEL_SIMULATION = true;
-    public static final boolean USE_VISION_SIMULATION = false;
+    public static final boolean USE_FUEL_SIMULATION = false;
+    public static final boolean USE_VISION_SIMULATION = true;
   }
 
   /* Vision */
@@ -135,15 +139,6 @@ public final class Constants {
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
     public static final int MOVING_LL_IMU_MODE = 2; // Uses internal IMU
 
-    public static final Transform3d LEFT_CAMERA_TRANSFORM = new Transform3d(
-        new Translation3d(0.35, -0.35, 0.2),
-        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(20))
-    );
-    public static final Transform3d RIGHT_CAMERA_TRANSFORM = new Transform3d(
-        new Translation3d(0.35, 0.35, 0.2),
-        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(-20))
-    );
-
     public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = AprilTagFieldLayout
         .loadField(AprilTagFields.k2026RebuiltAndymark);
 
@@ -162,10 +157,12 @@ public final class Constants {
     public static final double MEGATAG1_MAX_DISTANCE_THRESHOLD = 1; // Max distance at which MT1 estimates are used raw
                                                                     // from cameras
     public static final double MAX_YAW_RATE_RADS = 5.0;
+    public static final double MAX_YAW_RATE_RADS_GYRO_ESTIMATE = 1.5;
+    public static final double MAX_TURRET_YAW_RATE_ROTATIONS = 2;
 
     // Names of limelights
-    public static final String LIMELIGHT_NAME_L = "limelight-right";
-    public static final String LIMELIGHT_NAME_R = "limelight-left";
+    public static final String LIMELIGHT_NAME_FRAME = "limelight-frame";
+    public static final String LIMELIGHT_NAME_TURRET = "limelight-turret";
 
     // Limelights are considered disconnected if their heartbeat value is older than
     // this many seconds
@@ -180,7 +177,6 @@ public final class Constants {
   /* Physical */
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
-    public static final double EXAMPLE_REDUCTION = 7.1111;
     public static final double TURRET_REDUCTION = 2;
     public static final double EXPANDER_REDUCTION = 2;
     public static final double FLYWHEEL_REDUCTION = 2;
@@ -188,7 +184,32 @@ public final class Constants {
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
 
-    public static final Translation3d ROBOT_TO_TURRET = new Translation3d(0.45, 0.2, 1.0);
+    public static final double TURRET_GEAR_TEETH = 400.0;
+    public static final double ENCODER_0_TEETH = 35.0;
+    public static final double ENCODER_1_TEETH = 36.0;
+
+    public static final double TURRET_ENCODER_0_REDUCTION = TURRET_GEAR_TEETH / ENCODER_0_TEETH;
+    public static final double TURRET_ENCODER_1_REDUCTION = TURRET_GEAR_TEETH / ENCODER_1_TEETH;
+
+    public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
+        new Translation3d(0.22542500, 0.07302500, 0.5),
+        new Rotation3d(0, 0, 0)
+    );
+    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER = new Transform3d(
+        new Translation3d(-0.09576931, 0, 0.24856043),
+        new Rotation3d(0, Units.degreesToRadians(-20), 0)
+    );
+
+    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER_CALCULATION = new Transform3d(
+        new Translation3d(-0.09576931, 0, 0.24856043),
+        new Rotation3d(0, 0, 0)
+    );
+
+    public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(
+        new Translation3d(0.35, -0.35, 0.2),
+        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(20))
+    );
+
     public static final Distance FULL_WIDTH = Meters.of(0.6604);
     public static final Distance FULL_LENGTH = Meters.of(0.762);
     public static final Distance BUMPER_HEIGHT = Meters.of(0.1);
@@ -196,15 +217,15 @@ public final class Constants {
   }
 
   public static class TurretConstants {
+    public static final double CANCODER_0_OFFSET = 0;
+    public static final double CANCODER_1_OFFSET = 0;
+
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
 
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
-
-    public static final double ZERO_DUTY_CYCLE = 0.25;
-    public static final double ZERO_POSITION = 0;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;

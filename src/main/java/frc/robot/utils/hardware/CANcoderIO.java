@@ -11,72 +11,91 @@ import com.ctre.phoenix6.hardware.CANcoder;
 
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
+import frc.robot.data.Constants.CodeConstants;
 
 /** A shim on top of CANcoders which optimizes their CAN usage automatically */
 public class CANcoderIO extends CANcoder {
-    // A collection of signals needed by robot code
-    public record CANcoderIOSignals(
-            StatusSignal<Angle> position,
-            StatusSignal<AngularVelocity> velocity,
-            StatusSignal<Angle> absolutePosition) {
-    }
+  // A collection of signals needed by robot code
+  public record CANcoderIOSignals(
+      StatusSignal<Angle> position,
+      StatusSignal<AngularVelocity> velocity,
+      StatusSignal<Angle> absolutePosition
+  ) {}
 
-    private final String CANName;
+  private final String CANName;
+  private final boolean isCANFD;
+  private final double canHz;
 
-    private CANcoderIOSignals statusSignals;
+  private CANcoderIOSignals statusSignals;
 
-    /**
-     * Constructs a CANcoderIO with a CAN ID
-     */
-    public CANcoderIO(int ID) {
-        super(ID);
+  /**
+   * Constructs a CANcoderIO with a CAN ID
+   */
+  public CANcoderIO(int ID) {
+    super(ID);
 
-        CANName = "rio";
-        setup();
-    }
+    CANName = "rio";
+    isCANFD = false;
+    canHz = CodeConstants.BASE_CAN_FREQUENCY;
+    setup();
+  }
 
-    /**
-     * Constructs a CANcoderIO with a CAN ID and Canbus
-     */
-    public CANcoderIO(int ID, CANBus Canbus) {
-        super(ID, Canbus);
+  /**
+   * Constructs a CANcoderIO with a CAN ID and Canbus
+   */
+  public CANcoderIO(int ID, CANBus Canbus) {
+    super(ID, Canbus);
 
-        CANName = Canbus.getName();
-        setup();
-    }
+    CANName = Canbus.getName();
+    isCANFD = Canbus.isNetworkFD();
+    canHz = isCANFD ? CodeConstants.FD_CAN_FREQUENCY : CodeConstants.BASE_CAN_FREQUENCY;
+    setup();
+  }
 
-    /*
-     * Initializes all status signals
-     */
-    private void setup() {
-        // Init record with signals  
-        statusSignals = new CANcoderIOSignals(
-                getPosition(),
-                getVelocity(),
-                getAbsolutePosition()
-        );
+  /**
+  * Constructs a CANcoderIO with a CAN ID and Canbus
+  */
+  public CANcoderIO(int ID, CANBus Canbus, double canFrequency) {
+    super(ID, Canbus);
 
-        // Set update rate for used signals
-        BaseStatusSignal.setUpdateFrequencyForAll(
-                100, // Always use 100hz
-                statusSignals.position,
-                statusSignals.velocity,
-                statusSignals.absolutePosition
-        );
+    CANName = Canbus.getName();
+    isCANFD = Canbus.isNetworkFD();
+    canHz = canFrequency;
+    setup();
+  }
 
-        // Eliminate unused signals
-        // optimizeBusUtilization(CodeConstants.DISABLE_UNUSED_STATUS_SIGNALS ? 0 : 4, 0.2);
+  /*
+   * Initializes all status signals
+   */
+  private void setup() {
+    // Init record with signals  
+    statusSignals = new CANcoderIOSignals(
+        getPosition(),
+        getVelocity(),
+        getAbsolutePosition()
+    );
 
-        // Register signals to be refreshed as a group
-        PhoenixHelpers.RegisterStatusSignals(
-                CANName,
-                statusSignals.position,
-                statusSignals.velocity,
-                statusSignals.absolutePosition
-        );
-    }
+    // Set update rate for used signals
+    BaseStatusSignal.setUpdateFrequencyForAll(
+        canHz,
+        statusSignals.position,
+        statusSignals.velocity,
+        statusSignals.absolutePosition
+    );
 
-    public CANcoderIOSignals signals() {
-        return statusSignals;
-    }
+    // Eliminate unused signals
+    optimizeBusUtilization(CodeConstants.DISABLE_UNUSED_STATUS_SIGNALS ? 0 : 4, 0.1);
+
+    // Register signals to be refreshed as a group
+    PhoenixHelpers.RegisterStatusSignals(
+        CANName,
+        statusSignals.position,
+        statusSignals.velocity,
+        statusSignals.absolutePosition
+    );
+  }
+
+  public CANcoderIOSignals getRawSignals() {
+    return statusSignals;
+  }
 }

@@ -5,7 +5,9 @@
 package frc.robot.subsystems.vision;
 
 import java.util.Objects;
+import java.util.function.DoubleFunction;
 
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.utils.vision.LimelightHelpers;
@@ -24,7 +26,7 @@ public class LimelightIO implements VisionIO {
   }
 
   @Override
-  public void updateInputs(VisionIOInputs inputs) {
+  public void updateInputs(VisionIOInputs inputs, DoubleFunction<Transform3d> cameraOffset) {
     double heartBeat = LimelightHelpers.getLimelightNTDouble(limelightName, "hb");
     if (lastHeartbeatValue != heartBeat) {
       lastHeartbeatValue = heartBeat;
@@ -38,7 +40,8 @@ public class LimelightIO implements VisionIO {
     }
 
     // Update valid tag IDs
-    // LimelightHelpers.SetFiducialIDFiltersOverride(limelightName, VisionHelpers.getValidTagIDs());
+    // LimelightHelpers.SetFiducialIDFiltersOverride(limelightName,
+    // VisionHelpers.getValidTagIDs());
 
     inputs.canSeeTag = LimelightHelpers.getTV(limelightName);
     if (!inputs.canSeeTag) {
@@ -47,13 +50,16 @@ public class LimelightIO implements VisionIO {
 
     // Process MegaTag1
     var result = LimelightHelpers.getBotPoseEstimate_wpiBlue(limelightName);
+
     inputs.megatagResult = new PoseEstimateRecord(
-        result.pose, result.timestampSeconds, result.latency,
+        result.pose, result.timestampSeconds,
+        result.latency,
         result.tagCount, result.tagSpan, result.avgTagDist,
         result.avgTagArea, result.isMegaTag2
     );
 
-    // Place raw fiducials into array. Do not reallocate array periodically to save on performance.
+    // Place raw fiducials into array. Do not reallocate array periodically to save
+    // on performance.
     // Reallocating records is fine since records are heavily optimized by the JVM
     inputs.fiducialArrayLength = Math.min(result.rawFiducials.length, inputs.rawFiducials.length);
     for (int i = 0; i < inputs.fiducialArrayLength; i++) {

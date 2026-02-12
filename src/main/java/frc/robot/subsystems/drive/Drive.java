@@ -218,7 +218,7 @@ public class Drive extends ExpandedSubsystem {
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.getMode() != Mode.SIM);
 
     // Update pose history buffers
-    RobotContainer.state.updateOdometryState(Timer.getTimestamp(), getPose(), getChassisSpeeds());
+    RobotContainer.state.updateOdometry(Timer.getTimestamp(), getPose(), getChassisSpeeds());
   }
 
   /**

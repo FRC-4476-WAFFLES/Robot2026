@@ -9,6 +9,8 @@ import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -49,6 +51,10 @@ public class WafflesUtilities {
    */
   public static double currentTimeToFPGA(double timestampCurrentTime) {
     return (Timer.getFPGATimestamp() - Utils.getCurrentTimeSeconds()) + timestampCurrentTime;
+  }
+
+  public static Transform2d Transform3dTo2d(Transform3d input) {
+    return new Transform2d(input.getTranslation().toTranslation2d(), input.getRotation().toRotation2d());
   }
 
   /**

@@ -28,9 +28,13 @@ public class TurretIOSim extends TurretIOTalonFX {
     talonFXSim.setRawRotorPosition(simResult.get(0) * PhysicalConstants.TURRET_REDUCTION);
     talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.TURRET_REDUCTION);
 
-    super.updateInputs(inputs);
+    double actualX = simResult.get(0);
+    double y = (actualX * 400 / 36) - Math.floor(actualX * 400 / 36);
+    double z = (actualX * 400 / 35) - Math.floor(actualX * 400 / 35);
+    cancoder0.getSimState().setRawPosition(z);
+    cancoder1.getSimState().setRawPosition(y);
 
-    inputs.zeroingSensor = true;
+    super.updateInputs(inputs);
   }
 
   @Override

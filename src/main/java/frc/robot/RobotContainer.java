@@ -12,6 +12,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -142,8 +143,8 @@ public class RobotContainer {
         climber = new Climber(new ClimberIOTalonFX());
 
         vision = new Vision(
-            new LimelightIO(VisionConstants.LIMELIGHT_NAME_L),
-            new LimelightIO(VisionConstants.LIMELIGHT_NAME_R));
+            new LimelightIO(VisionConstants.LIMELIGHT_NAME_FRAME),
+            new LimelightIO(VisionConstants.LIMELIGHT_NAME_TURRET));
 
         break;
 
@@ -170,11 +171,11 @@ public class RobotContainer {
 
         if (CodeConstants.USE_VISION_SIMULATION) {
           vision = new Vision(
-              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_L,
-                  VisionConstants.LEFT_CAMERA_TRANSFORM,
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_FRAME,
+                  Transform3d.kZero,
                   simState::getPose),
-              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_R,
-                  VisionConstants.RIGHT_CAMERA_TRANSFORM,
+              new SimVisionIO(VisionConstants.LIMELIGHT_NAME_TURRET,
+                  Transform3d.kZero,
                   simState::getPose));
         } else {
           vision = new Vision(
