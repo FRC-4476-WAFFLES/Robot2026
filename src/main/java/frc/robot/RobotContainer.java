@@ -295,6 +295,8 @@ public class RobotContainer {
     Controls.operatorController.a().onTrue(indexer.runIndexer(Constants.SpindexerConstants.TEST_VELOCITY))
         .onFalse(indexer.runIndexer(0));
 
+    Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimToPass();
@@ -318,6 +320,15 @@ public class RobotContainer {
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Tag"));
     state.shouldFire().whileTrue(ShooterCommands.shootCommand());
+
+    // Manual mode
+    state.manualMode().whileTrue(Commands.run(() -> {
+      var parms = ShotPlanner.aimManual();
+      turret.runSetpoint(parms.turretSetpoint(), false);
+      flywheel.runSetpoint(parms.flywheelSpeed());
+      hood.runSetpoint(parms.hoodAngle());
+    }).withName("Shooter Manual Aim"));
+    state.shouldFireManual().whileTrue(ShooterCommands.shootCommand());
 
     // Simulation
     if (RobotBase.isSimulation()) {

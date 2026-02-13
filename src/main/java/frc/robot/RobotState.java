@@ -157,25 +157,37 @@ public class RobotState {
     return manualMode;
   }
 
+  public Trigger normalMode() {
+    return new Trigger(() -> !manualMode);
+  }
+
+  public Trigger manualMode() {
+    return new Trigger(() -> manualMode);
+  }
+
   public Trigger shooterDisabled() {
-    return new Trigger(() -> shooterState == ShooterState.DISABLED);
+    return new Trigger(() -> shooterState == ShooterState.DISABLED).and(normalMode());
   }
 
   public Trigger shooterTargetPassing() {
-    return new Trigger(() -> shooterState == ShooterState.TARGET_PASS);
+    return new Trigger(() -> shooterState == ShooterState.TARGET_PASS).and(normalMode());
   }
 
   public Trigger shooterTargetTag() {
-    return new Trigger(() -> shooterState == ShooterState.TARGET_TAG);
+    return new Trigger(() -> shooterState == ShooterState.TARGET_TAG).and(normalMode());
   }
 
   public Trigger shooterTargetsHub() {
-    return new Trigger(() -> shooterState == ShooterState.TARGET_HUB);
+    return new Trigger(() -> shooterState == ShooterState.TARGET_HUB).and(normalMode());
   }
 
   public Trigger shouldFire() {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
         RobotContainer.hood.atSetpoint()
-    ).and(Controls.rightJoystick.button(0)).and(shooterDisabled().negate());
+    ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode());
+  }
+
+  public Trigger shouldFireManual() {
+    return Controls.shootButton.and(manualMode());
   }
 }

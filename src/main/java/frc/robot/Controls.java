@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.utils.lib.WafflesUtilities;
 
 /** 
@@ -23,14 +24,18 @@ public class Controls {
 
   // Constants
   private static final double JOYSTICK_DEADZONE_INNER = 0.025; // Below the inner value the input is zero
-  private static final double JOYSTICK_DEADZONE_OUTER = 0.15; // Between the inner and outer value the input is interpolated towards it's actual value
+  private static final double JOYSTICK_DEADZONE_OUTER = 0.15; // Between the inner and outer value the input is
+                                                              // interpolated towards it's actual value
   public static final double AXIS_DEADBAND = 0.1; // Deadband for controller axes to prevent unintended activation
   public static final double MANUAL_ELEVATOR_CONTROL_MULTIPLIER = 2;
   public static final boolean SQUARE_JOYSTICK_FILTER = true;
 
   /* Triggers */
-  /* When triggers are referenced in multiple places, they are defined here to have a single source of truth */
-  // public static final Trigger dynamicPathingButton = drxiverController.rightTrigger();
+  /*
+   * When triggers are referenced in multiple places, they are defined here to
+   * have a single source of truth
+   */
+  public static final Trigger shootButton = Controls.rightJoystick.button(0);
 
   public static class DriverConstants {
     // public static final int kDriverControllerPort = 0;
@@ -47,7 +52,8 @@ public class Controls {
   }
 
   public static double getDriveYRaw() {
-    // Negated since field coordinate system from blue alliance perspective is positive to the left (?)
+    // Negated since field coordinate system from blue alliance perspective is
+    // positive to the left (?)
     return filterJoystick(leftJoystick.getY());
   }
 

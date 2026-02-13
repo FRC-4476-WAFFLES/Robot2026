@@ -89,8 +89,19 @@ public class ShotPlanner {
     return aimAtField(
         WafflesUtilities
             .FlipIfRedAlliance(
-                VisionConstants.APRIL_TAG_FIELD_LAYOUT.getTagPose(19).orElse(Pose3d.kZero).toPose2d().getTranslation())
+                VisionConstants.APRIL_TAG_FIELD_LAYOUT.getTagPose(20).orElse(Pose3d.kZero).toPose2d().getTranslation())
     );
+  }
+
+  public static final double MANUAL_SHOT_DISTANCE = 1.5;
+
+  public static ShootingParameters aimManual() {
+    parameters = new ShootingParameters(
+        new TurretSetpoint(Rotation2d.kZero, 0),
+        hoodAngle.interpolate(MANUAL_SHOT_DISTANCE),
+        flywheelSpeeds.interpolate(MANUAL_SHOT_DISTANCE)
+    );
+    return parameters;
   }
 
   public static ShootingParameters getLatestParameters() {

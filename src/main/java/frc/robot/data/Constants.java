@@ -137,6 +137,8 @@ public final class Constants {
     // Use standard deviations reported by the limelight as opposed to hand
     // calculating them
     public static final boolean USE_AUTOMATIC_STANDARD_DEVIATIONS = true;
+    // Ignore single tag estimates
+    public static final boolean IGNORE_SINGLE_TAG = true;
 
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
     public static final int MOVING_LL_IMU_MODE = 2; // Uses internal IMU
@@ -175,7 +177,6 @@ public final class Constants {
     public static final int MEGATAG_1_YStdDevIndex = 1;
     public static final int MEGATAG_1_YawStdDevIndex = 5;
 
-    public static final boolean IGNORE_SINGLE_TAG = true;
   }
 
   /* Physical */
