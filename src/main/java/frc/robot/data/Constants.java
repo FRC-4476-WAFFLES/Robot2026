@@ -132,7 +132,7 @@ public final class Constants {
     public static final Matrix<N3, N1> defaultStdDevsMT2 = VecBuilder.fill(0.01, 0.01, LARGE_VARIANCE);
 
     // Number of frames to skip processing while disabled to prevent overheating
-    public static final int LIMELIGHT_DISABLED_THROTTLE = 80;
+    public static final int LIMELIGHT_DISABLED_THROTTLE = 120;
 
     // Use standard deviations reported by the limelight as opposed to hand
     // calculating them
