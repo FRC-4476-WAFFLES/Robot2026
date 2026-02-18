@@ -43,7 +43,7 @@ public class Flywheel extends SubsystemBase {
   }
 
   public boolean atSetpoint() {
-    return (inputs.flywheelMotorData.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
+    return (inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {

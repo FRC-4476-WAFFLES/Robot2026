@@ -8,7 +8,9 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
+import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import frc.robot.data.Constants;
 import frc.robot.utils.hardware.PhoenixHelpers;
@@ -16,30 +18,39 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
   // Hardware Components
-  protected final TalonFXIO flywheel;
+  protected final TalonFXIO flywheel0;
+  protected final TalonFXIO flywheel1;
 
   // Control Objects
-  private final MotionMagicVelocityVoltage flywheelVelocityRequest = new MotionMagicVelocityVoltage(0);
+  private final VelocityTorqueCurrentFOC flywheelVelocityRequest = new VelocityTorqueCurrentFOC(0);
+  private final Follower followerRequest;
 
   public FlywheelIOTalonFX() {
-    flywheel = new TalonFXIO(Constants.CANIds.flywheelMotor);
+    flywheel0 = new TalonFXIO(Constants.CANIds.flywheelMotor0);
+    flywheel1 = new TalonFXIO(Constants.CANIds.flywheelMotor1);
+
+    followerRequest = new Follower(flywheel0.getDeviceID(), MotorAlignmentValue.Opposed);
+
     // Configure hardware
     configureFlywheelMotor();
   }
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
-    inputs.flywheelMotorData = flywheel.getSignalData();
+    inputs.flywheelMotorData0 = flywheel0.getSignalData();
+    inputs.flywheelMotorData1 = flywheel1.getSignalData();
   }
 
   @Override
   public void runDutyCycle(double speed) {
-    flywheel.set(speed);
+    flywheel0.set(speed);
+    flywheel1.set(speed);
   }
 
   @Override
   public void runFlywheelVelocity(double velocity) {
-    flywheel.setControl(flywheelVelocityRequest.withVelocity(velocity));
+    flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity));
+    flywheel1.setControl(followerRequest);
   }
 
   /**
@@ -67,6 +78,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     motionMagic.MotionMagicJerk = 0;
     flywheelConfigs.MotionMagic = motionMagic;
 
-    PhoenixHelpers.tryConfig(() -> flywheel.getConfigurator().apply(flywheelConfigs));
+    PhoenixHelpers.tryConfig(() -> flywheel0.getConfigurator().apply(flywheelConfigs));
+    PhoenixHelpers.tryConfig(() -> flywheel1.getConfigurator().apply(flywheelConfigs));
   }
 }

@@ -8,9 +8,11 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
@@ -24,14 +26,19 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class IntakeIOTalonFX implements IntakeIO {
   protected final TalonFXIO expander;
-  protected final TalonFXIO intake;
+  protected final TalonFXIO intake0;
+  protected final TalonFXIO intake1;
 
-  private final MotionMagicVoltage setpointRequest = new MotionMagicVoltage(0);
-  private final MotionMagicVelocityVoltage velocityRequest = new MotionMagicVelocityVoltage(0);
+  private final MotionMagicVoltage expanderRequest = new MotionMagicVoltage(0);
+  private final MotionMagicVelocityVoltage intakeRequest = new MotionMagicVelocityVoltage(0);
+  private final Follower followerRequest;
 
   public IntakeIOTalonFX() {
     expander = new TalonFXIO(CANIds.expanderMotor);
-    intake = new TalonFXIO(CANIds.intakeMotor);
+    intake0 = new TalonFXIO(CANIds.intakeMotor0);
+    intake1 = new TalonFXIO(CANIds.intakeMotor1);
+
+    followerRequest = new Follower(intake0.getDeviceID(), MotorAlignmentValue.Opposed);
 
     ConfigureExpander();
     ConfigureIntake();
@@ -63,7 +70,8 @@ public class IntakeIOTalonFX implements IntakeIO {
     intakeConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     intakeConfigs.MotorOutput.DutyCycleNeutralDeadband = IntakeConstants.MOTOR_DEADBAND;
 
-    PhoenixHelpers.tryConfig(() -> intake.getConfigurator().apply(intakeConfigs));
+    PhoenixHelpers.tryConfig(() -> intake0.getConfigurator().apply(intakeConfigs));
+    PhoenixHelpers.tryConfig(() -> intake1.getConfigurator().apply(intakeConfigs));
   }
 
   private void ConfigureExpander() {
@@ -107,7 +115,8 @@ public class IntakeIOTalonFX implements IntakeIO {
   @Override
   public void updateInputs(IntakeIOInputs inputs) {
     inputs.expanderMotor = expander.getSignalData();
-    inputs.intakeMotor = intake.getSignalData();
+    inputs.intakeMotor0 = intake0.getSignalData();
+    inputs.intakeMotor1 = intake1.getSignalData();
   }
 
   @Override
@@ -121,12 +130,13 @@ public class IntakeIOTalonFX implements IntakeIO {
         position, Constants.ExpanderConstants.MIN_POSITION_ROTATIONS,
         Constants.ExpanderConstants.MAX_POSITION_ROTATIONS);
 
-    expander.setControl(setpointRequest.withPosition(setpointRotations));
+    expander.setControl(expanderRequest.withPosition(setpointRotations));
   }
 
   @Override
   public void runIntakeVelocity(double velocity) {
-    intake.setControl(velocityRequest.withVelocity(velocity));
+    intake0.setControl(intakeRequest.withVelocity(velocity));
+    intake1.setControl(followerRequest);
   }
 
   @Override

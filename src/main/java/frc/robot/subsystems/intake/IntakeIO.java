@@ -11,7 +11,8 @@ import frc.robot.utils.hardware.TalonFXIO.TalonFXIOData;
 public interface IntakeIO {
   @AutoLog
   class IntakeIOInputs {
-    public TalonFXIOData intakeMotor = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
+    public TalonFXIOData intakeMotor0 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
+    public TalonFXIOData intakeMotor1 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
     public TalonFXIOData expanderMotor = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
   }
 

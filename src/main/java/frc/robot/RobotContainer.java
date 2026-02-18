@@ -219,7 +219,8 @@ public class RobotContainer {
     // Subsystems with no IO
     telemetry = new Telemetry();
     mechanismPoses = new MechanismPoses();
-    lightsSubsystem = new Lights();
+    // lightsSubsystem = new Lights();
+    lightsSubsystem = null;
     stateOrchestrator = new StateOrchestrator();
   }
 

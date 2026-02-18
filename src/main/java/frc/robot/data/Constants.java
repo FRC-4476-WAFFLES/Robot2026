@@ -58,9 +58,11 @@ public final class Constants {
 
     // RIO bus
     public static final int expanderMotor = 10;
-    public static final int intakeMotor = 11;
+    public static final int intakeMotor0 = 11;
+    public static final int intakeMotor1 = 11;
     public static final int hoodMotor = 12;
-    public static final int flywheelMotor = 14;
+    public static final int flywheelMotor0 = 14;
+    public static final int flywheelMotor1 = 19;
     public static final int climberMotor = 13;
     public static final int indexerMotor1 = 15;
     public static final int indexerMotor2 = 16;
