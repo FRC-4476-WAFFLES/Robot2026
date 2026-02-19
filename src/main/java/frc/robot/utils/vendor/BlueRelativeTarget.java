@@ -22,6 +22,10 @@ public class BlueRelativeTarget {
   private boolean isRedFlipped = false;
   private APTarget target;
 
+  public BlueRelativeTarget(double x, double y, Rotation2d rotation) {
+    this(new Pose2d(x, y, rotation));
+  }
+
   public BlueRelativeTarget(Pose2d target) {
     m_reference = target;
     m_velocity = 0;
@@ -29,12 +33,16 @@ public class BlueRelativeTarget {
     m_rotationRadius = Optional.empty();
   }
 
+  public Pose2d getFieldRelativePose() {
+    return getFieldRelative().getReference();
+  }
+
   public APTarget getFieldRelative() {
     if (isRedFlipped == WafflesUtilities.IsRedAlliance() && target != null) {
       return target;
     }
 
-    target = new APTarget(WafflesUtilities.FlipIfRedAlliance(m_reference));
+    target = new APTarget(WafflesUtilities.FlipIfRedAlliance(m_reference)).withVelocity(m_velocity);
     if (m_entryAngle.isPresent()) {
       target = target.withEntryAngle(WafflesUtilities.FlipIfRedAlliance(m_entryAngle.get()));
     }

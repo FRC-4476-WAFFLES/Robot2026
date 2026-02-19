@@ -110,14 +110,14 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 5.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 5.0;
-    public static final double AUTO_MAX_JERK = 2.0;
+    public static final double AUTO_MAX_ACCEL = 2.5;
+    public static final double AUTO_MAX_JERK = 4.0;
 
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
 
     public static final boolean USE_FUEL_SIMULATION = false;
-    public static final boolean USE_VISION_SIMULATION = true;
+    public static final boolean USE_VISION_SIMULATION = false;
   }
 
   /* Vision */
@@ -198,7 +198,8 @@ public final class Constants {
     public static final double TURRET_ENCODER_0_REDUCTION = TURRET_GEAR_TEETH / ENCODER_0_TEETH;
     public static final double TURRET_ENCODER_1_REDUCTION = TURRET_GEAR_TEETH / ENCODER_1_TEETH;
 
-    // Height is applied megatag side, this is converted to a translation2d where needed
+    // Height is applied megatag side, this is converted to a translation2d where
+    // needed
     public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
         new Translation3d(0.22542500, 0.07302500, 0.49093120),
         new Rotation3d(0, 0, 0)
@@ -219,11 +220,14 @@ public final class Constants {
         new Rotation3d(0, Units.degreesToRadians(-35), 0)
     );
 
-    // Should technically not include height on real robot but for sim it's easier to debug this way
+    // Should technically not include height on real robot but for sim it's easier
+    // to debug this way
     public static final Transform3d ROBOT_TO_FRAME_CAMERA_PARTIAL = new Transform3d(
         ROBOT_TO_FRAME_CAMERA.getTranslation(),
         new Rotation3d(0, 0, 0)
     );
+
+    public static final double AUTO_SLEW_LIMIT = 3;
 
     public static final Distance FULL_WIDTH = Meters.of(0.6604);
     public static final Distance FULL_LENGTH = Meters.of(0.762);

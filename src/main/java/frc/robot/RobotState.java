@@ -57,19 +57,29 @@ public class RobotState {
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
 
-  private static final APConstraints autopilotConstraints = new APConstraints()
+  public static final APConstraints autopilotConstraints = new APConstraints()
       .withAcceleration(CodeConstants.AUTO_MAX_ACCEL)
       .withJerk(CodeConstants.AUTO_MAX_JERK);
 
-  private static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
-      .withErrorXY(Centimeters.of(2))
-      .withErrorTheta(Degrees.of(0.5))
+  public static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
+      .withErrorXY(Centimeters.of(4))
+      .withErrorTheta(Degrees.of(0.8))
+      .withBeelineRadius(Centimeters.of(8));
+
+  public static final APProfile autopilotPathProfile = new APProfile(autopilotConstraints)
+      .withErrorXY(Centimeters.of(15))
+      .withErrorTheta(Degrees.of(4))
       .withBeelineRadius(Centimeters.of(8));
 
   private Autopilot autopilot = new Autopilot(autopilotProfile);
+  private Autopilot pathAutopilot = new Autopilot(autopilotPathProfile);
 
   public Autopilot autopilot() {
     return autopilot;
+  }
+
+  public Autopilot pathAutopilot() {
+    return pathAutopilot;
   }
 
   public Optional<Rotation2d> getTurretAngleTimestamp(double timestamp) {

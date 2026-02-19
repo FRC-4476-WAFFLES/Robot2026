@@ -334,6 +334,9 @@ public class Drive extends ExpandedSubsystem {
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
     poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    if (Constants.getMode() == Mode.SIM) {
+      RobotContainer.simState.getSwerveDrivePoseEstimator().resetPosition(rawGyroRotation, getModulePositions(), pose);
+    }
   }
 
   /** Resets the current gyro heading to face the current driverstation forward angle */

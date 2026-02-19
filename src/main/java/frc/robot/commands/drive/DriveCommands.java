@@ -13,8 +13,11 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+
+import org.littletonrobotics.junction.Logger;
 
 import com.therekrab.autopilot.APTarget;
 import com.therekrab.autopilot.Autopilot.APResult;
@@ -34,6 +37,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
@@ -297,12 +301,21 @@ public class DriveCommands {
   }
 
   public static Command autoToFieldPose(Supplier<APTarget> target) {
+    return autoToFieldPose(target, false, () -> true);
+  }
+
+  public static Command autoToFieldPose(Supplier<APTarget> target, boolean limitSlew, BooleanSupplier canFinish) {
     ProfiledPIDController angleController = new ProfiledPIDController(
         ANGLE_KP,
         0.0,
         ANGLE_KD,
         new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
     angleController.enableContinuousInput(-Math.PI, Math.PI);
+
+    SlewRateLimiter xLimiter = new SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
+    SlewRateLimiter yLimiter = new SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
+    // SlewRateLimiter omegaLimiter = new
+    // SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
 
     var state = RobotContainer.state;
     var drive = RobotContainer.drive;
@@ -316,12 +329,23 @@ public class DriveCommands {
       double omega = angleController.calculate(
           RobotContainer.state.getRotation().getRadians(), output.targetAngle().getRadians());
 
-      var robotVel = new ChassisSpeeds(output.vx().in(MetersPerSecond), output.vy().in(MetersPerSecond), omega);
+      var robotVel = new ChassisSpeeds(
+          output.vx().in(MetersPerSecond),
+          output.vy().in(MetersPerSecond),
+          omega);
+
+      Logger.recordOutput("RobotState/AutopilotTarget", target.get().getReference());
 
       drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(robotVel, pose.getRotation()));
     }, RobotContainer.drive)
-        .until(() -> state.autopilot().atTarget(state.getPose(), target.get()))
-        .beforeStarting(() -> angleController.reset(RobotContainer.state.getRotation().getRadians()))
-        .finallyDo(() -> RobotContainer.drive.stop());
+        .until(() -> state.autopilot().atTarget(state.getPose(), target.get()) && canFinish.getAsBoolean())
+        .beforeStarting(() -> {
+          angleController.reset(RobotContainer.state.getRotation().getRadians());
+          xLimiter.reset(0);
+          yLimiter.reset(0);
+        })
+        .finallyDo(() -> {
+          RobotContainer.drive.stop();
+        });
   }
 }

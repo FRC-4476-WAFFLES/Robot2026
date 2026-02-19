@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.autos.Olympic;
 import frc.robot.autos.TemplateAuto;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -270,6 +271,7 @@ public class RobotContainer {
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
       autoChooser.addOption("Template", new TemplateAuto());
+      autoChooser.addOption("Olympic Left", new Olympic(false));
       // autoChooser.addOption("OPP2 Lolipop", new OPP2Lolipop());
     }
 
@@ -314,6 +316,7 @@ public class RobotContainer {
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Hub"));
 
+    // Aim at tag after crossing bump
     state.shooterTargetTag().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimToTag();
       turret.runSetpoint(parms.turretSetpoint(), true);

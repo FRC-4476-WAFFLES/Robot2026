@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
@@ -51,8 +52,8 @@ public class Vision extends VirtualSubsystem {
     var frameEstimate = frameCamera.update(false);
     var turretEstimate = turretCamera.update(true);
 
-    if (RobotContainer.state.onBump || RobotContainer.state.isManualMode()) { // Ignore vision when on bump or manual
-                                                                              // mode
+    if ((RobotContainer.state.onBump || RobotContainer.state.isManualMode()) && DriverStation.isEnabled()) {
+      // Ignore vision when on bump or manual mode
       frameEstimate = Optional.empty();
       turretEstimate = Optional.empty();
       Logger.recordOutput("Vision/Vision Enabled", false);

@@ -13,7 +13,7 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class TemplateAuto extends SequentialCommandGroup {
   public TemplateAuto() {
     addCommands(
-        AutoUtils.resetOdometry(AutoCoordinates.Example),
+        AutoUtils.resetOdometry(() -> AutoCoordinates.Example, true),
         DriveCommands.autoToPose(AutoCoordinates.Test),
         DriveCommands
             .autoToPose(new BlueRelativeTarget(AutoCoordinates.Example).withEntryAngle(Rotation2d.kCW_90deg))
