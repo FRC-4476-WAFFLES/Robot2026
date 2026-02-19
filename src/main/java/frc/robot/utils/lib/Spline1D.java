@@ -67,6 +67,10 @@ public class Spline1D {
     }
   }
 
+  public double interpolate(double x) {
+    return interpolate(x, true);
+  }
+
   public double interpolate(double x, boolean clampToPoints) {
     double val = x;
     if (clampToPoints) {
@@ -74,10 +78,10 @@ public class Spline1D {
                                                              // lazy for anything else
     }
 
-    return interpolate(val);
+    return interpolateInternal(val);
   }
 
-  public double interpolate(double x) {
+  private double interpolateInternal(double x) {
     int k, khi, klo;
     double a, b, h;
     klo = 0;

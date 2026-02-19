@@ -198,23 +198,31 @@ public final class Constants {
     public static final double TURRET_ENCODER_0_REDUCTION = TURRET_GEAR_TEETH / ENCODER_0_TEETH;
     public static final double TURRET_ENCODER_1_REDUCTION = TURRET_GEAR_TEETH / ENCODER_1_TEETH;
 
+    // Height is applied megatag side, this is converted to a translation2d where needed
     public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
-        new Translation3d(0.22542500, 0.07302500, 0.5),
+        new Translation3d(0.22542500, 0.07302500, 0.49093120),
         new Rotation3d(0, 0, 0)
     );
     public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER = new Transform3d(
         new Translation3d(-0.09576931, 0, 0.24856043),
-        new Rotation3d(0, Units.degreesToRadians(-20), 0)
+        new Rotation3d(0, Units.degreesToRadians(-28.1), 0)
     );
 
-    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER_CALCULATION = new Transform3d(
-        new Translation3d(-0.09576931, 0, 0.24856043),
+    public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER_PARTIAL = new Transform3d(
+        TURRET_CAMERA_OFFSET_FROM_CENTER.getTranslation(),
         new Rotation3d(0, 0, 0)
     );
 
+    // Pitch & height are applied megatag side
     public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(
-        new Translation3d(0.35, -0.35, 0.2),
-        new Rotation3d(0, Units.degreesToRadians(5), Units.degreesToRadians(20))
+        new Translation3d(0.39606565, 0.17570000, 0.26416456),
+        new Rotation3d(0, Units.degreesToRadians(-35), 0)
+    );
+
+    // Should technically not include height on real robot but for sim it's easier to debug this way
+    public static final Transform3d ROBOT_TO_FRAME_CAMERA_PARTIAL = new Transform3d(
+        ROBOT_TO_FRAME_CAMERA.getTranslation(),
+        new Rotation3d(0, 0, 0)
     );
 
     public static final Distance FULL_WIDTH = Meters.of(0.6604);
@@ -390,11 +398,11 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> hood angle (rotations)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(0, 1),
-        new NodePoint(0.1, 1),
-        new NodePoint(0.2, 1),
-        new NodePoint(0.4, 1),
-        new NodePoint(0.6, 1)
+        new NodePoint(1, 0),
+        new NodePoint(2, 5),
+        new NodePoint(3, 10),
+        new NodePoint(4, 15),
+        new NodePoint(5, 20)
     };
 
     public static final double ANGLE_RANGE = 2.0;

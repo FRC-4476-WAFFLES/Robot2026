@@ -39,7 +39,7 @@ public class Vision extends VirtualSubsystem {
 
   public Vision(VisionIO frameIO, VisionIO turretIO) {
     frameCamera = new TagCamera(frameIO,
-        VisionConstants.LIMELIGHT_NAME_FRAME, (timestamp) -> PhysicalConstants.ROBOT_TO_FRAME_CAMERA);
+        VisionConstants.LIMELIGHT_NAME_FRAME, (timestamp) -> PhysicalConstants.ROBOT_TO_FRAME_CAMERA_PARTIAL);
     turretCamera = new TagCamera(turretIO,
         VisionConstants.LIMELIGHT_NAME_TURRET, this::calculateTurretCamPose);
   }
@@ -173,6 +173,6 @@ public class Vision extends VirtualSubsystem {
 
     var robotToTurret = new Transform3d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation(),
         new Rotation3d(0, 0, turretAngleRadians));
-    return robotToTurret.plus(PhysicalConstants.TURRET_CAMERA_OFFSET_FROM_CENTER_CALCULATION);
+    return robotToTurret.plus(PhysicalConstants.TURRET_CAMERA_OFFSET_FROM_CENTER_PARTIAL);
   }
 }
