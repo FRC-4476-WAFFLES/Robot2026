@@ -8,7 +8,6 @@ import static edu.wpi.first.units.Units.Meters;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
@@ -39,9 +38,10 @@ public class AutoPath {
     return Commands.sequence(
         DriveCommands.autoToFieldPose(() -> {
           var target = targets[targetIndex].getFieldRelativePose();
+          var lastTarget = targetIndex == 0 ? startingPose : targets[targetIndex - 1].getFieldRelativePose();
           var current = RobotContainer.state.getPose();
-          var speeds = state.getFieldVelocity();
-          if (ShouldAdvanceToNextTarget(current, target, speeds)) {
+
+          if (ShouldAdvanceToNextTarget(current, target, lastTarget)) {
             if (targetIndex >= targets.length - 1) {
               onFinalTarget = true;
             } else {
@@ -57,7 +57,7 @@ public class AutoPath {
     });
   }
 
-  public boolean ShouldAdvanceToNextTarget(Pose2d robot, Pose2d target, ChassisSpeeds speeds) {
+  public static boolean ShouldAdvanceToNextTarget(Pose2d robot, Pose2d target, Pose2d lastTarget) {
     double distanceToTarget = robot.getTranslation().getDistance(target.getTranslation());
     if (distanceToTarget < CodeConstants.AUTO_POSITION_TOLERANCE_VAGUE.in(Meters)) {
       return true;
@@ -65,8 +65,6 @@ public class AutoPath {
 
     // Check if overshot target
     Translation2d currentTargetToRobot = robot.getTranslation().minus(target.getTranslation());
-
-    Pose2d lastTarget = targetIndex == 0 ? startingPose : targets[targetIndex - 1].getFieldRelativePose();
     Translation2d lastToCurrentTarget = target.getTranslation().minus(lastTarget.getTranslation());
 
     if (currentTargetToRobot.dot(lastToCurrentTarget) > 0) {

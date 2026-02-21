@@ -14,7 +14,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
@@ -61,7 +60,7 @@ public class Turret extends ExpandedSubsystem {
   @Override
   public void latePeriodic() {
     // Run after commandscheduler so commands can set a target properly
-    if (!DriverStation.isEnabled()) {
+    if (!RobotContainer.state.robotEnabled()) {
       profileState = new State(inputs.relativePosition, 0);
       return;
     }

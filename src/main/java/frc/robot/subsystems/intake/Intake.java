@@ -7,11 +7,11 @@ package frc.robot.subsystems.intake;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.RobotContainer;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
 
@@ -44,7 +44,7 @@ public class Intake extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Intake", inputs);
 
-    if (!DriverStation.isEnabled()) {
+    if (!RobotContainer.state.robotEnabled()) {
       io.runIntakeVelocity(0);
       return;
     }

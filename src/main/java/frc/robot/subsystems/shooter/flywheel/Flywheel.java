@@ -9,10 +9,10 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotContainer;
 import frc.robot.data.Constants.FlywheelConstants;
 
 public class Flywheel extends SubsystemBase {
@@ -31,7 +31,7 @@ public class Flywheel extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Flywheel", inputs);
 
-    if (!DriverStation.isEnabled()) {
+    if (!RobotContainer.state.robotEnabled()) {
       io.runFlywheelVelocity(0);
       return;
     }

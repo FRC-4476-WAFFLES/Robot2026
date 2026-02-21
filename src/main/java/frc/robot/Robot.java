@@ -142,6 +142,8 @@ public class Robot extends LoggedRobot {
     // Periodic Loop
     EpochTimer.BeginEpoch("Periodic");
     {
+      RobotContainer.state.updateEnabledState();
+
       // Runs software subsystem early periodic methods
       ExpandedSubsystemManager.RunEarlyPeriodic();
 

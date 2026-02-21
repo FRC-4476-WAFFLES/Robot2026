@@ -17,6 +17,8 @@ public class ShooterCommands {
             DriveCommands.stopWithX(RobotContainer.drive).asProxy()
         ),
         RobotContainer.indexer.runIndexer()
-    ).withName("Fire shot");
+    ).finallyDo(() -> {
+      RobotContainer.indexer.stopIndexer();
+    }).withName("Fire shot");
   }
 }

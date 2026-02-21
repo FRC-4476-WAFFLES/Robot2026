@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 
@@ -37,6 +38,9 @@ public class RobotState {
 
   @AutoLogOutput(key = "RobotState/Manual Mode")
   private boolean manualMode = false;
+
+  @AutoLogOutput(key = "RobotState/Triggers Enabled")
+  private boolean enabled = false;
 
   /*                       */
   /* Latency Compensation */
@@ -140,6 +144,11 @@ public class RobotState {
     turretVelocityHistoryBuffer.addSample(timestamp, velocity);
   }
 
+  public void updateEnabledState() {
+    // Collect checks here once a loop since checking enabled has a mutex lock
+    enabled = DriverStation.isEnabled();
+  }
+
   public ShooterState getShooterState() {
     return shooterState;
   }
@@ -156,12 +165,16 @@ public class RobotState {
     return manualMode;
   }
 
+  public boolean robotEnabled() {
+    return enabled;
+  }
+
   public Trigger normalMode() {
-    return new Trigger(() -> !manualMode);
+    return new Trigger(() -> !manualMode && robotEnabled());
   }
 
   public Trigger manualMode() {
-    return new Trigger(() -> manualMode);
+    return new Trigger(() -> manualMode && robotEnabled());
   }
 
   public Trigger shooterDisabled() {

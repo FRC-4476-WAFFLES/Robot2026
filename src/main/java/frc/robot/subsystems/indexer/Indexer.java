@@ -7,10 +7,10 @@ package frc.robot.subsystems.indexer;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotContainer;
 import frc.robot.data.Constants.SpindexerConstants;
 
 public class Indexer extends SubsystemBase {
@@ -33,7 +33,7 @@ public class Indexer extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs("Inputs/Indexer", inputs);
 
-    if (!DriverStation.isEnabled()) {
+    if (!RobotContainer.state.robotEnabled()) {
       io.runIndexerVelocity(0, 0);
       return;
     }
@@ -53,5 +53,9 @@ public class Indexer extends SubsystemBase {
   public Command runIndexer() {
     return Commands.runOnce(
         () -> setIndexerSetpoint(SpindexerConstants.SHOOT_INDEXER_SPEED, SpindexerConstants.SHOOT_FEEDER_SPEED));
+  }
+
+  public void stopIndexer() {
+    setIndexerSetpoint(0, 0);
   }
 }

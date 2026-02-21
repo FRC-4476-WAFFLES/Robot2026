@@ -19,7 +19,6 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.VisionConstants;
@@ -75,7 +74,7 @@ public class TagCamera {
     Logger.processInputs("Inputs/Vison/" + cameraName, inputs);
 
     // Throttle performance while disabled to prevent overheating
-    if (DriverStation.isEnabled()) {
+    if (RobotContainer.state.robotEnabled()) {
       visionIO.setEnabled();
     } else {
       visionIO.setDisabled();
@@ -235,7 +234,7 @@ public class TagCamera {
 
       // Don't check min tag area when disabled and seeding
       // ie. angle does not yet match
-      if (DriverStation.isEnabled() || isYawDifferenceAcceptable(megatagResult)) {
+      if (RobotContainer.state.robotEnabled() || isYawDifferenceAcceptable(megatagResult)) {
         if (megatagResult.avgTagArea() < VisionConstants.MIN_TAG_AREA_SINGLE_TAG) {
           return Optional.empty();
         }

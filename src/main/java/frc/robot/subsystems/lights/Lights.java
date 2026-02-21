@@ -92,7 +92,7 @@ public class Lights extends VirtualSubsystem {
     EpochTimer.BeginEpoch("LightSubsystem");
     strip.initFrame();
 
-    if (DriverStation.isEnabled()) {
+    if (RobotContainer.state.robotEnabled()) {
       handleEnabledState();
     } else {
       handleDisabledState();
@@ -119,16 +119,22 @@ public class Lights extends VirtualSubsystem {
    */
   private void updateDiagnosticIndicators() {
     // strip.setRange(0, 1,
-    //     RobotContainer.intakeSubsystem.isAlgaeLoaded() ? LightColours.DARKGREEN.packed : LightColours.BLACK.packed);
+    // RobotContainer.intakeSubsystem.isAlgaeLoaded() ?
+    // LightColours.DARKGREEN.packed : LightColours.BLACK.packed);
 
     // strip.setRange(1, 2,
-    //     RobotContainer.intakeSubsystem.isCoralLoaded() ? LightColours.WHITE.packed : LightColours.BLACK.packed);
+    // RobotContainer.intakeSubsystem.isCoralLoaded() ? LightColours.WHITE.packed :
+    // LightColours.BLACK.packed);
 
-    // double pivotPosition = RobotContainer.superstructure.pivot.getPivotPosition();
-    // strip.setRange(2, 3, Math.abs(pivotPosition) <= 2.0 ? LightColours.BLUE.packed : LightColours.BLACK.packed);
+    // double pivotPosition =
+    // RobotContainer.superstructure.pivot.getPivotPosition();
+    // strip.setRange(2, 3, Math.abs(pivotPosition) <= 2.0 ?
+    // LightColours.BLUE.packed : LightColours.BLACK.packed);
 
-    // double elevatorPosition = RobotContainer.superstructure.elevator.getElevatorPositionMeters();
-    // strip.setRange(3, 4, Math.abs(elevatorPosition) <= 0.02 ? LightColours.CYAN.packed : LightColours.BLACK.packed);
+    // double elevatorPosition =
+    // RobotContainer.superstructure.elevator.getElevatorPositionMeters();
+    // strip.setRange(3, 4, Math.abs(elevatorPosition) <= 0.02 ?
+    // LightColours.CYAN.packed : LightColours.BLACK.packed);
 
     strip.setRange(4, 5,
         RobotContainer.vision.limelightsSeeTag() ? LightColours.PINK.packed : LightColours.BLACK.packed);
