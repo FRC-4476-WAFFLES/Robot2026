@@ -7,6 +7,7 @@
 
 package frc.robot.commands.drive;
 
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import java.text.DecimalFormat;
@@ -30,6 +31,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
@@ -37,7 +39,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
@@ -45,7 +47,7 @@ public class DriveCommands {
   private static final double ANGLE_KP = 5.0;
   private static final double ANGLE_KD = 0.4;
   private static final double ANGLE_MAX_VELOCITY = 8.0;
-  private static final double ANGLE_MAX_ACCELERATION = 20.0;
+  private static final double ANGLE_MAX_ACCELERATION = 10.0;
   private static final double FF_START_DELAY = 2.0; // Secs
   private static final double FF_RAMP_RATE = 0.1; // Volts/Sec
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
@@ -296,6 +298,13 @@ public class DriveCommands {
     return autoToFieldPose(() -> target.getFieldRelative());
   }
 
+  public static Command autoToPose(BlueRelativeTarget target, Distance tolerance) {
+    var state = RobotContainer.state;
+    return autoToFieldPose(() -> target.getFieldRelative(), false, () -> false).onlyWhile(
+        () -> state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation()) >= tolerance
+            .in(Meters));
+  }
+
   public static Command autoToFieldPose(APTarget target) {
     return autoToFieldPose(() -> target);
   }
@@ -312,39 +321,66 @@ public class DriveCommands {
         new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
     angleController.enableContinuousInput(-Math.PI, Math.PI);
 
-    SlewRateLimiter xLimiter = new SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
-    SlewRateLimiter yLimiter = new SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
+    SlewRateLimiter xLimiter = new SlewRateLimiter(CodeConstants.AUTO_SLEW_LIMIT);
+    SlewRateLimiter yLimiter = new SlewRateLimiter(CodeConstants.AUTO_SLEW_LIMIT);
     // SlewRateLimiter omegaLimiter = new
     // SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
 
     var state = RobotContainer.state;
     var drive = RobotContainer.drive;
 
+    ChassisSpeeds lastOutput = new ChassisSpeeds();
+
     return Commands.run(() -> {
-      ChassisSpeeds robotRelativeSpeeds = state.getRobotVelocity();
       Pose2d pose = state.getPose();
 
-      APResult output = state.autopilot().calculate(pose, robotRelativeSpeeds, target.get());
+      // Don't feed in actual robot velocity to avoid posibility of feedback loops
+      APResult output = state.autopilot().calculate(pose, lastOutput, target.get());
 
       double omega = angleController.calculate(
           RobotContainer.state.getRotation().getRadians(), output.targetAngle().getRadians());
 
-      var robotVel = new ChassisSpeeds(
+      var fieldRelativeGoalSpeed = new ChassisSpeeds(
           output.vx().in(MetersPerSecond),
           output.vy().in(MetersPerSecond),
           omega);
 
-      Logger.recordOutput("RobotState/AutopilotTarget", target.get().getReference());
+      // Only limit slew within a path to smooth switchovers
+      // /
+      if (limitSlew && !canFinish.getAsBoolean()) {
+        fieldRelativeGoalSpeed.vxMetersPerSecond = xLimiter.calculate(fieldRelativeGoalSpeed.vxMetersPerSecond);
+        fieldRelativeGoalSpeed.vyMetersPerSecond = yLimiter.calculate(fieldRelativeGoalSpeed.vyMetersPerSecond);
+      }
 
-      drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(robotVel, pose.getRotation()));
+      var robotRelativeGoalSpeed = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeGoalSpeed, pose.getRotation());
+
+      lastOutput.vxMetersPerSecond = robotRelativeGoalSpeed.vxMetersPerSecond;
+      lastOutput.vyMetersPerSecond = robotRelativeGoalSpeed.vyMetersPerSecond;
+      lastOutput.omegaRadiansPerSecond = robotRelativeGoalSpeed.omegaRadiansPerSecond;
+
+      Logger.recordOutput("RobotState/Autopilot/Target", target.get().getReference());
+      Logger.recordOutput("RobotState/Autopilot/Field Relative Goal Speeds", fieldRelativeGoalSpeed);
+
+      drive.runVelocity(robotRelativeGoalSpeed);
     }, RobotContainer.drive)
         .until(() -> state.autopilot().atTarget(state.getPose(), target.get()) && canFinish.getAsBoolean())
         .beforeStarting(() -> {
           angleController.reset(RobotContainer.state.getRotation().getRadians());
-          xLimiter.reset(0);
-          yLimiter.reset(0);
+          var fieldRelativeSpeeds = state.getFieldVelocity();
+
+          xLimiter.reset(fieldRelativeSpeeds.vxMetersPerSecond);
+          yLimiter.reset(fieldRelativeSpeeds.vyMetersPerSecond);
+
+          var robotRelativeSpeeds = state.getRobotVelocity();
+
+          lastOutput.vxMetersPerSecond = robotRelativeSpeeds.vxMetersPerSecond;
+          lastOutput.vyMetersPerSecond = robotRelativeSpeeds.vyMetersPerSecond;
+          lastOutput.omegaRadiansPerSecond = robotRelativeSpeeds.omegaRadiansPerSecond;
         })
         .finallyDo(() -> {
+          if (target.get().getVelocity() > 0) {
+            return;
+          }
           RobotContainer.drive.stop();
         });
   }

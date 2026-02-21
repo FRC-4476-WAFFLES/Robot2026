@@ -5,7 +5,6 @@
 package frc.robot;
 
 import static edu.wpi.first.units.Units.Centimeters;
-import static edu.wpi.first.units.Units.Degrees;
 
 import java.util.Optional;
 
@@ -62,24 +61,14 @@ public class RobotState {
       .withJerk(CodeConstants.AUTO_MAX_JERK);
 
   public static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
-      .withErrorXY(Centimeters.of(4))
-      .withErrorTheta(Degrees.of(0.8))
-      .withBeelineRadius(Centimeters.of(8));
-
-  public static final APProfile autopilotPathProfile = new APProfile(autopilotConstraints)
-      .withErrorXY(Centimeters.of(15))
-      .withErrorTheta(Degrees.of(4))
+      .withErrorXY(CodeConstants.AUTO_POSITION_TOLERANCE_PRECISE)
+      .withErrorTheta(CodeConstants.AUTO_ANGLE_TOLERANCE_PRECISE)
       .withBeelineRadius(Centimeters.of(8));
 
   private Autopilot autopilot = new Autopilot(autopilotProfile);
-  private Autopilot pathAutopilot = new Autopilot(autopilotPathProfile);
 
   public Autopilot autopilot() {
     return autopilot;
-  }
-
-  public Autopilot pathAutopilot() {
-    return pathAutopilot;
   }
 
   public Optional<Rotation2d> getTurretAngleTimestamp(double timestamp) {

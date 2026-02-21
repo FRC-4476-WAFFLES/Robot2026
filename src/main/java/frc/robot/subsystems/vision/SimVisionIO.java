@@ -151,7 +151,7 @@ public class SimVisionIO implements VisionIO {
         // MT2pitch,
         // MT2yaw]
         inputs.rawStandardDeviationArray = new double[] {
-            0.3, 0.3, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            0.7, 0.7, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         };
       }
     }

@@ -287,12 +287,8 @@ public class RobotContainer {
     }));
     // Use the back button to zero both elevator and pivot in sequence
     // Controls.operatorController.back().onTrue(new ZeroMechanisms());
-    Controls.rightJoystick.button(1).onTrue(Commands.runOnce(() -> {
-      intake.setExpanderState(ExpanderState.EXTENDED);
-    }));
-    Controls.rightJoystick.button(1).onFalse(Commands.runOnce(() -> {
-      intake.setExpanderState(ExpanderState.STOWED);
-    }));
+    Controls.rightJoystick.button(1).onTrue(intake.toggleExtended());
+
     Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
         .onFalse(climber.moveElevator(0));
     Controls.operatorController.a().onTrue(indexer.runIndexer(Constants.SpindexerConstants.TEST_VELOCITY))

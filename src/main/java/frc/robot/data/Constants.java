@@ -4,6 +4,8 @@
 
 package frc.robot.data;
 
+import static edu.wpi.first.units.Units.Centimeters;
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Meters;
 
 import com.ctre.phoenix6.CANBus;
@@ -18,6 +20,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.utils.lib.Spline1D.NodePoint;
@@ -110,14 +113,22 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 5.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 2.5;
+    public static final double AUTO_MAX_ACCEL = 4.5;
     public static final double AUTO_MAX_JERK = 4.0;
+
+    public static final double AUTO_SLEW_LIMIT = 4.4;
 
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
 
     public static final boolean USE_FUEL_SIMULATION = false;
-    public static final boolean USE_VISION_SIMULATION = false;
+    public static final boolean USE_VISION_SIMULATION = true;
+
+    public static final Distance AUTO_POSITION_TOLERANCE_VAGUE = Meters.of(0.25);
+    public static final Distance AUTO_POSITION_TOLERANCE_PRECISE = Centimeters.of(4);
+
+    public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
+
   }
 
   /* Vision */
@@ -226,8 +237,6 @@ public final class Constants {
         ROBOT_TO_FRAME_CAMERA.getTranslation(),
         new Rotation3d(0, 0, 0)
     );
-
-    public static final double AUTO_SLEW_LIMIT = 3;
 
     public static final Distance FULL_WIDTH = Meters.of(0.6604);
     public static final Distance FULL_LENGTH = Meters.of(0.762);

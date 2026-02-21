@@ -51,21 +51,28 @@ public class BlueRelativeTarget {
   }
 
   public BlueRelativeTarget withEntryAngle(Rotation2d entryAngle) {
+    target = null;
     m_entryAngle = Optional.of(entryAngle);
     return this;
   }
 
   public BlueRelativeTarget withRotationRadius(Distance distance) {
+    target = null;
+
     m_rotationRadius = Optional.of(distance);
     return this;
   }
 
   public BlueRelativeTarget withVelocity(double velocity) {
+    target = null;
+
     m_velocity = velocity;
     return this;
   }
 
   public BlueRelativeTarget withTarget(Pose2d target) {
+    target = null;
+
     m_reference = target;
     return this;
   }

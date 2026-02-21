@@ -8,6 +8,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.ExpanderConstants;
@@ -83,5 +85,23 @@ public class Intake extends SubsystemBase {
 
   public double getExpanderPosition() {
     return inputs.expanderMotor.position();
+  }
+
+  public Command extend() {
+    return Commands.runOnce(() -> setExpanderState(ExpanderState.EXTENDED));
+  }
+
+  public Command stow() {
+    return Commands.runOnce(() -> setExpanderState(ExpanderState.STOWED));
+  }
+
+  public Command toggleExtended() {
+    return Commands.runOnce(() -> {
+      if (expanderState == ExpanderState.EXTENDED) {
+        setExpanderState(ExpanderState.STOWED);
+      } else {
+        setExpanderState(ExpanderState.EXTENDED);
+      }
+    }, this);
   }
 }

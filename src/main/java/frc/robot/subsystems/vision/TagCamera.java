@@ -225,6 +225,10 @@ public class TagCamera {
 
     // Single-tag validation
     if (megatagResult.tagCount() == 1) {
+      if (VisionConstants.IGNORE_SINGLE_TAG) {
+        return Optional.empty();
+      }
+
       if (!isAmbiguityAcceptable(inputs.rawFiducials, inputs.fiducialArrayLength)) {
         return Optional.empty();
       }
