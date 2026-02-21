@@ -5,7 +5,6 @@
 package frc.robot.autos;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.RobotContainer;
 import frc.robot.commands.drive.DriveCommands;
@@ -13,7 +12,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.lib.AutoPath;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class Olympic extends SequentialCommandGroup {
+public class NotOlympic extends SequentialCommandGroup {
   // Targets
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.882, Rotation2d.kZero);
   public static final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 6.067, Rotation2d.fromDegrees(80))
@@ -31,12 +30,11 @@ public class Olympic extends SequentialCommandGroup {
   public static final AutoPath pathTest = new AutoPath(false, false, point1, point2, point3, point4, point5);
   public static final AutoPath collectBalls = new AutoPath(false, true, point2, point3, point4, point5, end);
 
-  public Olympic(boolean left) {
+  public NotOlympic(boolean left) {
     addCommands(
         AutoUtils.resetOdometry(start),
-        Commands.waitSeconds(1),
 
-        DriveCommands.autoToPose(point1, CodeConstants.AUTO_POSITION_TOLERANCE_VAGUE),
+        DriveCommands.autoToTarget(point1, CodeConstants.AUTO_POSITION_TOLERANCE_VAGUE),
 
         RobotContainer.intake.extend(),
 

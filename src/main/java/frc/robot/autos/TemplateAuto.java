@@ -16,7 +16,7 @@ public class TemplateAuto extends SequentialCommandGroup {
         AutoUtils.resetOdometry(() -> AutoCoordinates.Example, true),
         DriveCommands.autoToPose(AutoCoordinates.Test),
         DriveCommands
-            .autoToPose(new BlueRelativeTarget(AutoCoordinates.Example).withEntryAngle(Rotation2d.kCW_90deg))
+            .autoToTarget(new BlueRelativeTarget(AutoCoordinates.Example).withEntryAngle(Rotation2d.kCW_90deg))
     );
   }
 }

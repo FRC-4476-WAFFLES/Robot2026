@@ -126,9 +126,9 @@ public final class Constants {
 
     public static final Distance AUTO_POSITION_TOLERANCE_VAGUE = Meters.of(0.25);
     public static final Distance AUTO_POSITION_TOLERANCE_PRECISE = Centimeters.of(4);
+    public static final Distance AUTO_MAX_TRACKING_ERROR = Meters.of(0.5);
 
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
-
   }
 
   /* Vision */

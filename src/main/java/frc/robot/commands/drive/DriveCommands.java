@@ -294,19 +294,15 @@ public class DriveCommands {
   /**
   * Flips pose automatically from blue alliance
   */
-  public static Command autoToPose(BlueRelativeTarget target) {
+  public static Command autoToTarget(BlueRelativeTarget target) {
     return autoToFieldPose(() -> target.getFieldRelative());
   }
 
-  public static Command autoToPose(BlueRelativeTarget target, Distance tolerance) {
+  public static Command autoToTarget(BlueRelativeTarget target, Distance tolerance) {
     var state = RobotContainer.state;
     return autoToFieldPose(() -> target.getFieldRelative(), false, () -> false).onlyWhile(
         () -> state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation()) >= tolerance
             .in(Meters));
-  }
-
-  public static Command autoToFieldPose(APTarget target) {
-    return autoToFieldPose(() -> target);
   }
 
   public static Command autoToFieldPose(Supplier<APTarget> target) {
@@ -321,10 +317,9 @@ public class DriveCommands {
         new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
     angleController.enableContinuousInput(-Math.PI, Math.PI);
 
+    // Used to lightly smooth out intermediate steps
     SlewRateLimiter xLimiter = new SlewRateLimiter(CodeConstants.AUTO_SLEW_LIMIT);
     SlewRateLimiter yLimiter = new SlewRateLimiter(CodeConstants.AUTO_SLEW_LIMIT);
-    // SlewRateLimiter omegaLimiter = new
-    // SlewRateLimiter(PhysicalConstants.AUTO_SLEW_LIMIT);
 
     var state = RobotContainer.state;
     var drive = RobotContainer.drive;
@@ -333,8 +328,11 @@ public class DriveCommands {
 
     return Commands.run(() -> {
       Pose2d pose = state.getPose();
+      ChassisSpeeds actualSpeeds = state.getRobotVelocity();
 
       // Don't feed in actual robot velocity to avoid posibility of feedback loops
+      // Actually consistent with how real motion profiles (effectively what autopilot
+      // generates) should be created
       APResult output = state.autopilot().calculate(pose, lastOutput, target.get());
 
       double omega = angleController.calculate(
@@ -346,7 +344,6 @@ public class DriveCommands {
           omega);
 
       // Only limit slew within a path to smooth switchovers
-      // /
       if (limitSlew && !canFinish.getAsBoolean()) {
         fieldRelativeGoalSpeed.vxMetersPerSecond = xLimiter.calculate(fieldRelativeGoalSpeed.vxMetersPerSecond);
         fieldRelativeGoalSpeed.vyMetersPerSecond = yLimiter.calculate(fieldRelativeGoalSpeed.vyMetersPerSecond);
@@ -354,12 +351,18 @@ public class DriveCommands {
 
       var robotRelativeGoalSpeed = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeGoalSpeed, pose.getRotation());
 
-      lastOutput.vxMetersPerSecond = robotRelativeGoalSpeed.vxMetersPerSecond;
-      lastOutput.vyMetersPerSecond = robotRelativeGoalSpeed.vyMetersPerSecond;
-      lastOutput.omegaRadiansPerSecond = robotRelativeGoalSpeed.omegaRadiansPerSecond;
-
       Logger.recordOutput("RobotState/Autopilot/Target", target.get().getReference());
       Logger.recordOutput("RobotState/Autopilot/Field Relative Goal Speeds", fieldRelativeGoalSpeed);
+
+      var trackingError = actualSpeeds.minus(robotRelativeGoalSpeed);
+      if (Math.hypot(trackingError.vxMetersPerSecond,
+          trackingError.vyMetersPerSecond) > CodeConstants.AUTO_MAX_TRACKING_ERROR.in(Meters)) {
+        copyChassisSpeeds(lastOutput, actualSpeeds);
+      } else {
+        copyChassisSpeeds(lastOutput, robotRelativeGoalSpeed);
+      }
+
+      Logger.recordOutput("RobotState/Autopilot/Tracking Error", trackingError);
 
       drive.runVelocity(robotRelativeGoalSpeed);
     }, RobotContainer.drive)
@@ -372,10 +375,7 @@ public class DriveCommands {
           yLimiter.reset(fieldRelativeSpeeds.vyMetersPerSecond);
 
           var robotRelativeSpeeds = state.getRobotVelocity();
-
-          lastOutput.vxMetersPerSecond = robotRelativeSpeeds.vxMetersPerSecond;
-          lastOutput.vyMetersPerSecond = robotRelativeSpeeds.vyMetersPerSecond;
-          lastOutput.omegaRadiansPerSecond = robotRelativeSpeeds.omegaRadiansPerSecond;
+          copyChassisSpeeds(lastOutput, robotRelativeSpeeds);
         })
         .finallyDo(() -> {
           if (target.get().getVelocity() > 0) {
@@ -383,5 +383,13 @@ public class DriveCommands {
           }
           RobotContainer.drive.stop();
         });
+  }
+
+  // Helper to mutate chassisSpeeds objects (mutated because local variables
+  // lambda enclosing scopes must be effectively final)
+  private static void copyChassisSpeeds(ChassisSpeeds target, ChassisSpeeds toCopy) {
+    target.vxMetersPerSecond = toCopy.vxMetersPerSecond;
+    target.vyMetersPerSecond = toCopy.vyMetersPerSecond;
+    target.omegaRadiansPerSecond = toCopy.omegaRadiansPerSecond;
   }
 }
