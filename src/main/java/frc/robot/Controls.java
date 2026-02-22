@@ -35,7 +35,7 @@ public class Controls {
    * When triggers are referenced in multiple places, they are defined here to
    * have a single source of truth
    */
-  public static final Trigger shootButton = Controls.rightJoystick.button(0);
+  public static final Trigger shootButton = Controls.rightJoystick.button(1);
 
   public static class DriverConstants {
     // public static final int kDriverControllerPort = 0;

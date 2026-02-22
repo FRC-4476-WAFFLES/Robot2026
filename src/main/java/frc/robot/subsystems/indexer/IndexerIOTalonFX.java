@@ -104,12 +104,6 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kG = 0.0;
     feederConfigs.Slot0 = slot0Configs;
 
-    // Motion Magic
-    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
-    motionMagic.MotionMagicAcceleration = 200;
-    motionMagic.MotionMagicJerk = 0;
-    feederConfigs.MotionMagic = motionMagic;
-
     PhoenixHelpers.tryConfig(() -> feeder.getConfigurator().apply(feederConfigs));
   }
 }

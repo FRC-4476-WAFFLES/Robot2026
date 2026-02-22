@@ -86,12 +86,12 @@ public class Turret extends ExpandedSubsystem {
         MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
         turretRelativeGoalVelocity);
 
+    profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
+
     Logger.recordOutput("Turret/MotionProfile/GoalHeading", goalState.position);
     Logger.recordOutput("Turret/MotionProfile/GoalVelocity", goalState.velocity);
     Logger.recordOutput("Turret/MotionProfile/ProfileHeading", profileState.position);
     Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
-
-    profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
 
     runSetpoint(profileState.position, profileState.velocity);
   }
@@ -114,8 +114,9 @@ public class Turret extends ExpandedSubsystem {
     return rotationsFromCenter;
   }
 
-  private double getAbsolutePosition() {
-    return getPosition() % 1.0; // If absolute encoders are added later, just replace this with an input
+  private Rotation2d getAbsolutePosition() {
+    return inputs.absolutePosition;
+    // return getPosition() % 1.0; 
   }
 
   private void runDutyCycle(double dutyCycle) {
@@ -155,13 +156,18 @@ public class Turret extends ExpandedSubsystem {
     return inputs.velocity;
   }
 
-  public boolean atSetpoint(Rotation2d heading, double tolerancePos) {
-    return Math.abs(heading.getRotations() - getAbsolutePosition()) < tolerancePos;
+  public boolean atSetpoint(double heading, Rotation2d tolerancePos) {
+    return Math.abs(heading - inputs.relativePosition) < tolerancePos.getRotations();
   }
 
   public boolean atSetpoint(Rotation2d heading, double velocity, double tolerancePos, double toleranceVel) {
-    return Math.abs(heading.getRotations() - getAbsolutePosition()) < tolerancePos &&
+    return Math.abs(heading.getRotations() - getAbsolutePosition().getRotations()) < tolerancePos &&
         Math.abs(velocity - getVelocity()) < toleranceVel;
+  }
+
+  @AutoLogOutput(key = "Turret/At Goal")
+  public boolean atGoal() {
+    return atSetpoint(profileState.position, TurretConstants.POSITION_TOLERANCE);
   }
 
   // Commands

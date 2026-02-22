@@ -13,7 +13,7 @@ public class TurretIOSim extends TurretIOTalonFX {
   private double setpointPos, setpointVel;
 
   public TurretIOSim() {
-    pivotSim = new SecondOrderSim(5, 1, 0, 0);
+    pivotSim = new SecondOrderSim(15, 1, 0, 0);
   }
 
   @Override

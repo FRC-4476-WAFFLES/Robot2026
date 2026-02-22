@@ -14,6 +14,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -255,6 +256,8 @@ public final class Constants {
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
 
+    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(2);
+
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
@@ -269,10 +272,6 @@ public final class Constants {
   }
 
   public static class FlywheelConstants {
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
-                                                                                        // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
-
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
 
@@ -306,18 +305,8 @@ public final class Constants {
   public static class SpindexerConstants {
     public static final double TEST_VELOCITY = 30.0;
 
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
-                                                                                        // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
-
-    public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 20;
-
     public static final double ZERO_DUTY_CYCLE = 0.25;
     public static final double ZERO_POSITION = 0;
-
-    public static final double SHOOT_INDEXER_SPEED = 40;
-    public static final double SHOOT_FEEDER_SPEED = 40;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
@@ -330,6 +319,28 @@ public final class Constants {
 
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
+
+    public enum IndexerState {
+      RUN(40, 40),
+      STOP(0, 0),
+      REVERSE(-10, -10);
+
+      private final double spindexerSpeed;
+      private final double conveyorSpeed;
+
+      IndexerState(double spindexerSpeed, double conveyorSpeed) {
+        this.spindexerSpeed = spindexerSpeed;
+        this.conveyorSpeed = conveyorSpeed;
+      }
+
+      public double getSpindexerSpeed() {
+        return spindexerSpeed;
+      }
+
+      public double getConveyorSpeed() {
+        return conveyorSpeed;
+      }
+    }
   }
 
   public static class ExpanderConstants {
@@ -418,7 +429,7 @@ public final class Constants {
         new NodePoint(5, 20)
     };
 
-    public static final double ANGLE_RANGE = 2.0;
+    public static final double ANGLE_RANGE = 1.0;
   }
 
   public static class ClimberConstants {

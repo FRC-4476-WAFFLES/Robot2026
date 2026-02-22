@@ -127,7 +127,17 @@ public class RobotState {
 
   public boolean notMoving() {
     var vel = getRobotVelocity();
-    return Math.abs(vel.vxMetersPerSecond) < 0.1 && Math.abs(vel.vyMetersPerSecond) < 0.1;
+    return Math.abs(vel.vxMetersPerSecond) < 0.1 && Math.abs(vel.vyMetersPerSecond) < 0.1
+        && Math.abs(vel.omegaRadiansPerSecond) < 0.1;
+  }
+
+  public boolean joysticksFree(double deadband) {
+    return Math.abs(Controls.getDriveXRaw()) < deadband && Math.abs(Controls.getDriveYRaw()) < deadband
+        && Math.abs(Controls.getDriveRotationRaw()) < deadband;
+  }
+
+  public boolean joysticksFree() {
+    return joysticksFree(0.1);
   }
 
   // Called once in earlyPeriodic to update odometry state
@@ -195,7 +205,7 @@ public class RobotState {
 
   public Trigger shouldFire() {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
-        RobotContainer.hood.atSetpoint()
+        RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
     ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode());
   }
 

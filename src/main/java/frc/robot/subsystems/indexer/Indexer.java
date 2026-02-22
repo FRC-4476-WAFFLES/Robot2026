@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants.SpindexerConstants;
+import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 
 public class Indexer extends SubsystemBase {
   private final IndexerIO io;
@@ -46,13 +46,9 @@ public class Indexer extends SubsystemBase {
     feederGoalVelocity = feederVelocity;
   }
 
-  public Command runIndexer(double velocity) {
-    return Commands.runOnce(() -> setIndexerSetpoint(velocity, 0));
-  }
-
-  public Command runIndexer() {
-    return Commands.runOnce(
-        () -> setIndexerSetpoint(SpindexerConstants.SHOOT_INDEXER_SPEED, SpindexerConstants.SHOOT_FEEDER_SPEED));
+  public Command runIndexer(IndexerState state) {
+    return Commands.run(
+        () -> setIndexerSetpoint(state.getSpindexerSpeed(), state.getConveyorSpeed()));
   }
 
   public void stopIndexer() {

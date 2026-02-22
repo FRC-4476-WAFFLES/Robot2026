@@ -26,9 +26,9 @@ public class Intake extends SubsystemBase {
 
   @AutoLogOutput(key = "Intake/Expander Zeroed")
   private boolean expanderZeroed = true; // Assume started against hard stop
-  @AutoLogOutput(key = "Turret/Expander State")
+  @AutoLogOutput(key = "Intake/Expander State")
   private ExpanderState expanderState = ExpanderState.STOWED;
-  @AutoLogOutput(key = "Turret/Intake Goal Velocity")
+  @AutoLogOutput(key = "Intake/Intake Goal Velocity")
   private double intakeGoalVelocity = 0;
 
   private Trigger zeroingTrigger = new Trigger(

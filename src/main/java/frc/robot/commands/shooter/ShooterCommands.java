@@ -8,15 +8,16 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
 import frc.robot.commands.drive.DriveCommands;
+import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 
 public class ShooterCommands {
   public static Command shootCommand() {
     return Commands.parallel(
         Commands.sequence(
-            Commands.waitUntil(() -> RobotContainer.state.notMoving()),
-            DriveCommands.stopWithX(RobotContainer.drive).asProxy()
-        ),
-        RobotContainer.indexer.runIndexer()
+            Commands.waitUntil(() -> RobotContainer.state.joysticksFree()),
+            DriveCommands.stopWithX(RobotContainer.drive).until(() -> RobotContainer.state.joysticksFree()).asProxy()
+        ).repeatedly(),
+        RobotContainer.indexer.runIndexer(IndexerState.RUN)
     ).finallyDo(() -> {
       RobotContainer.indexer.stopIndexer();
     }).withName("Fire shot");

@@ -42,8 +42,9 @@ public class Flywheel extends SubsystemBase {
     flywheelGoalVelocity = velocity;
   }
 
+  @AutoLogOutput(key = "Flywheel/At Setpoint")
   public boolean atSetpoint() {
-    return (inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
+    return Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {

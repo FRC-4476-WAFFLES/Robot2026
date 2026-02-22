@@ -27,6 +27,7 @@ import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
@@ -287,14 +288,15 @@ public class RobotContainer {
     }));
     // Use the back button to zero both elevator and pivot in sequence
     // Controls.operatorController.back().onTrue(new ZeroMechanisms());
-    Controls.rightJoystick.button(1).onTrue(intake.toggleExtended());
+    Controls.rightJoystick.button(2).onTrue(intake.toggleExtended());
 
     Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
         .onFalse(climber.moveElevator(0));
-    Controls.operatorController.a().onTrue(indexer.runIndexer(Constants.SpindexerConstants.TEST_VELOCITY))
-        .onFalse(indexer.runIndexer(0));
+    Controls.operatorController.a()
+        .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
+        .onFalse(indexer.runIndexer(IndexerState.STOP));
 
-    Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+    Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
@@ -319,7 +321,12 @@ public class RobotContainer {
       flywheel.runSetpoint(parms.flywheelSpeed());
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Tag"));
-    state.shouldFire().whileTrue(ShooterCommands.shootCommand());
+    state.shouldFire().whileTrue(ShooterCommands.shootCommand()).onFalse(
+        Commands.startEnd(
+            () -> indexer.runIndexer(IndexerState.REVERSE),
+            () -> indexer.stopIndexer())
+            .withTimeout(0.25)
+    );
 
     // Manual mode
     state.manualMode().whileTrue(Commands.run(() -> {

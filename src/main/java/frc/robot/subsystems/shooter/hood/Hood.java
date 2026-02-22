@@ -6,6 +6,7 @@ package frc.robot.subsystems.shooter.hood;
 
 import java.util.function.DoubleSupplier;
 
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -38,8 +39,9 @@ public class Hood extends SubsystemBase {
     return inputs.hoodMotor.position();
   }
 
+  @AutoLogOutput(key = "Hood/At Setpoint")
   public boolean atSetpoint() {
-    return (inputs.hoodMotor.velocity() - setpoint) < HoodConstants.ANGLE_RANGE;
+    return Math.abs(inputs.hoodMotor.position() - setpoint) < HoodConstants.ANGLE_RANGE;
   }
 
   public Command runSetpointCommand(DoubleSupplier angle) {
