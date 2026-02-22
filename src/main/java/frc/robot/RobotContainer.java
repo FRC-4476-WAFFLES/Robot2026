@@ -271,7 +271,7 @@ public class RobotContainer {
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
       autoChooser.addOption("Template", new TemplateAuto());
-      autoChooser.addOption("Olympic Left", new NotOlympic(false));
+      autoChooser.addOption("Olympic Left", new NotOlympic());
       // autoChooser.addOption("OPP2 Lolipop", new OPP2Lolipop());
     }
 

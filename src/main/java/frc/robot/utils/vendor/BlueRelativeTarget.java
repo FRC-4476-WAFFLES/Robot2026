@@ -6,6 +6,7 @@ package frc.robot.utils.vendor;
 
 import java.util.Optional;
 
+import com.pathplanner.lib.util.FlippingUtil;
 import com.therekrab.autopilot.APTarget;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -48,6 +49,19 @@ public class BlueRelativeTarget {
     }
     isRedFlipped = WafflesUtilities.IsRedAlliance();
     return target;
+  }
+
+  /**
+   * Mirrors pose left/right . Does not flip alliance.
+   */
+  public BlueRelativeTarget mirror() {
+    m_reference = new Pose2d(m_reference.getX(), FlippingUtil.fieldSizeY - m_reference.getY(),
+        m_reference.getRotation().unaryMinus().plus(Rotation2d.k180deg));
+    if (m_entryAngle.isPresent()) {
+      m_entryAngle = Optional.of(m_entryAngle.get().unaryMinus());
+    }
+    target = null;
+    return this;
   }
 
   public BlueRelativeTarget withEntryAngle(Rotation2d entryAngle) {

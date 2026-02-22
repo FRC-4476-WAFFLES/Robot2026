@@ -34,4 +34,10 @@ public class AutoUtils {
       );
     });
   }
+
+  public static void mirrorTargets(BlueRelativeTarget... targets) {
+    for (BlueRelativeTarget target : targets) {
+      target.mirror();
+    }
+  }
 }

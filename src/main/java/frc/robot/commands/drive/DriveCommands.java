@@ -31,7 +31,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
@@ -39,6 +38,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
+import frc.robot.autos.PassThroughTarget;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.utils.vendor.BlueRelativeTarget;
@@ -88,7 +88,8 @@ public class DriveCommands {
                       ? RobotContainer.state.getRotation().plus(Rotation2d.k180deg)
                       : RobotContainer.state.getRotation()));
         },
-        drive);
+        drive)
+        .withName("Joystick Drive");
   }
 
   /**
@@ -136,6 +137,8 @@ public class DriveCommands {
                       : RobotContainer.state.getRotation()));
         },
         drive)
+
+        .withName("Joystick Drive At Angle")
 
         // Reset PID controller when command starts
         .beforeStarting(() -> angleController.reset(RobotContainer.state.getRotation().getRadians()));
@@ -283,33 +286,31 @@ public class DriveCommands {
     return Commands.run(() -> drive.stopWithX(), drive);
   }
 
-  /**
-   * Flips pose automatically from blue alliance
-   */
+  public static Command passThroughTarget(BlueRelativeTarget target) {
+    return new PassThroughTarget(target).follow();
+  }
+
   public static Command autoToPose(Pose2d target) {
     var pose = new BlueRelativeTarget(target);
     return autoToFieldPose(() -> pose.getFieldRelative());
   }
 
-  /**
-  * Flips pose automatically from blue alliance
-  */
   public static Command autoToTarget(BlueRelativeTarget target) {
     return autoToFieldPose(() -> target.getFieldRelative());
   }
 
-  public static Command autoToTarget(BlueRelativeTarget target, Distance tolerance) {
-    var state = RobotContainer.state;
-    return autoToFieldPose(() -> target.getFieldRelative(), false, () -> false).onlyWhile(
-        () -> state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation()) >= tolerance
-            .in(Meters));
-  }
+  // public static Command autoToTarget(BlueRelativeTarget target, Distance tolerance) {
+  //   var state = RobotContainer.state;
+  //   return autoToFieldPose(() -> target.getFieldRelative(), () -> false, false).onlyWhile(
+  //       () -> state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation()) >= tolerance
+  //           .in(Meters));
+  // }
 
   public static Command autoToFieldPose(Supplier<APTarget> target) {
-    return autoToFieldPose(target, false, () -> true);
+    return autoToFieldPose(target, () -> false, true);
   }
 
-  public static Command autoToFieldPose(Supplier<APTarget> target, boolean limitSlew, BooleanSupplier canFinish) {
+  public static Command autoToFieldPose(Supplier<APTarget> target, BooleanSupplier limitSlew, boolean selfEnd) {
     ProfiledPIDController angleController = new ProfiledPIDController(
         ANGLE_KP,
         0.0,
@@ -344,7 +345,7 @@ public class DriveCommands {
           omega);
 
       // Only limit slew within a path to smooth switchovers
-      if (limitSlew && !canFinish.getAsBoolean()) {
+      if (limitSlew.getAsBoolean()) {
         fieldRelativeGoalSpeed.vxMetersPerSecond = xLimiter.calculate(fieldRelativeGoalSpeed.vxMetersPerSecond);
         fieldRelativeGoalSpeed.vyMetersPerSecond = yLimiter.calculate(fieldRelativeGoalSpeed.vyMetersPerSecond);
       }
@@ -366,7 +367,7 @@ public class DriveCommands {
 
       drive.runVelocity(robotRelativeGoalSpeed);
     }, RobotContainer.drive)
-        .until(() -> state.autopilot().atTarget(state.getPose(), target.get()) && canFinish.getAsBoolean())
+        .until(() -> selfEnd && state.autopilot().atTarget(state.getPose(), target.get()))
         .beforeStarting(() -> {
           angleController.reset(RobotContainer.state.getRotation().getRadians());
           var fieldRelativeSpeeds = state.getFieldVelocity();
