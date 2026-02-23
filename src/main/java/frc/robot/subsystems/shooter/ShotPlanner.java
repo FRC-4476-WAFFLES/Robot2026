@@ -113,7 +113,7 @@ public class ShotPlanner {
   }
 
   public static DoubleSupplier flywheelSpeed() {
-    return () -> parameters.hoodAngle;
+    return () -> parameters.flywheelSpeed;
   }
 
   public static DoubleSupplier hoodAngle() {

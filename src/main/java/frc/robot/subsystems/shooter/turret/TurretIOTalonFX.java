@@ -46,7 +46,7 @@ public class TurretIOTalonFX implements TurretIO {
   public TurretIOTalonFX() {
     turret = new TalonFXIO(CANIds.turretMotor, CANIds.CANivoreBus);
     cancoder0 = new CANcoderIO(CANIds.turretEncoder0, CANIds.CANivoreBus, 250);
-    cancoder1 = new CANcoderIO(CANIds.turretEncoder0, CANIds.CANivoreBus, 250);
+    cancoder1 = new CANcoderIO(CANIds.turretEncoder1, CANIds.CANivoreBus, 250);
 
     var cancoder0Config = new CANcoderConfiguration();
     cancoder0Config.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
@@ -56,9 +56,9 @@ public class TurretIOTalonFX implements TurretIO {
 
     var cancoder1Config = new CANcoderConfiguration();
     cancoder1Config.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
-    cancoder1Config.MagnetSensor.MagnetOffset = TurretConstants.CANCODER_0_OFFSET;
-    cancoder0Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1;
-    PhoenixHelpers.tryConfig(() -> cancoder0.getConfigurator().apply(cancoder1Config));
+    cancoder1Config.MagnetSensor.MagnetOffset = TurretConstants.CANCODER_1_OFFSET;
+    cancoder1Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1;
+    PhoenixHelpers.tryConfig(() -> cancoder1.getConfigurator().apply(cancoder1Config));
 
     // Status signals
     // absolutePosition0 = cancoder0.getAbsolutePosition();

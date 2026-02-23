@@ -168,7 +168,7 @@ public class SimVisionIO implements VisionIO {
 
     Optional<Transform3d> optRobotToCamera = visionSim.getRobotToCamera(cameraSim, Timer.getFPGATimestamp());
     Pose3d fieldToRobot;
-    if (optRobotToCamera.isPresent() && false) {
+    if (optRobotToCamera.isPresent() && false) { // TODO: Dead branch - && false makes this unreachable
       Transform3d cameraToRobot = optRobotToCamera.get().inverse();
       Pose3d robotPose3d = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation())
           .transformBy(cameraToRobot);
