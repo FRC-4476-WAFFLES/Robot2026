@@ -296,6 +296,7 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
         .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
 
+    // TODO: Button 3 conflict - also bound to climber above. Move one to a different button.
     Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
     // Passing mode

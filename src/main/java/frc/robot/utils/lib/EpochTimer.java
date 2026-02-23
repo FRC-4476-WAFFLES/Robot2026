@@ -30,14 +30,7 @@ public class EpochTimer {
    * @param name the name of the epoch
    */
   public static void BeginEpoch(String name) {
-    Epoch chosenEpoch;
-    if (EpochMap.containsKey(name)) {
-      chosenEpoch = EpochMap.get(name);
-    } else {
-      chosenEpoch = new Epoch();
-      EpochMap.put(name, chosenEpoch);
-    }
-
+    Epoch chosenEpoch = EpochMap.computeIfAbsent(name, k -> new Epoch());
     chosenEpoch.lastTime = Timer.getFPGATimestamp();
   }
 
