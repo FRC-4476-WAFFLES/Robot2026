@@ -25,6 +25,7 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
@@ -286,18 +287,26 @@ public class RobotContainer {
     Controls.rightJoystick.button(9).onTrue(Commands.runOnce(() -> {
       drive.resetGyro();
     }));
-    // Use the back button to zero both elevator and pivot in sequence
-    // Controls.operatorController.back().onTrue(new ZeroMechanisms());
-    Controls.rightJoystick.button(2).onTrue(intake.toggleExtended());
 
-    Controls.rightJoystick.button(3).onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
+    Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+
+    // Operator controller is for test binds
+    Controls.operatorController.b().onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
         .onFalse(climber.moveElevator(0));
     Controls.operatorController.a()
         .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
         .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
 
-    // TODO: Button 3 conflict - also bound to climber above. Move one to a different button.
-    Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+    // Should be lower face button on joystick. Likely ID is wrong and will change on real hardware.
+    // Manually toggles intake
+    Controls.leftJoystick.button(3).onTrue(intake.toggleExtended());
+
+    // Pressing in any capacity will extend intake
+    // Intake rollers run while pressed
+    Controls.leftJoystick.button(1)
+        .onTrue(Commands.runOnce(() -> intake.setExpanderState(ExpanderState.EXTENDED)))
+        .whileTrue(Commands.startEnd(() -> intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED),
+            () -> intake.setIntakeSetpoint(0)));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {

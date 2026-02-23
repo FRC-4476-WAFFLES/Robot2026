@@ -385,6 +385,8 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
+    public static final double INTAKE_SPEED = 8;
+
     public static final double MAX_ACCELERATION = 8;
     public static final double MAX_JERK = 200;
 
