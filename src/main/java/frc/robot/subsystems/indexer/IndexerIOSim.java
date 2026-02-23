@@ -1,5 +1,38 @@
 package frc.robot.subsystems.indexer;
 
-public class IndexerIOSim extends IndexerIOTalonFX {
+import frc.robot.data.Constants.CodeConstants;
+import frc.robot.utils.lib.SecondOrderSim;
 
+public class IndexerIOSim extends IndexerIOTalonFX {
+  private SecondOrderSim indexerSimState;
+  private SecondOrderSim feederSimState;
+
+  private double setpointIndexder = 0;
+  private double setpointFeeder = 0;
+
+  public IndexerIOSim() {
+    indexerSimState = new SecondOrderSim(2.5, 1, 0, 0);
+    feederSimState = new SecondOrderSim(2.5, 1, 0, 0);
+
+  }
+
+  @Override
+  public void updateInputs(IndexerIOInputs inputs) {
+    var indexerSim = indexer1.getSimState();
+    var simResult0 = indexerSimState.Evaluate(setpointIndexder, CodeConstants.PERIODIC_LOOP_TIME);
+    indexerSim.setRotorVelocity(simResult0.get(0));
+
+    var feederSim = feeder.getSimState();
+    var simResult1 = feederSimState.Evaluate(setpointFeeder, CodeConstants.PERIODIC_LOOP_TIME);
+    feederSim.setRotorVelocity(simResult1.get(0));
+
+    super.updateInputs(inputs);
+  }
+
+  @Override
+  public void runIndexerVelocity(double spindexerVelocity, double feederVelocity) {
+    setpointIndexder = spindexerVelocity;
+    setpointFeeder = feederVelocity;
+    super.runIndexerVelocity(spindexerVelocity, feederVelocity);
+  }
 }

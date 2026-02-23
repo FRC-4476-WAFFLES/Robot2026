@@ -46,9 +46,13 @@ public class Indexer extends SubsystemBase {
     feederGoalVelocity = feederVelocity;
   }
 
-  public Command runIndexer(IndexerState state) {
+  public Command runIndexerCommand(IndexerState state) {
     return Commands.run(
-        () -> setIndexerSetpoint(state.getSpindexerSpeed(), state.getConveyorSpeed()));
+        () -> runIndexer(state), this);
+  }
+
+  public void runIndexer(IndexerState state) {
+    setIndexerSetpoint(state.getSpindexerSpeed(), state.getConveyorSpeed());
   }
 
   public void stopIndexer() {

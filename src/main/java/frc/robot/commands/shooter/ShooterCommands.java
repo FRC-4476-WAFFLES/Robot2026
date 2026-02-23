@@ -15,11 +15,19 @@ public class ShooterCommands {
     return Commands.parallel(
         Commands.sequence(
             Commands.waitUntil(() -> RobotContainer.state.joysticksFree()),
-            DriveCommands.stopWithX(RobotContainer.drive).until(() -> RobotContainer.state.joysticksFree()).asProxy()
+            DriveCommands.stopWithX(RobotContainer.drive).until(() -> !RobotContainer.state.joysticksFree())
+                .withName("Lock Wheels").asProxy()
         ).repeatedly(),
-        RobotContainer.indexer.runIndexer(IndexerState.RUN)
-    ).finallyDo(() -> {
-      RobotContainer.indexer.stopIndexer();
-    }).withName("Fire shot");
+        RobotContainer.indexer.runIndexerCommand(IndexerState.RUN)
+    ).withName("Fire shot");
+  }
+
+  public static Command backoffIndexer() {
+    return Commands.startEnd(
+        () -> RobotContainer.indexer.runIndexer(IndexerState.REVERSE),
+        () -> RobotContainer.indexer.stopIndexer(),
+        RobotContainer.indexer)
+        .withTimeout(0.25)
+        .withName("Backoff Indexer");
   }
 }

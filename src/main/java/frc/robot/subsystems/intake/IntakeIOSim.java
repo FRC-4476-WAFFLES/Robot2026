@@ -9,24 +9,32 @@ import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.lib.SecondOrderSim;
 
 public class IntakeIOSim extends IntakeIOTalonFX {
-  private SecondOrderSim expanderSim;
+  private final SecondOrderSim expanderSim;
+  private final SecondOrderSim intakeSim;
+
   private double setpointPos;
+  private double setpointIntake;
 
   public IntakeIOSim() {
     expanderSim = new SecondOrderSim(2.5, 1, 0, 0);
+    intakeSim = new SecondOrderSim(2.5, 1, 0, 0);
   }
 
   @Override
   public void updateInputs(IntakeIOInputs inputs) {
-    var talonFXSim = expander.getSimState();
+    var expanderSimState = expander.getSimState();
 
-    var simResult = expanderSim.Evaluate(setpointPos, CodeConstants.PERIODIC_LOOP_TIME);
+    var simResultExpander = expanderSim.Evaluate(setpointPos, CodeConstants.PERIODIC_LOOP_TIME);
 
     // apply the new rotor position and velocity to the TalonFX;
     // note that this is rotor position/velocity (before gear ratio), but
     // WPILIB sim objects return mechanism position/velocity (after gear ratio)
-    talonFXSim.setRawRotorPosition(simResult.get(0) * PhysicalConstants.EXPANDER_REDUCTION);
-    talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.EXPANDER_REDUCTION);
+    expanderSimState.setRawRotorPosition(simResultExpander.get(0) * PhysicalConstants.EXPANDER_REDUCTION);
+    expanderSimState.setRotorVelocity(simResultExpander.get(1) * PhysicalConstants.EXPANDER_REDUCTION);
+
+    var intakeSimState = intake0.getSimState();
+    var simResultIntake = intakeSim.Evaluate(setpointIntake, CodeConstants.PERIODIC_LOOP_TIME);
+    intakeSimState.setRotorVelocity(simResultIntake.get(0) * PhysicalConstants.EXPANDER_REDUCTION);
 
     super.updateInputs(inputs);
   }
@@ -35,5 +43,11 @@ public class IntakeIOSim extends IntakeIOTalonFX {
   public void runExpanderPosition(double position) {
     setpointPos = position;
     super.runExpanderPosition(position);
+  }
+
+  @Override
+  public void runIntakeVelocity(double velocity) {
+    setpointIntake = velocity;
+    super.runIntakeVelocity(velocity);
   }
 }

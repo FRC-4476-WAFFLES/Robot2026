@@ -294,7 +294,7 @@ public class RobotContainer {
         .onFalse(climber.moveElevator(0));
     Controls.operatorController.a()
         .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
-        .onFalse(indexer.runIndexer(IndexerState.STOP));
+        .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
 
     Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
@@ -322,10 +322,7 @@ public class RobotContainer {
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Tag"));
     state.shouldFire().whileTrue(ShooterCommands.shootCommand()).onFalse(
-        Commands.startEnd(
-            () -> indexer.runIndexer(IndexerState.REVERSE),
-            () -> indexer.stopIndexer())
-            .withTimeout(0.25)
+        ShooterCommands.backoffIndexer()
     );
 
     // Manual mode
@@ -335,7 +332,9 @@ public class RobotContainer {
       flywheel.runSetpoint(parms.flywheelSpeed());
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Manual Aim"));
-    state.shouldFireManual().whileTrue(ShooterCommands.shootCommand());
+    state.shouldFireManual().whileTrue(ShooterCommands.shootCommand()).onFalse(
+        ShooterCommands.backoffIndexer()
+    );
 
     // Simulation
     if (RobotBase.isSimulation()) {
