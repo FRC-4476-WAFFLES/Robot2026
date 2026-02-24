@@ -4,7 +4,6 @@
 
 package frc.robot.subsystems.vision;
 
-import java.util.Optional;
 import java.util.function.DoubleFunction;
 import java.util.function.Supplier;
 
@@ -166,16 +165,17 @@ public class SimVisionIO implements VisionIO {
     if (result == null || result.targets.isEmpty())
       return null;
 
-    Optional<Transform3d> optRobotToCamera = visionSim.getRobotToCamera(cameraSim, Timer.getFPGATimestamp());
+    // Optional<Transform3d> optRobotToCamera = visionSim.getRobotToCamera(cameraSim, Timer.getFPGATimestamp());
     Pose3d fieldToRobot;
-    if (optRobotToCamera.isPresent() && false) {
-      Transform3d cameraToRobot = optRobotToCamera.get().inverse();
-      Pose3d robotPose3d = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation())
-          .transformBy(cameraToRobot);
-      fieldToRobot = robotPose3d;
-    } else {
-      fieldToRobot = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation());
-    }
+    // Might be needed when vision is on real robot. Accounts for some transformations not applied for convenience in sim.  
+    // if (optRobotToCamera.isPresent() && false) { 
+    //   Transform3d cameraToRobot = optRobotToCamera.get().inverse();
+    //   Pose3d robotPose3d = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation())
+    //       .transformBy(cameraToRobot);
+    //   fieldToRobot = robotPose3d;
+    // } else {
+    fieldToRobot = new Pose3d(fieldToCamera.getTranslation(), fieldToCamera.getRotation());
+    // }
 
     return fieldToRobot;
   }

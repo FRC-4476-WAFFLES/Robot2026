@@ -1,5 +1,5 @@
 {
-  "Keyboard 1 Settings": {
+  "Keyboard 0 Settings": {
     "window": {
       "visible": true
     }
@@ -26,11 +26,11 @@
         }
       ],
       "axisCount": 3,
-      "buttonCount": 0,
+      "buttonCount": 3,
       "buttonKeys": [
+        90,
         -1,
-        -1,
-        -1,
+        70,
         -1
       ],
       "povConfig": [
@@ -63,7 +63,7 @@
       "axisCount": 2,
       "buttonCount": 4,
       "buttonKeys": [
-        90,
+        -1,
         88,
         67,
         86

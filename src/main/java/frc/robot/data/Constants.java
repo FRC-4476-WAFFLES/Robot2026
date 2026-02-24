@@ -63,14 +63,14 @@ public final class Constants {
     // RIO bus
     public static final int expanderMotor = 10;
     public static final int intakeMotor0 = 11;
-    public static final int intakeMotor1 = 11;
-    public static final int hoodMotor = 12;
+    public static final int intakeMotor1 = 12;
+    public static final int hoodMotor = 13;
     public static final int flywheelMotor0 = 14;
-    public static final int flywheelMotor1 = 19;
-    public static final int climberMotor = 13;
-    public static final int indexerMotor1 = 15;
-    public static final int indexerMotor2 = 16;
-    public static final int feederMotor = 17;
+    public static final int flywheelMotor1 = 15;
+    public static final int climberMotor = 16;
+    public static final int indexerMotor1 = 17;
+    public static final int indexerMotor2 = 18;
+    public static final int feederMotor = 19;
 
     public static final int CANdle = 22;
 
@@ -385,6 +385,8 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
+    public static final double INTAKE_SPEED = 8;
+
     public static final double MAX_ACCELERATION = 8;
     public static final double MAX_JERK = 200;
 
