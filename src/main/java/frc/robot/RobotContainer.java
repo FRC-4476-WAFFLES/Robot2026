@@ -35,7 +35,6 @@ import frc.robot.subsystems.StateOrchestrator;
 import frc.robot.subsystems.climber.Climber;
 import frc.robot.subsystems.climber.ClimberIO;
 import frc.robot.subsystems.climber.ClimberIOSim;
-import frc.robot.subsystems.climber.ClimberIOTalonFX;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOPigeon2;
@@ -142,7 +141,8 @@ public class RobotContainer {
 
         flywheel = new Flywheel(new FlywheelIOTalonFX());
 
-        climber = new Climber(new ClimberIOTalonFX());
+        // climber = new Climber(new ClimberIOTalonFX());
+        climber = new Climber(new ClimberIO() {}); // No climber on robot yet
 
         vision = new Vision(
             new LimelightIO(VisionConstants.LIMELIGHT_NAME_FRAME),

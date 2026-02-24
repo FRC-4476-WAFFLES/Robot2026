@@ -4,31 +4,39 @@
 
 package frc.robot.subsystems.shooter.turret;
 
+import static edu.wpi.first.units.Units.Rotations;
+
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.PhysicalConstants;
-import frc.robot.utils.lib.SecondOrderSim;
 
 public class TurretIOSim extends TurretIOTalonFX {
-  private SecondOrderSim pivotSim;
-  private double setpointPos, setpointVel;
+  private double currentOutput = 0;
 
-  public TurretIOSim() {
-    pivotSim = new SecondOrderSim(15, 1, 0, 0);
-  }
+  private final DCMotor gearbox = DCMotor.getKrakenX44Foc(1);
+  private final DCMotorSim sim = new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.001, 50.0), gearbox);
+
+  public TurretIOSim() {}
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
+    var appliedVoltage = gearbox.getVoltage(currentOutput, sim.getAngularVelocityRadPerSec());
+
+    // Logger.recordOutput("RobotState/Applied Voltage", appliedVoltage);
+
+    sim.setInputVoltage(MathUtil.clamp(appliedVoltage, -12.0, 12.0));
+    sim.update(CodeConstants.PERIODIC_LOOP_TIME);
+
     var talonFXSim = turret.getSimState();
 
-    var simResult = pivotSim.Evaluate(setpointPos, setpointVel, CodeConstants.PERIODIC_LOOP_TIME);
+    talonFXSim.setRawRotorPosition(sim.getAngularPosition().in(Rotations) *
+        PhysicalConstants.TURRET_REDUCTION);
+    talonFXSim.setRotorVelocity(0);
 
-    // apply the new rotor position and velocity to the TalonFX;
-    // note that this is rotor position/velocity (before gear ratio), but
-    // WPILIB sim objects return mechanism position/velocity (after gear ratio)
-    talonFXSim.setRawRotorPosition(simResult.get(0) * PhysicalConstants.TURRET_REDUCTION);
-    talonFXSim.setRotorVelocity(simResult.get(1) * PhysicalConstants.TURRET_REDUCTION);
-
-    double actualX = simResult.get(0);
+    double actualX = sim.getAngularPositionRotations();
     double y = (actualX * 400 / 36) - Math.floor(actualX * 400 / 36);
     double z = (actualX * 400 / 35) - Math.floor(actualX * 400 / 35);
     cancoder0.getSimState().setRawPosition(z);
@@ -39,8 +47,9 @@ public class TurretIOSim extends TurretIOTalonFX {
 
   @Override
   public void runSetpoint(double position, double velocity) {
-    setpointPos = position;
-    setpointVel = velocity;
+    currentOutput = (position - sim.getAngularPositionRotations()) * 40
+        + (velocity) * 1.8;
+
     super.runSetpoint(position, velocity);
   }
 }

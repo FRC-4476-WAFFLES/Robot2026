@@ -256,7 +256,7 @@ public final class Constants {
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
 
-    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(2);
+    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(5);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
@@ -299,7 +299,7 @@ public final class Constants {
         new NodePoint(4, 70)
     };
 
-    public static final double RPM_RANGE = 30; // Within 30 rpm of goal
+    public static final double RPM_RANGE = 80;
   }
 
   public static class SpindexerConstants {

@@ -45,6 +45,7 @@ public class Turret extends ExpandedSubsystem {
   private TrapezoidProfile profile = new TrapezoidProfile(
       new TrapezoidProfile.Constraints(TurretConstants.MAX_VELOCITY, TurretConstants.MAX_ACCELERATION));
   private State profileState = new State();
+  private State latestGoalState = new State();
 
   public Turret(TurretIO turretIO) {
     io = turretIO;
@@ -94,6 +95,7 @@ public class Turret extends ExpandedSubsystem {
     Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
 
     runSetpoint(profileState.position, profileState.velocity);
+    latestGoalState = goalState;
   }
 
   // Can be rewritten later to handle different turret capabilities
@@ -116,7 +118,7 @@ public class Turret extends ExpandedSubsystem {
 
   private Rotation2d getAbsolutePosition() {
     return inputs.absolutePosition;
-    // return getPosition() % 1.0; 
+    // return getPosition() % 1.0;
   }
 
   private void runDutyCycle(double dutyCycle) {
@@ -167,7 +169,7 @@ public class Turret extends ExpandedSubsystem {
 
   @AutoLogOutput(key = "Turret/At Goal")
   public boolean atGoal() {
-    return atSetpoint(profileState.position, TurretConstants.POSITION_TOLERANCE);
+    return atSetpoint(latestGoalState.position, TurretConstants.POSITION_TOLERANCE);
   }
 
   // Commands
