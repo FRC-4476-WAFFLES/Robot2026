@@ -3,18 +3,21 @@ package frc.robot.subsystems;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.TurretConstants;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class MechanismPoses extends VirtualSubsystem {
   private Pose3d[] poseArray = new Pose3d[4];
 
-  // private Transform3d turretRestPose = new Transform3d(0.25082500, 0.09842500, 0.5509895, Rotation3d.kZero);
+  // private Transform3d turretRestPose = new Transform3d(0.25082500, 0.09842500,
+  // 0.5509895, Rotation3d.kZero);
   private Transform3d turretRestPose = PhysicalConstants.ROBOT_TO_TURRET_CENTER;
 
   private Transform3d intakeRestPose = new Transform3d(0, -0.2, 0.2032, Rotation3d.kZero);
@@ -32,7 +35,10 @@ public class MechanismPoses extends VirtualSubsystem {
   public void latePeriodic() {
     Pose3d turretPose = new Pose3d(
         turretRestPose.getTranslation(),
-        new Rotation3d(0, 0, Units.rotationsToRadians(RobotContainer.turret.getPosition()))
+        new Rotation3d(0, 0,
+            Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition())
+                .plus(TurretConstants.PHYSICAL_ZERO).getRadians()
+        )
     );
     poseArray[0] = turretPose;
 

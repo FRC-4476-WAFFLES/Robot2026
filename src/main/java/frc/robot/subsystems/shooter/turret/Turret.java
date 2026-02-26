@@ -74,18 +74,21 @@ public class Turret extends ExpandedSubsystem {
     Rotation2d robotRotation = RobotContainer.state.getRotation();
     double robotTheta = Units.radiansToRotations(RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond);
 
-    Rotation2d turretRelativeGoalHeading = goalHeading;
-    double turretRelativeGoalVelocity = goalVelocity;
+    Rotation2d robotRelativeGoalHeading = goalHeading;
+    double robotRelativeGoalVelocity = goalVelocity;
 
     if (state == TurretState.TRACK_FIELD_RELATIVE) {
-      turretRelativeGoalHeading = goalHeading.minus(robotRotation);
-      turretRelativeGoalVelocity = goalVelocity - robotTheta;
+      robotRelativeGoalHeading = goalHeading.minus(robotRotation);
+      robotRelativeGoalVelocity = goalVelocity - robotTheta;
     }
+
+    Rotation2d turretRelativeGoalHeading = robotRelativeGoalHeading.minus(TurretConstants.PHYSICAL_ZERO);
+
     double chosenHeading = adjustSetpointForWrap(turretRelativeGoalHeading.getRotations());
 
     State goalState = new State(
         MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
-        turretRelativeGoalVelocity);
+        robotRelativeGoalVelocity);
 
     profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
 
@@ -110,7 +113,8 @@ public class Turret extends ExpandedSubsystem {
       return rotationsFromCenter;
     }
 
-    if (Math.abs(getPosition() - alternative) < Math.abs(getPosition() - rotationsFromCenter)) {
+    if (Math.abs(getMechanismRelativePosition() - alternative) < Math
+        .abs(getMechanismRelativePosition() - rotationsFromCenter)) {
       return alternative;
     }
     return rotationsFromCenter;
@@ -150,7 +154,7 @@ public class Turret extends ExpandedSubsystem {
     this.state = state;
   }
 
-  public double getPosition() {
+  public double getMechanismRelativePosition() {
     return inputs.relativePosition;
   }
 

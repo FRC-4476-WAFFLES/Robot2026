@@ -198,10 +198,10 @@ public final class Constants {
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
     public static final double TURRET_REDUCTION = 33.33333;
-    public static final double EXPANDER_REDUCTION = 2;
-    public static final double FLYWHEEL_REDUCTION = 2;
+    public static final double EXPANDER_REDUCTION = 115.7143;
+    public static final double FLYWHEEL_REDUCTION = 0.5000;
     public static final double INTAKE_REDUCTION = 2;
-    public static final double HOOD_REDUCTION = 2;
+    public static final double HOOD_REDUCTION = 73.3333;
     public static final double CLIMBER_REDUCTION = 2;
 
     public static final double TURRET_GEAR_TEETH = 160.0;
@@ -250,6 +250,9 @@ public final class Constants {
     public static final double CANCODER_0_OFFSET = -0.322509765625;
     public static final double CANCODER_1_OFFSET = -0.871826171875;
 
+    public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-135); // Facing diagonally back into robot
+    // Note that robot front is different to robot code front (too late to fix now)
+
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
@@ -257,7 +260,7 @@ public final class Constants {
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
 
-    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(5);
+    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;

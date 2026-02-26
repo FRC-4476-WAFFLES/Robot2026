@@ -127,6 +127,8 @@ public class TurretIOTalonFX implements TurretIO {
     double y = cancoder1.getRawSignals().absolutePosition().getValueAsDouble(); // 36t
 
     // Debugging
+    // z = 0;
+    // y = 0;
     // double xValue = -0.96;
     // y = (xValue * 400 / 36) - Math.floor(xValue * 400 / 36);
     // z = (xValue * 400 / 35) - Math.floor(xValue * 400 / 35);
@@ -171,7 +173,7 @@ public class TurretIOTalonFX implements TurretIO {
     // cancoder1.getRawSignals().velocity()).in(Rotations));
     inputs.relativePosition = BaseStatusSignal.getLatencyCompensatedValue(turret.getRawSignals().position(),
         turret.getRawSignals().velocity()).in(Rotations);
-    inputs.absolutePosition = Rotation2d.fromRotations(inputs.relativePosition).plus(Rotation2d.kZero); // Wrap rotation
+    inputs.absolutePosition = Rotation2d.fromRotations(inputs.relativePosition).plus(TurretConstants.PHYSICAL_ZERO);
     inputs.velocity = turret.getRawSignals().velocity().getValueAsDouble();
   }
 
