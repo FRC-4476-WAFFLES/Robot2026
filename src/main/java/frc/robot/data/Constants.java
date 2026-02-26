@@ -61,27 +61,28 @@ public final class Constants {
     // Drivetrain IDS are located in TunerConstants
 
     // RIO bus
-    public static final int expanderMotor = 10;
-    public static final int intakeMotor0 = 11;
-    public static final int intakeMotor1 = 12;
-    public static final int hoodMotor = 13;
-    public static final int flywheelMotor0 = 14;
-    public static final int flywheelMotor1 = 15;
-    public static final int climberMotor = 16;
-    public static final int indexerMotor1 = 17;
-    public static final int indexerMotor2 = 18;
-    public static final int feederMotor = 19;
+    public static final int expanderMotor = 14;
+    public static final int intakeMotor0 = 15;
+    public static final int intakeMotor1 = 16;
+    public static final int climberMotor = 17;
+    public static final int indexerMotor1 = 18;
+    public static final int indexerMotor2 = 19;
+    public static final int feederMotor = 20;
 
-    public static final int CANdle = 22;
+    public static final int flywheelMotor0 = 21;
+    public static final int flywheelMotor1 = 22;
+    public static final int hoodMotor = 23;
+
+    public static final int CANdle = 24;
 
     // Canivore
     public static final String CANivoreName = "CANivore";
     public static final CANBus CANivoreBus = new CANBus(CANivoreName);
 
     // CANivore bus
-    public static final int turretMotor = 9;
-    public static final int turretEncoder0 = 18;
-    public static final int turretEncoder1 = 19;
+    public static final int turretMotor = 25;
+    public static final int turretEncoder0 = 26; // 35t
+    public static final int turretEncoder1 = 27; // 36t
   }
 
   /* PWM Outputs */
@@ -196,14 +197,14 @@ public final class Constants {
   /* Physical */
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
-    public static final double TURRET_REDUCTION = 2;
+    public static final double TURRET_REDUCTION = 33.33333;
     public static final double EXPANDER_REDUCTION = 2;
     public static final double FLYWHEEL_REDUCTION = 2;
     public static final double INTAKE_REDUCTION = 2;
     public static final double HOOD_REDUCTION = 2;
     public static final double CLIMBER_REDUCTION = 2;
 
-    public static final double TURRET_GEAR_TEETH = 400.0;
+    public static final double TURRET_GEAR_TEETH = 160.0;
     public static final double ENCODER_0_TEETH = 35.0;
     public static final double ENCODER_1_TEETH = 36.0;
 
@@ -246,8 +247,8 @@ public final class Constants {
   }
 
   public static class TurretConstants {
-    public static final double CANCODER_0_OFFSET = 0;
-    public static final double CANCODER_1_OFFSET = 0;
+    public static final double CANCODER_0_OFFSET = -0.322509765625;
+    public static final double CANCODER_1_OFFSET = -0.871826171875;
 
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic

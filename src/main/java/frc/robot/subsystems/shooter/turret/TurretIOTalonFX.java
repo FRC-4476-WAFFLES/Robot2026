@@ -32,7 +32,7 @@ import frc.robot.utils.hardware.TalonFXIO;
 
 public class TurretIOTalonFX implements TurretIO {
   protected final TalonFXIO turret;
-  protected final CANcoderIO cancoder0;
+  protected final CANcoderIO cancoder0; // 35
   protected final CANcoderIO cancoder1;
 
   private final PositionVoltage setpointRequest = new PositionVoltage(0);
