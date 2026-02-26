@@ -34,7 +34,7 @@ public class IntakeIOSim extends IntakeIOTalonFX {
 
     var intakeSimState = intake0.getSimState();
     var simResultIntake = intakeSim.Evaluate(setpointIntake, CodeConstants.PERIODIC_LOOP_TIME);
-    intakeSimState.setRotorVelocity(simResultIntake.get(0) * PhysicalConstants.EXPANDER_REDUCTION);
+    intakeSimState.setRotorVelocity(simResultIntake.get(0) * PhysicalConstants.INTAKE_REDUCTION);
 
     super.updateInputs(inputs);
   }

@@ -84,10 +84,10 @@ public class BlueRelativeTarget {
     return this;
   }
 
-  public BlueRelativeTarget withTarget(Pose2d target) {
+  public BlueRelativeTarget withTarget(Pose2d newTarget) {
     this.target = null;
 
-    m_reference = target;
+    m_reference = newTarget;
     return this;
   }
 }

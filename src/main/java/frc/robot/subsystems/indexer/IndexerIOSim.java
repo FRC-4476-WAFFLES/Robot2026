@@ -7,7 +7,7 @@ public class IndexerIOSim extends IndexerIOTalonFX {
   private SecondOrderSim indexerSimState;
   private SecondOrderSim feederSimState;
 
-  private double setpointIndexder = 0;
+  private double setpointIndexer = 0;
   private double setpointFeeder = 0;
 
   public IndexerIOSim() {
@@ -19,7 +19,7 @@ public class IndexerIOSim extends IndexerIOTalonFX {
   @Override
   public void updateInputs(IndexerIOInputs inputs) {
     var indexerSim = indexer1.getSimState();
-    var simResult0 = indexerSimState.Evaluate(setpointIndexder, CodeConstants.PERIODIC_LOOP_TIME);
+    var simResult0 = indexerSimState.Evaluate(setpointIndexer, CodeConstants.PERIODIC_LOOP_TIME);
     indexerSim.setRotorVelocity(simResult0.get(0));
 
     var feederSim = feeder.getSimState();
@@ -31,7 +31,7 @@ public class IndexerIOSim extends IndexerIOTalonFX {
 
   @Override
   public void runIndexerVelocity(double spindexerVelocity, double feederVelocity) {
-    setpointIndexder = spindexerVelocity;
+    setpointIndexer = spindexerVelocity;
     setpointFeeder = feederVelocity;
     super.runIndexerVelocity(spindexerVelocity, feederVelocity);
   }
