@@ -31,12 +31,14 @@ public class Intake extends SubsystemBase {
   @AutoLogOutput(key = "Intake/Intake Goal Velocity")
   private double intakeGoalVelocity = 0;
 
-  private Trigger zeroingTrigger = new Trigger(
-      () -> inputs.expanderMotor.torqueCurrent() > ExpanderConstants.ZERO_TORQUE_CURRENT)
-      .debounce(ExpanderConstants.ZERO_DEBOUNCE);
+  private boolean zeroingTriggered = false;
 
   public Intake(IntakeIO io) {
     this.io = io;
+
+    new Trigger(() -> inputs.expanderMotor.torqueCurrent() > ExpanderConstants.ZERO_TORQUE_CURRENT)
+        .debounce(ExpanderConstants.ZERO_DEBOUNCE)
+        .onTrue(Commands.runOnce(() -> zeroingTriggered = true));
   }
 
   @Override
@@ -52,18 +54,21 @@ public class Intake extends SubsystemBase {
     io.runIntakeVelocity(intakeGoalVelocity);
 
     if (!expanderZeroed) {
+      // Zeroing: run expander into hard stop until torque threshold is held
       io.runExpanderDutyCycle(ExpanderConstants.ZERO_DUTY_CYCLE);
-      if (zeroingTrigger.getAsBoolean()) {
+      if (zeroingTriggered) {
         io.setExpanderPosition(ExpanderConstants.ZERO_POSITION);
         expanderZeroed = true;
+        zeroingTriggered = false;
       }
+    } else {
+      // Normal operation: position control to stowed/extended
+      double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
+      if (expanderState == ExpanderState.EXTENDED) {
+        expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
+      }
+      io.runExpanderPosition(expanderSetpoint);
     }
-
-    double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
-    if (expanderState == ExpanderState.EXTENDED) {
-      expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
-    }
-    io.runExpanderPosition(expanderSetpoint);
   }
 
   // Public API

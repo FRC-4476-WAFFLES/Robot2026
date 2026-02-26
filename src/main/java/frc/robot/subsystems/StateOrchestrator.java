@@ -41,7 +41,7 @@ public class StateOrchestrator extends VirtualSubsystem {
 
   private void determineShooterState() {
     var pose = WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose());
-    ShooterState state = ShooterState.DISABLED;
+    ShooterState state = ShooterState.DISABLED; // TODO: Have some sort of manual override to disable shooter
     if (pose.getX() < shootingLineX) {
       state = ShooterState.TARGET_HUB;
     } else if (pose.getX() > passingLineX) {

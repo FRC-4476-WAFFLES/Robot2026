@@ -144,7 +144,7 @@ public class Vision extends VirtualSubsystem {
         Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0))));
 
     int numTags = a.numTags + b.numTags;
-    double time = b.timestampSeconds;
+    double time = a.timestampSeconds;
 
     return Optional.of(new TagPoseEstimate(
         fusedPose,

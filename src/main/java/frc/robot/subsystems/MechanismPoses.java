@@ -49,10 +49,10 @@ public class MechanismPoses extends VirtualSubsystem {
     );
     poseArray[1] = groundIntakePose;
 
-    Pose3d hoodePose = turretPose.plus(new Transform3d(hoodRestPoseTurretSpace.getTranslation(),
+    Pose3d hoodPose = turretPose.plus(new Transform3d(hoodRestPoseTurretSpace.getTranslation(),
         new Rotation3d(0, Units.degreesToRadians(-RobotContainer.hood.getPosition()), 0)
             .plus(hoodRestPoseTurretSpace.getRotation())));
-    poseArray[2] = hoodePose;
+    poseArray[2] = hoodPose;
 
     Pose3d climbPose = new Pose3d(
         climbRestPose.getTranslation().plus(new Translation3d(0, RobotContainer.climber.getPosition(), 0)),
