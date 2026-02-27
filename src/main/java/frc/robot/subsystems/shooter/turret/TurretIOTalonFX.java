@@ -60,6 +60,11 @@ public class TurretIOTalonFX implements TurretIO {
     cancoder1Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1;
     PhoenixHelpers.tryConfig(() -> cancoder1.getConfigurator().apply(cancoder1Config));
 
+    if (Constants.getMode() == Mode.SIM) {
+      cancoder0.getSimState().setRawPosition(TurretConstants.CANCODER_0_OFFSET);
+      cancoder1.getSimState().setRawPosition(TurretConstants.CANCODER_1_OFFSET);
+    }
+
     // Status signals
     // absolutePosition0 = cancoder0.getAbsolutePosition();
     // velocity0 = cancoder0.getVelocity();
@@ -127,8 +132,11 @@ public class TurretIOTalonFX implements TurretIO {
     double y = cancoder1.getRawSignals().absolutePosition().getValueAsDouble(); // 36t
 
     // Debugging
-    // z = 0;
-    // y = 0;
+
+    // if (Constants.getMode() == Mode.SIM) {
+    //   z = 0;
+    //   y = 0;
+    // }
     // double xValue = -0.96;
     // y = (xValue * 400 / 36) - Math.floor(xValue * 400 / 36);
     // z = (xValue * 400 / 35) - Math.floor(xValue * 400 / 35);
