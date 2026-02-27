@@ -45,7 +45,6 @@ import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.indexer.Indexer;
 import frc.robot.subsystems.indexer.IndexerIO;
 import frc.robot.subsystems.indexer.IndexerIOSim;
-import frc.robot.subsystems.indexer.IndexerIOTalonFX;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
@@ -56,15 +55,12 @@ import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
-import frc.robot.subsystems.shooter.flywheel.FlywheelIOTalonFX;
 import frc.robot.subsystems.shooter.hood.Hood;
 import frc.robot.subsystems.shooter.hood.HoodIO;
 import frc.robot.subsystems.shooter.hood.HoodIOSim;
-import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
 import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.turret.TurretIO;
 import frc.robot.subsystems.shooter.turret.TurretIOSim;
-import frc.robot.subsystems.shooter.turret.TurretIOTalonFX;
 import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
@@ -132,15 +128,15 @@ public class RobotContainer {
             new ModuleIOTalonFX(TunerConstants.BackLeft),
             new ModuleIOTalonFX(TunerConstants.BackRight));
 
-        turret = new Turret(new TurretIOTalonFX());
+        turret = new Turret(new TurretIO() {});
 
-        hood = new Hood(new HoodIOTalonFX());
+        hood = new Hood(new HoodIO() {});
 
         intake = new Intake(new IntakeIOTalonFX());
 
-        indexer = new Indexer(new IndexerIOTalonFX());
+        indexer = new Indexer(new IndexerIO() {});
 
-        flywheel = new Flywheel(new FlywheelIOTalonFX());
+        flywheel = new Flywheel(new FlywheelIO() {});
 
         // climber = new Climber(new ClimberIOTalonFX());
         climber = new Climber(new ClimberIO() {}); // No climber on robot yet
@@ -297,7 +293,8 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
         .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
 
-    // Should be lower face button on joystick. Likely ID is wrong and will change on real hardware.
+    // Should be lower face button on joystick. Likely ID is wrong and will change
+    // on real hardware.
     // Manually toggles intake
     Controls.leftJoystick.button(3).onTrue(intake.toggleExtended());
 
