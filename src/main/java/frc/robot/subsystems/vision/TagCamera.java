@@ -71,7 +71,7 @@ public class TagCamera {
    */
   public Optional<TagPoseEstimate> update(boolean isTurret) {
     visionIO.updateInputs(inputs, cameraOffset);
-    Logger.processInputs("Inputs/Vison/" + cameraName, inputs);
+    Logger.processInputs("Inputs/Vision/" + cameraName, inputs);
 
     // Throttle performance while disabled to prevent overheating
     if (RobotContainer.state.robotEnabled()) {

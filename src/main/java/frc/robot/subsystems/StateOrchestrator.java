@@ -4,7 +4,6 @@
 
 package frc.robot.subsystems;
 
-import frc.robot.Controls;
 import frc.robot.RobotContainer;
 import frc.robot.RobotState.ShooterState;
 import frc.robot.data.FieldConstants;
@@ -42,18 +41,13 @@ public class StateOrchestrator extends VirtualSubsystem {
 
   private void determineShooterState() {
     var pose = WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose());
-    ShooterState state = ShooterState.DISABLED;
+    ShooterState state = ShooterState.DISABLED; // TODO: Have some sort of manual override to disable shooter
     if (pose.getX() < shootingLineX) {
       state = ShooterState.TARGET_HUB;
     } else if (pose.getX() > passingLineX) {
       state = ShooterState.TARGET_PASS;
     } else {
       state = ShooterState.TARGET_TAG;
-
-      if (Controls.shootButton.getAsBoolean()) {
-        // Switch to passing if shot requested here
-        state = ShooterState.TARGET_PASS;
-      }
     }
 
     RobotContainer.state.setShooterState(state);

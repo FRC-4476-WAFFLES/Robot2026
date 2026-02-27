@@ -40,7 +40,7 @@ public class VisionHelpers {
       estStdDevs = VisionConstants.defaultkSingleTagStdDevsMT1;
 
       // Reduce the contribution of ambiguous tags
-      estStdDevs.times(getMegatagEstimateQuality(rawFiducials));
+      estStdDevs = estStdDevs.times(getMegatagEstimateQuality(rawFiducials));
     } else {
       // If multiple tags are visible, use different (lower) deviations
       estStdDevs = VisionConstants.defaultMultiTagStdDevsMT1;
