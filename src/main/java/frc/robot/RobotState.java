@@ -116,6 +116,7 @@ public class RobotState {
    * Returns the current odometry pose. Private to standardize all access through
    * RobotState
    */
+  @AutoLogOutput(key = "RobotState/FieldPose")
   public Pose2d getPose() {
     return latestPose;
   }

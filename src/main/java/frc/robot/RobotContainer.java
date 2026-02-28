@@ -247,7 +247,14 @@ public class RobotContainer {
    */
   private void configureDefaultCommands() {
     // Swerve telemetry from odometry thread
-    drive.setDefaultCommand(DriveCommands.joystickDrive(
+    // drive.setDefaultCommand(DriveCommands.joystickDrive(
+    // drive,
+    // Controls::getDriveYRaw,
+    // Controls::getDriveXRaw,
+    // Controls::getDriveRotationRaw
+    // ));
+
+    drive.setDefaultCommand(DriveCommands.testDrive(
         drive,
         Controls::getDriveYRaw,
         Controls::getDriveXRaw,

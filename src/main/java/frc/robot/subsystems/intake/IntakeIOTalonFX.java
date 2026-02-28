@@ -98,7 +98,7 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     extensionConfigs.MotorOutput.DutyCycleNeutralDeadband = ExpanderConstants.MOTOR_DEADBAND;
     extensionConfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
-    extensionConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    extensionConfigs.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
     extensionConfigs.Voltage.PeakForwardVoltage = ExpanderConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;
     extensionConfigs.Voltage.PeakReverseVoltage = -ExpanderConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;

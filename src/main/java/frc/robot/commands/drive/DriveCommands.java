@@ -81,12 +81,43 @@ public class DriveCommands {
               omega * drive.getMaxAngularSpeedRadPerSec());
           boolean isFlipped = DriverStation.getAlliance().isPresent()
               && DriverStation.getAlliance().get() == Alliance.Red;
+
+          ChassisSpeeds rotatedSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+              speeds,
+              isFlipped
+                  ? RobotContainer.state.getRotation().plus(Rotation2d.k180deg)
+                  : RobotContainer.state.getRotation());
+          Logger.recordOutput("RobotState/AAHAHGHAHGFAHGH", rotatedSpeeds);
+          drive.runVelocity(rotatedSpeeds
+          );
+        },
+        drive)
+        .withName("Joystick Drive");
+  }
+
+  public static Command testDrive(
+      Drive drive,
+      DoubleSupplier xSupplier,
+      DoubleSupplier ySupplier,
+      DoubleSupplier omegaSupplier) {
+    return Commands.run(
+        () -> {
+          // Get linear velocity
+          Translation2d linearVelocity = Controls.getLinearVelocityFromJoysticks(xSupplier.getAsDouble(),
+              ySupplier.getAsDouble());
+
+          double omega = omegaSupplier.getAsDouble();
+
+          // Square rotation value for more precise control
+          omega = Math.copySign(omega * omega, omega);
+
+          // Convert to field relative speeds & send command
+          ChassisSpeeds speeds = new ChassisSpeeds(
+              linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
+              linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
+              omega * drive.getMaxAngularSpeedRadPerSec());
           drive.runVelocity(
-              ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? RobotContainer.state.getRotation().plus(Rotation2d.k180deg)
-                      : RobotContainer.state.getRotation()));
+              speeds);
         },
         drive)
         .withName("Joystick Drive");
@@ -299,11 +330,15 @@ public class DriveCommands {
     return autoToFieldPose(() -> target.getFieldRelative());
   }
 
-  // public static Command autoToTarget(BlueRelativeTarget target, Distance tolerance) {
-  //   var state = RobotContainer.state;
-  //   return autoToFieldPose(() -> target.getFieldRelative(), () -> false, false).onlyWhile(
-  //       () -> state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation()) >= tolerance
-  //           .in(Meters));
+  // public static Command autoToTarget(BlueRelativeTarget target, Distance
+  // tolerance) {
+  // var state = RobotContainer.state;
+  // return autoToFieldPose(() -> target.getFieldRelative(), () -> false,
+  // false).onlyWhile(
+  // () ->
+  // state.getPose().getTranslation().getDistance(target.getFieldRelativePose().getTranslation())
+  // >= tolerance
+  // .in(Meters));
   // }
 
   public static Command autoToFieldPose(Supplier<APTarget> target) {
