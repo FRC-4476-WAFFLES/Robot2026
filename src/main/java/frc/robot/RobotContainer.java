@@ -49,7 +49,6 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
-import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
 import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
@@ -132,7 +131,7 @@ public class RobotContainer {
 
         hood = new Hood(new HoodIO() {});
 
-        intake = new Intake(new IntakeIOTalonFX());
+        intake = new Intake(new IntakeIO() {});
 
         indexer = new Indexer(new IndexerIO() {});
 
@@ -247,19 +246,19 @@ public class RobotContainer {
    */
   private void configureDefaultCommands() {
     // Swerve telemetry from odometry thread
-    // drive.setDefaultCommand(DriveCommands.joystickDrive(
-    // drive,
-    // Controls::getDriveYRaw,
-    // Controls::getDriveXRaw,
-    // Controls::getDriveRotationRaw
-    // ));
-
-    drive.setDefaultCommand(DriveCommands.testDrive(
+    drive.setDefaultCommand(DriveCommands.joystickDrive(
         drive,
         Controls::getDriveYRaw,
         Controls::getDriveXRaw,
         Controls::getDriveRotationRaw
     ));
+
+    // drive.setDefaultCommand(DriveCommands.testDrive(
+    // drive,
+    // Controls::getDriveYRaw,
+    // Controls::getDriveXRaw,
+    // Controls::getDriveRotationRaw
+    // ));
 
     // Testing
     // turret.setDefaultCommand(turret.runSetpointCommand(() -> Rotation2d.k180deg,

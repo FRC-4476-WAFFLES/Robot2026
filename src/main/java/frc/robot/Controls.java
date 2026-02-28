@@ -52,13 +52,12 @@ public class Controls {
   }
 
   public static double getDriveYRaw() {
-    // Negated since field coordinate system from blue alliance perspective is
-    // positive to the left (?)
-    return filterJoystick(leftJoystick.getY());
+    // Joystick returns negative number for forward???
+    return -filterJoystick(leftJoystick.getY());
   }
 
   public static double getDriveRotationRaw() {
-    return filterJoystick(rightJoystick.getX());
+    return -filterJoystick(rightJoystick.getX());
   }
 
   /* Methods to get operator input */
