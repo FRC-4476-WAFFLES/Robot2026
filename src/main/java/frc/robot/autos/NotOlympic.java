@@ -12,18 +12,18 @@ import frc.robot.commands.drive.DriveCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class NotOlympic extends SequentialCommandGroup {
-  // Targets
-  public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.882, Rotation2d.kZero);
-  public final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 6.067, Rotation2d.fromDegrees(80))
+  // Targets (headings adjusted -90 for front-of-robot orientation fix)
+  public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.882, Rotation2d.fromDegrees(-90));
+  public final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 6.067, Rotation2d.fromDegrees(-10))
       .withVelocity(2);
-  public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(10));
-  public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(0));
-  public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.125, Rotation2d.fromDegrees(180))
-      .withEntryAngle(Rotation2d.fromDegrees(-180))
+  public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(-80));
+  public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90));
+  public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.125, Rotation2d.fromDegrees(90))
+      .withEntryAngle(Rotation2d.fromDegrees(-270))
       .withVelocity(1.5);
-  public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.1, Rotation2d.fromDegrees(180))
+  public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.1, Rotation2d.fromDegrees(90))
       .withVelocity(2);
-  public final BlueRelativeTarget end = new BlueRelativeTarget(1.035, 4.747, Rotation2d.fromDegrees(180));
+  public final BlueRelativeTarget end = new BlueRelativeTarget(1.035, 4.747, Rotation2d.fromDegrees(90));
 
   public NotOlympic() {
     // AutoPath pathTest = new AutoPath(point1, point2, point3, point4, point5);

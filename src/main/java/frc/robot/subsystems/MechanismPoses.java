@@ -20,12 +20,14 @@ public class MechanismPoses extends VirtualSubsystem {
   // 0.5509895, Rotation3d.kZero);
   private Transform3d turretRestPose = PhysicalConstants.ROBOT_TO_TURRET_CENTER;
 
-  private Transform3d intakeRestPose = new Transform3d(0, -0.2, 0.2032, Rotation3d.kZero);
+  // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
+  private Transform3d intakeRestPose = new Transform3d(0.2, 0, 0.2032, Rotation3d.kZero);
 
   private Transform3d hoodRestPoseTurretSpace = new Transform3d(0.10001250, 0, 0.09048750,
       new Rotation3d(Units.degreesToRadians(180), Units.degreesToRadians(21.74), 0));
 
-  private Transform3d climbRestPose = new Transform3d(0, -0.2, 0.2032, Rotation3d.kZero);
+  // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
+  private Transform3d climbRestPose = new Transform3d(0.2, 0, 0.2032, Rotation3d.kZero);
 
   public MechanismPoses() {
     Logger.recordOutput("RobotState/Zero", Pose3d.kZero);
@@ -42,10 +44,11 @@ public class MechanismPoses extends VirtualSubsystem {
     );
     poseArray[0] = turretPose;
 
-    // Create ground intake pose
+    // Create ground intake pose (intake on +X side, swings around Y axis)
+    // Old X rotation axis → new Y rotation axis (same sign)
     Pose3d groundIntakePose = new Pose3d(
         intakeRestPose.getTranslation(),
-        new Rotation3d(Units.degreesToRadians(RobotContainer.intake.getExpanderPosition()), 0, 0)
+        new Rotation3d(0, Units.degreesToRadians(RobotContainer.intake.getExpanderPosition()), 0)
     );
     poseArray[1] = groundIntakePose;
 
@@ -55,7 +58,7 @@ public class MechanismPoses extends VirtualSubsystem {
     poseArray[2] = hoodPose;
 
     Pose3d climbPose = new Pose3d(
-        climbRestPose.getTranslation().plus(new Translation3d(0, RobotContainer.climber.getPosition(), 0)),
+        climbRestPose.getTranslation().plus(new Translation3d(-RobotContainer.climber.getPosition(), 0, 0)),
         climbRestPose.getRotation()
     );
     poseArray[3] = climbPose;

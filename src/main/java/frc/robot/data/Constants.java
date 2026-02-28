@@ -213,10 +213,12 @@ public final class Constants {
 
     // Height is applied megatag side, this is converted to a translation2d where
     // needed
+    // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
     public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
-        new Translation3d(0.22542500, 0.07302500, 0.49093120),
+        new Translation3d(-0.07302500, 0.22542500, 0.49093120),
         new Rotation3d(0, 0, 0)
     );
+    // Turret-space offset, does not change with robot frame rotation
     public static final Transform3d TURRET_CAMERA_OFFSET_FROM_CENTER = new Transform3d(
         new Translation3d(-0.09576931, 0, 0.24856043),
         new Rotation3d(0, Units.degreesToRadians(-28.1), 0)
@@ -228,9 +230,11 @@ public final class Constants {
     );
 
     // Pitch & height are applied megatag side
+    // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
+    // Camera physically points toward old +X (now +Y), so yaw = +90 in new frame
     public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(
-        new Translation3d(0.39606565, 0.17570000, 0.26416456),
-        new Rotation3d(0, Units.degreesToRadians(-35), 0)
+        new Translation3d(-0.17570000, 0.39606565, 0.26416456),
+        new Rotation3d(0, Units.degreesToRadians(-35), Units.degreesToRadians(90))
     );
 
     // Should technically not include height on real robot but for sim it's easier
@@ -240,8 +244,9 @@ public final class Constants {
         new Rotation3d(0, 0, 0)
     );
 
-    public static final Distance FULL_WIDTH = Meters.of(0.6604);
-    public static final Distance FULL_LENGTH = Meters.of(0.762);
+    // Swapped to match new code frame: length along X (front-back), width along Y (left-right)
+    public static final Distance FULL_WIDTH = Meters.of(0.762);
+    public static final Distance FULL_LENGTH = Meters.of(0.6604);
     public static final Distance BUMPER_HEIGHT = Meters.of(0.1);
 
   }
@@ -250,8 +255,7 @@ public final class Constants {
     public static final double CANCODER_0_OFFSET = -0.322509765625;
     public static final double CANCODER_1_OFFSET = -0.871826171875;
 
-    public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-135); // Facing diagonally back into robot
-    // Note that robot front is different to robot code front (too late to fix now)
+    public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-45); // Facing diagonally back into robot
 
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
                                                                                         // without breaking logic

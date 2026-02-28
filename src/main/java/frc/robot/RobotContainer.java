@@ -424,11 +424,12 @@ public class RobotContainer {
         PhysicalConstants.BUMPER_HEIGHT.in(Meters),
         state::getPose,
         state::getFieldVelocity);
+    // Intake is on the physical front of the robot (+X side)
     instance.registerIntake(
-        -PhysicalConstants.FULL_LENGTH.div(2).in(Meters),
         PhysicalConstants.FULL_LENGTH.div(2).in(Meters),
-        -PhysicalConstants.FULL_WIDTH.div(2).plus(Inches.of(7)).in(Meters),
+        PhysicalConstants.FULL_LENGTH.div(2).plus(Inches.of(7)).in(Meters),
         -PhysicalConstants.FULL_WIDTH.div(2).in(Meters),
+        PhysicalConstants.FULL_WIDTH.div(2).in(Meters),
         () -> intake.getExpanderState() == ExpanderState.EXTENDED,
         simState::simIntake);
 
