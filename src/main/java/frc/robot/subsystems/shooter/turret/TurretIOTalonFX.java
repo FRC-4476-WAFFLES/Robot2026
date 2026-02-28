@@ -132,14 +132,13 @@ public class TurretIOTalonFX implements TurretIO {
     double y = cancoder1.getRawSignals().absolutePosition().getValueAsDouble(); // 36t
 
     // Debugging
-
-    // if (Constants.getMode() == Mode.SIM) {
-    //   z = 0;
-    //   y = 0;
-    // }
-    // double xValue = -0.96;
-    // y = (xValue * 400 / 36) - Math.floor(xValue * 400 / 36);
-    // z = (xValue * 400 / 35) - Math.floor(xValue * 400 / 35);
+    if (Constants.getMode() == Mode.SIM) {
+      // z = 0;
+      // y = 0;
+      double xValue = 0.25;
+      y = (xValue * 160 / 36) - Math.floor(xValue * 160 / 36);
+      z = (xValue * 160 / 35) - Math.floor(xValue * 160 / 35);
+    }
 
     double difference = z - y;
     if (difference < 0)

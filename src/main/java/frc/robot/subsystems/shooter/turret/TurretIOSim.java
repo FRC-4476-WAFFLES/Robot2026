@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.Rotations;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.PhysicalConstants;
@@ -23,6 +24,7 @@ public class TurretIOSim extends TurretIOTalonFX {
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
+    // sim.setState(turret.getPosition(), turret.getVelocity());
     var appliedVoltage = gearbox.getVoltage(currentOutput, sim.getAngularVelocityRadPerSec());
 
     // Logger.recordOutput("RobotState/Applied Voltage", appliedVoltage);
@@ -37,8 +39,8 @@ public class TurretIOSim extends TurretIOTalonFX {
     talonFXSim.setRotorVelocity(0);
 
     // double actualX = sim.getAngularPositionRotations();
-    // double y = (actualX * 400 / 36) - Math.floor(actualX * 400 / 36);
-    // double z = (actualX * 400 / 35) - Math.floor(actualX * 400 / 35);
+    // double y = (actualX * 160 / 36) - Math.floor(actualX * 160 / 36);
+    // double z = (actualX * 160 / 35) - Math.floor(actualX * 160 / 35);
     // cancoder0.getSimState().setRawPosition(z);
     // cancoder1.getSimState().setRawPosition(y);
 
@@ -51,5 +53,11 @@ public class TurretIOSim extends TurretIOTalonFX {
         + (velocity) * 1.8;
 
     super.runSetpoint(position, velocity);
+  }
+
+  @Override
+  public void setPosition(double position) {
+    sim.setState(Units.rotationsToRadians(position), 0);
+    super.setPosition(position);
   }
 }
