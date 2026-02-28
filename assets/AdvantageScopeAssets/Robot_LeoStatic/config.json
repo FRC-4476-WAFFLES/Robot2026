@@ -5,9 +5,9 @@
   "disableSimplification": true,
     "rotations": [
     { "axis": "x", "degrees": 180 },
-    { "axis": "z", "degrees": 0 }
+    { "axis": "z", "degrees": 90 }
   ],
-  "position": [0, 0.56668324, 0], 
+  "position": [-0.56668324, 0, 0], 
   "cameras": [],
   "components": []
 }

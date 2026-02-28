@@ -19,7 +19,7 @@ public class NotOlympic extends SequentialCommandGroup {
   public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(-80));
   public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90));
   public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.125, Rotation2d.fromDegrees(90))
-      .withEntryAngle(Rotation2d.fromDegrees(-270))
+      .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withVelocity(1.5);
   public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.1, Rotation2d.fromDegrees(90))
       .withVelocity(2);

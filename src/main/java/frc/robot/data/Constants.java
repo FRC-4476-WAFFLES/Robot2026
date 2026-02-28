@@ -241,10 +241,11 @@ public final class Constants {
     // to debug this way
     public static final Transform3d ROBOT_TO_FRAME_CAMERA_PARTIAL = new Transform3d(
         ROBOT_TO_FRAME_CAMERA.getTranslation(),
-        new Rotation3d(0, 0, 0)
+        new Rotation3d(0, 0, ROBOT_TO_FRAME_CAMERA.getRotation().getZ())
     );
 
-    // Swapped to match new code frame: length along X (front-back), width along Y (left-right)
+    // Swapped to match new code frame: length along X (front-back), width along Y
+    // (left-right)
     public static final Distance FULL_WIDTH = Meters.of(0.762);
     public static final Distance FULL_LENGTH = Meters.of(0.6604);
     public static final Distance BUMPER_HEIGHT = Meters.of(0.1);
