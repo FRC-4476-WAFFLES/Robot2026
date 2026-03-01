@@ -9,10 +9,11 @@ import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import frc.robot.data.Constants;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
 
@@ -22,7 +23,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   protected final TalonFXIO flywheel1;
 
   // Control Objects
-  private final VelocityTorqueCurrentFOC flywheelVelocityRequest = new VelocityTorqueCurrentFOC(0);
+  private final VelocityVoltage flywheelVelocityRequest = new VelocityVoltage(0);
   private final Follower followerRequest;
 
   public FlywheelIOTalonFX() {
@@ -64,11 +65,14 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
     flywheelConfigs.CurrentLimits = flywheelCurrentLimit;
 
+    flywheelConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FLYWHEEL_REDUCTION;
+
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 1;
+    slot0Configs.kP = 0.1;
     slot0Configs.kI = 0;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 1.5;
+    slot0Configs.kS = 0.39;
+    slot0Configs.kV = 0.064;
     slot0Configs.kG = 0.0;
     flywheelConfigs.Slot0 = slot0Configs;
 
@@ -79,6 +83,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     flywheelConfigs.MotionMagic = motionMagic;
 
     PhoenixHelpers.tryConfig(() -> flywheel0.getConfigurator().apply(flywheelConfigs));
+    // flywheelConfigs.MotorOutput.Inverted = InvertedValue.;
     PhoenixHelpers.tryConfig(() -> flywheel1.getConfigurator().apply(flywheelConfigs));
   }
 }

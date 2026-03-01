@@ -200,6 +200,7 @@ public final class Constants {
     public static final double TURRET_REDUCTION = 33.33333;
     public static final double EXPANDER_REDUCTION = 115.7143;
     public static final double FLYWHEEL_REDUCTION = 0.5000;
+    public static final double INDEXER_REDUCTION = 5.33333;
     public static final double INTAKE_REDUCTION = 2;
     public static final double HOOD_REDUCTION = 73.3333;
     public static final double CLIMBER_REDUCTION = 2;
@@ -301,11 +302,11 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(0, 30),
-        new NodePoint(1, 40),
-        new NodePoint(2, 50),
-        new NodePoint(3, 60),
-        new NodePoint(4, 70)
+        new NodePoint(0, 10),
+        new NodePoint(1, 10),
+        new NodePoint(2, 10),
+        new NodePoint(3, 10),
+        new NodePoint(4, 10)
     };
 
     public static final double RPM_RANGE = 80;

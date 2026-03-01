@@ -10,9 +10,11 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import frc.robot.data.Constants;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
 
@@ -71,12 +73,17 @@ public class IndexerIOTalonFX implements IndexerIO {
     indexerConfigs.CurrentLimits = indexerCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 0.1;
+    slot0Configs.kP = 0.5;
     slot0Configs.kI = 0;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 0.156;
+    slot0Configs.kV = 0.6;
+    slot0Configs.kS = 0.28;
     slot0Configs.kG = 0.0;
     indexerConfigs.Slot0 = slot0Configs;
+
+    indexerConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.INDEXER_REDUCTION;
+
+    indexerConfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
     // Motion Magic
     MotionMagicConfigs motionMagic = new MotionMagicConfigs();

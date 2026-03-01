@@ -45,10 +45,12 @@ import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.indexer.Indexer;
 import frc.robot.subsystems.indexer.IndexerIO;
 import frc.robot.subsystems.indexer.IndexerIOSim;
+import frc.robot.subsystems.indexer.IndexerIOTalonFX;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
+import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
 import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
@@ -57,6 +59,7 @@ import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
 import frc.robot.subsystems.shooter.hood.Hood;
 import frc.robot.subsystems.shooter.hood.HoodIO;
 import frc.robot.subsystems.shooter.hood.HoodIOSim;
+import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
 import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.turret.TurretIO;
 import frc.robot.subsystems.shooter.turret.TurretIOSim;
@@ -129,11 +132,11 @@ public class RobotContainer {
 
         turret = new Turret(new TurretIO() {});
 
-        hood = new Hood(new HoodIO() {});
+        hood = new Hood(new HoodIOTalonFX());
 
-        intake = new Intake(new IntakeIO() {});
+        intake = new Intake(new IntakeIOTalonFX());
 
-        indexer = new Indexer(new IndexerIO() {});
+        indexer = new Indexer(new IndexerIOTalonFX());
 
         flywheel = new Flywheel(new FlywheelIO() {});
 
