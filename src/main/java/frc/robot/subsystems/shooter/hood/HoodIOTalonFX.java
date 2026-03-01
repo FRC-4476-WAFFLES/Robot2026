@@ -66,9 +66,10 @@ public class HoodIOTalonFX implements HoodIO {
     configs.Voltage.SupplyVoltageTimeConstant = 0.1;
 
     configs.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    configs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+    configs.SoftwareLimitSwitch.ReverseSoftLimitEnable = false;
     configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = HoodConstants.MAX_POSITION_ROTATIONS;
-    configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = HoodConstants.MIN_POSITION_ROTATIONS;
+    // configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold =
+    // HoodConstants.MIN_POSITION_ROTATIONS;
 
     PhoenixHelpers.tryConfig(() -> hood.getConfigurator().apply(configs));
   }

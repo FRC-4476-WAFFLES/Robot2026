@@ -24,8 +24,8 @@ public class Hood extends SubsystemBase {
   @AutoLogOutput(key = "Hood/Zeroed")
   private boolean hoodZeroed = false;
 
-  private Trigger hoodZeroingTrigger = new Trigger(() -> inputs.hoodMotor.torqueCurrent() < -40)
-      .debounce(0.06);
+  private Trigger hoodZeroingTrigger = new Trigger(() -> inputs.hoodMotor.torqueCurrent() < -35)
+      .debounce(0.1);
 
   public Hood(HoodIO io) {
     this.io = io;
