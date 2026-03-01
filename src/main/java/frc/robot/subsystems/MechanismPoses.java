@@ -48,7 +48,7 @@ public class MechanismPoses extends VirtualSubsystem {
     // Old X rotation axis → new Y rotation axis (same sign)
     Pose3d groundIntakePose = new Pose3d(
         intakeRestPose.getTranslation(),
-        new Rotation3d(0, Units.degreesToRadians(RobotContainer.intake.getExpanderPosition()), 0)
+        new Rotation3d(0, Units.rotationsToRadians(RobotContainer.intake.getExpanderPosition()), 0)
     );
     poseArray[1] = groundIntakePose;
 

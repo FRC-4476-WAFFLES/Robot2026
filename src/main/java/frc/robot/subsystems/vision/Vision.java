@@ -21,6 +21,7 @@ import edu.wpi.first.math.numbers.N3;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
+import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 import frc.robot.utils.vision.VisionHelpers;
 
@@ -46,51 +47,55 @@ public class Vision extends VirtualSubsystem {
 
   @Override
   public void earlyPeriodic() {
-    // Updates odometry from vision.
-    // Does not flush networktables.
-    var frameEstimate = frameCamera.update(false);
-    var turretEstimate = turretCamera.update(true);
+    EpochTimer.BeginEpoch("Vision");
+    {
+      // Updates odometry from vision.
+      // Does not flush networktables.
+      var frameEstimate = frameCamera.update(false);
+      var turretEstimate = turretCamera.update(true);
 
-    if ((RobotContainer.state.onBump || RobotContainer.state.isManualMode()) && RobotContainer.state.robotEnabled()) {
-      // Ignore vision when on bump or manual mode
-      frameEstimate = Optional.empty();
-      turretEstimate = Optional.empty();
-      Logger.recordOutput("Vision/Vision Enabled", false);
-    } else {
-      Logger.recordOutput("Vision/Vision Enabled", true);
-    }
-    // Leftover from when MegaTag2 was in use
-    // {
-    // // Flush networktables explicitly once to avoid network latency
-    // // Do not flush once per limelight, since flushing NT is ratelimited to once
-    // every 10ms
-    // // With one or more cameras each flushing periodically, you start seeing loop
-    // overruns
-    // NetworkTableInstance.getDefault().flush();
-    // }
+      if ((RobotContainer.state.onBump || RobotContainer.state.isManualMode()) && RobotContainer.state.robotEnabled()) {
+        // Ignore vision when on bump or manual mode
+        frameEstimate = Optional.empty();
+        turretEstimate = Optional.empty();
+        Logger.recordOutput("Vision/Vision Enabled", false);
+      } else {
+        Logger.recordOutput("Vision/Vision Enabled", true);
+      }
+      // Leftover from when MegaTag2 was in use
+      // {
+      // // Flush networktables explicitly once to avoid network latency
+      // // Do not flush once per limelight, since flushing NT is ratelimited to once
+      // every 10ms
+      // // With one or more cameras each flushing periodically, you start seeing loop
+      // overruns
+      // NetworkTableInstance.getDefault().flush();
+      // }
 
-    Optional<TagPoseEstimate> chosenEstimate = Optional.empty();
-    if (frameEstimate.isPresent() != turretEstimate.isPresent()) {
-      chosenEstimate = frameEstimate.isPresent() ? frameEstimate : turretEstimate;
-    } else if (frameEstimate.isPresent() && turretEstimate.isPresent()) {
-      chosenEstimate = combineEstimates(frameEstimate.get(), turretEstimate.get());
-    }
+      Optional<TagPoseEstimate> chosenEstimate = Optional.empty();
+      if (frameEstimate.isPresent() != turretEstimate.isPresent()) {
+        chosenEstimate = frameEstimate.isPresent() ? frameEstimate : turretEstimate;
+      } else if (frameEstimate.isPresent() && turretEstimate.isPresent()) {
+        chosenEstimate = combineEstimates(frameEstimate.get(), turretEstimate.get());
+      }
 
-    // Only fuse in one estimate to avoid "double tapping" the Kalman filter
-    // Prevents excessively weighting vision over odometry
-    if (chosenEstimate.isPresent()) {
-      var estimate = chosenEstimate.get();
+      // Only fuse in one estimate to avoid "double tapping" the Kalman filter
+      // Prevents excessively weighting vision over odometry
+      if (chosenEstimate.isPresent()) {
+        var estimate = chosenEstimate.get();
 
-      if (VisionHelpers.isValidPose(estimate.pose)
-          && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
-        Logger.recordOutput("Vision/Validated Pose", estimate.pose);
-        RobotContainer.drive.addVisionMeasurement(
-            estimate.pose,
-            estimate.timestampSeconds,
-            estimate.standardDeviation
-        );
+        if (VisionHelpers.isValidPose(estimate.pose)
+            && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
+          Logger.recordOutput("Vision/Validated Pose", estimate.pose);
+          RobotContainer.drive.addVisionMeasurement(
+              estimate.pose,
+              estimate.timestampSeconds,
+              estimate.standardDeviation
+          );
+        }
       }
     }
+    EpochTimer.EndEpoch("Vision");
   }
 
   // Directly taken from FRC 254's 2025 codebase

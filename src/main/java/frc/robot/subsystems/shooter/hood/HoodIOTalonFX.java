@@ -5,6 +5,7 @@
 package frc.robot.subsystems.shooter.hood;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
@@ -48,8 +49,13 @@ public class HoodIOTalonFX implements HoodIO {
     slot0Configs.kA = HoodConstants.MOTOR_kA;
     configs.Slot0 = slot0Configs;
 
+    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
+    motionMagic.MotionMagicAcceleration = HoodConstants.MAX_ACCELERATION;
+    motionMagic.MotionMagicCruiseVelocity = HoodConstants.MAX_VELOCITY;
+    configs.MotionMagic = motionMagic;
+
     configs.Feedback.SensorToMechanismRatio = PhysicalConstants.HOOD_REDUCTION;
-    configs.Feedback.RotorToSensorRatio = 1;
+    // configs.Feedback.RotorToSensorRatio = 1;
 
     configs.MotorOutput.DutyCycleNeutralDeadband = HoodConstants.MOTOR_DEADBAND;
     configs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;

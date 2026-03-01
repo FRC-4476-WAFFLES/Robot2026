@@ -93,7 +93,7 @@ public class ShotPlanner {
     );
   }
 
-  public static final double MANUAL_SHOT_DISTANCE = 1.5;
+  public static final double MANUAL_SHOT_DISTANCE = 3;
 
   public static ShootingParameters aimManual() {
     parameters = new ShootingParameters(

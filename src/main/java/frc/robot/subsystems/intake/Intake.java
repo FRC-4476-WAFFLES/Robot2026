@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
+import frc.robot.utils.lib.EpochTimer;
 
 public class Intake extends SubsystemBase {
   public static enum ExpanderState {
@@ -43,32 +44,36 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Inputs/Intake", inputs);
+    EpochTimer.BeginEpoch("Intake");
+    {
+      io.updateInputs(inputs);
+      Logger.processInputs("Inputs/Intake", inputs);
 
-    if (!RobotContainer.state.robotEnabled()) {
-      io.runIntakeVelocity(0);
-      return;
-    }
-
-    io.runIntakeVelocity(intakeGoalVelocity);
-
-    if (!expanderZeroed) {
-      // Zeroing: run expander into hard stop until torque threshold is held
-      io.runExpanderDutyCycle(ExpanderConstants.ZERO_DUTY_CYCLE);
-      if (zeroingTriggered) {
-        io.setExpanderPosition(ExpanderConstants.ZERO_POSITION);
-        expanderZeroed = true;
-        zeroingTriggered = false;
+      if (!RobotContainer.state.robotEnabled()) {
+        io.runIntakeVelocity(0);
+        return;
       }
-    } else {
-      // Normal operation: position control to stowed/extended
-      double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
-      if (expanderState == ExpanderState.EXTENDED) {
-        expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
+
+      io.runIntakeVelocity(intakeGoalVelocity);
+
+      if (!expanderZeroed) {
+        // Zeroing: run expander into hard stop until torque threshold is held
+        io.runExpanderDutyCycle(ExpanderConstants.ZERO_DUTY_CYCLE);
+        if (zeroingTriggered) {
+          io.setExpanderPosition(ExpanderConstants.ZERO_POSITION);
+          expanderZeroed = true;
+          zeroingTriggered = false;
+        }
+      } else {
+        // Normal operation: position control to stowed/extended
+        double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
+        if (expanderState == ExpanderState.EXTENDED) {
+          expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
+        }
+        io.runExpanderPosition(expanderSetpoint / 360);
       }
-      io.runExpanderPosition(expanderSetpoint);
     }
+    EpochTimer.EndEpoch("Intake");
   }
 
   // Public API

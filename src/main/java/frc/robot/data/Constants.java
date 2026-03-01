@@ -112,7 +112,7 @@ public final class Constants {
     public static final double BASE_CAN_FREQUENCY = 50;
     public static final double LOW_IMPORTANCE_CAN_FREQUENCY = 20;
 
-    public static final double ON_BUMP_TILT = 5.0; // Degrees, how much off vertical axis is considered the bump
+    public static final double ON_BUMP_TILT = 8.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
     public static final double AUTO_MAX_ACCEL = 4.5;
@@ -198,11 +198,12 @@ public final class Constants {
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
     public static final double TURRET_REDUCTION = 33.33333;
-    public static final double EXPANDER_REDUCTION = 115.7143;
+    public static final double EXPANDER_REDUCTION = 111.2142825;
     public static final double FLYWHEEL_REDUCTION = 0.5000;
     public static final double INDEXER_REDUCTION = 5.33333;
-    public static final double INTAKE_REDUCTION = 2;
+    public static final double INTAKE_REDUCTION = 3;
     public static final double HOOD_REDUCTION = 73.3333;
+    public static final double FEEDER_REDUCTION = 3;
     public static final double CLIMBER_REDUCTION = 2;
 
     public static final double TURRET_GEAR_TEETH = 160.0;
@@ -302,11 +303,11 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(0, 10),
-        new NodePoint(1, 10),
-        new NodePoint(2, 10),
-        new NodePoint(3, 10),
-        new NodePoint(4, 10)
+        new NodePoint(0, 5),
+        new NodePoint(1, 5),
+        new NodePoint(2, 5),
+        new NodePoint(3, 50),
+        new NodePoint(4, 50)
     };
 
     public static final double RPM_RANGE = 80;
@@ -331,9 +332,9 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(40, 40),
+      RUN(1, 30),
       STOP(0, 0),
-      REVERSE(-10, -10);
+      REVERSE(-1, -1);
 
       private final double spindexerSpeed;
       private final double conveyorSpeed;
@@ -357,8 +358,8 @@ public final class Constants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(270);
 
-    public static final double MAX_VELOCITY = 4;
-    public static final double MAX_ACCELERATION = 8;
+    public static final double MAX_VELOCITY = 5;
+    public static final double MAX_ACCELERATION = 5;
 
     public static final double ZERO_DUTY_CYCLE = -0.25;
     public static final double ZERO_POSITION = 0;
@@ -368,9 +369,9 @@ public final class Constants {
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 0;
-    public static final double MOTOR_kD = 0;
-    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kP = 80;
+    public static final double MOTOR_kD = 1;
+    public static final double MOTOR_kS = 1;
     public static final double MOTOR_kV = 0;
     public static final double MOTOR_kA = 0;
 
@@ -380,7 +381,7 @@ public final class Constants {
     // Configured positions
     public enum ExpanderPosition {
       STOWED(0.0),
-      EXTENDED(125.0);
+      EXTENDED(97.0);
 
       private final double degrees;
 
@@ -395,7 +396,7 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_SPEED = 8;
+    public static final double INTAKE_SPEED = 12;
 
     public static final double MAX_ACCELERATION = 8;
     public static final double MAX_JERK = 200;
@@ -403,10 +404,9 @@ public final class Constants {
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 0;
-    public static final double MOTOR_kD = 0;
-    public static final double MOTOR_kS = 0;
-    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kP = 1;
+    public static final double MOTOR_kS = 0.35;
+    public static final double MOTOR_kV = 0.35;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;
@@ -415,17 +415,17 @@ public final class Constants {
 
   public static class HoodConstants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(50); // something
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(22.3);
 
     public static final double MAX_VELOCITY = 2;
-    public static final double MAX_ACCELERATION = 2;
+    public static final double MAX_ACCELERATION = 30;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 0;
+    public static final double MOTOR_kP = 400;
     public static final double MOTOR_kD = 0;
-    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kS = 0.1;
     public static final double MOTOR_kV = 0;
     public static final double MOTOR_kA = 0;
 

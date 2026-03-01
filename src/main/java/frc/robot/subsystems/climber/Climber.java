@@ -9,6 +9,7 @@ import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.utils.lib.EpochTimer;
 
 public class Climber extends SubsystemBase {
   private final ClimberIO io;
@@ -20,8 +21,12 @@ public class Climber extends SubsystemBase {
 
   @Override
   public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Inputs/Climber", inputs);
+    EpochTimer.BeginEpoch("Climber");
+    {
+      io.updateInputs(inputs);
+      Logger.processInputs("Inputs/Climber", inputs);
+    }
+    EpochTimer.EndEpoch("Climber");
   }
 
   public void setSetpoint(double setpoint) {

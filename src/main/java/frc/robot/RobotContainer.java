@@ -293,7 +293,8 @@ public class RobotContainer {
       drive.resetGyro();
     }));
 
-    Controls.rightJoystick.button(3).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+    // Bottom face button
+    Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
     // Operator controller is for test binds
     Controls.operatorController.b().onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
@@ -302,10 +303,9 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
         .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
 
-    // Should be lower face button on joystick. Likely ID is wrong and will change
-    // on real hardware.
+    // Right face button
     // Manually toggles intake
-    Controls.leftJoystick.button(3).onTrue(intake.toggleExtended());
+    Controls.leftJoystick.button(4).onTrue(intake.toggleExtended());
 
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed

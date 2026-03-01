@@ -104,12 +104,16 @@ public class IndexerIOTalonFX implements IndexerIO {
     feederConfigs.CurrentLimits = feederCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 1;
-    slot0Configs.kI = 0;
+    slot0Configs.kP = 0.6;
+    slot0Configs.kS = 0.7;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 1.5;
+    slot0Configs.kV = 0.30;
     slot0Configs.kG = 0.0;
     feederConfigs.Slot0 = slot0Configs;
+
+    feederConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FEEDER_REDUCTION;
+
+    feederConfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
     PhoenixHelpers.tryConfig(() -> feeder.getConfigurator().apply(feederConfigs));
   }

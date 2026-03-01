@@ -9,6 +9,8 @@ package frc.robot.subsystems.drive;
 
 import java.util.Queue;
 
+import org.littletonrobotics.junction.Logger;
+
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
@@ -65,9 +67,12 @@ public class GyroIOPigeon2 implements GyroIO {
   public double getTiltMagnitude() {
     // The gravity vector as [X, Y, Z]
     // On a flat surface, X and Y are near 0, and Z is near 1
-    double gz = pigeon.getGravityVectorZ().getValueAsDouble();
+    // Except we are upside down
+    double gz = -pigeon.getGravityVectorZ().getValueAsDouble();
     double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
-    return Math.toDegrees(tiltRad);
+    double tiltDeg = Math.toDegrees(tiltRad);
+    Logger.recordOutput("TiltDeg", tiltDeg);
+    return tiltDeg;
   }
 
   public boolean isOnBumpGravity() {

@@ -87,7 +87,7 @@ public class DriveCommands {
               isFlipped
                   ? RobotContainer.state.getRotation().plus(Rotation2d.k180deg)
                   : RobotContainer.state.getRotation());
-          Logger.recordOutput("RobotState/AAHAHGHAHGFAHGH", rotatedSpeeds);
+
           drive.runVelocity(rotatedSpeeds
           );
         },

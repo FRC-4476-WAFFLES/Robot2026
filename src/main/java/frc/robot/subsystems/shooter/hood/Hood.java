@@ -12,12 +12,20 @@ import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.HoodConstants;
+import frc.robot.utils.lib.EpochTimer;
 
 public class Hood extends SubsystemBase {
   private final HoodIO io;
   private final HoodIOInputsAutoLogged inputs = new HoodIOInputsAutoLogged();
   private double setpoint = 0;
+
+  @AutoLogOutput(key = "Hood/Zeroed")
+  private boolean hoodZeroed = false;
+
+  private Trigger hoodZeroingTrigger = new Trigger(() -> inputs.hoodMotor.torqueCurrent() < -40)
+      .debounce(0.06);
 
   public Hood(HoodIO io) {
     this.io = io;
@@ -25,18 +33,33 @@ public class Hood extends SubsystemBase {
 
   @Override
   public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Inputs/Hood", inputs);
+    EpochTimer.BeginEpoch("Hood");
+    {
+      io.updateInputs(inputs);
+      Logger.processInputs("Inputs/Hood", inputs);
+      if (!hoodZeroed) {
+        io.runHoodDutyCycle(-0.1);
+        if (hoodZeroingTrigger.getAsBoolean()) {
+          io.setHoodPosition(0);
+          hoodZeroed = true;
+        }
+        return;
+      }
+
+      io.runHoodPosition(setpoint / 360);
+    }
+    EpochTimer.EndEpoch("Hood");
   }
 
   public void runSetpoint(double setpoint) {
     this.setpoint = setpoint;
     Logger.recordOutput("Hood/OutputPosition", setpoint);
-    io.runHoodPosition(setpoint);
+
   }
 
+  @AutoLogOutput(key = "Hood/Position")
   public double getPosition() {
-    return inputs.hoodMotor.position();
+    return inputs.hoodMotor.position() * 360;
   }
 
   @AutoLogOutput(key = "Hood/At Setpoint")

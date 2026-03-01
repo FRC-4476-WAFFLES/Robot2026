@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
+import frc.robot.utils.lib.EpochTimer;
 
 public class Indexer extends SubsystemBase {
   private final IndexerIO io;
@@ -30,15 +31,19 @@ public class Indexer extends SubsystemBase {
   @Override
 
   public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Inputs/Indexer", inputs);
+    EpochTimer.BeginEpoch("Indexer");
+    {
+      io.updateInputs(inputs);
+      Logger.processInputs("Inputs/Indexer", inputs);
 
-    if (!RobotContainer.state.robotEnabled()) {
-      io.runIndexerVelocity(0, 0);
-      return;
+      if (!RobotContainer.state.robotEnabled()) {
+        io.runIndexerVelocity(0, 0);
+        return;
+      }
+
+      io.runIndexerVelocity(spindexerGoalVelocity, feederGoalVelocity);
     }
-
-    io.runIndexerVelocity(spindexerGoalVelocity, feederGoalVelocity);
+    EpochTimer.EndEpoch("Indexer");
   }
 
   public void setIndexerSetpoint(double spindexerVelocity, double feederVelocity) {

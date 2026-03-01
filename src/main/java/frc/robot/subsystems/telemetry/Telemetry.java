@@ -16,6 +16,7 @@ import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CANIds;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.hardware.DeferredRefresher;
+import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class Telemetry extends VirtualSubsystem {
@@ -86,24 +87,29 @@ public class Telemetry extends VirtualSubsystem {
 
   @Override
   public void latePeriodic() {
-    // Update controls warnings
-    // driverControllerDisconnected.set(!Controls.driverController.isConnected());
-    leftJoystickDisconnected.set(!Controls.leftJoystick.isConnected());
-    rightJoystickDisconnected.set(!Controls.rightJoystick.isConnected());
-    operatorControllerDisconnected.set(!Controls.operatorController.isConnected());
+    EpochTimer.BeginEpoch("Telemetry");
+    {
+      // Update controls warnings
+      // driverControllerDisconnected.set(!Controls.driverController.isConnected());
+      leftJoystickDisconnected.set(!Controls.leftJoystick.isConnected());
+      rightJoystickDisconnected.set(!Controls.rightJoystick.isConnected());
+      operatorControllerDisconnected.set(!Controls.operatorController.isConnected());
 
-    // Check for CAN errors
-    rioCanError.set(!rioCanStatusTrigger.getAsBoolean());
-    canivoreError.set(!drivetrainCanStatusTrigger.getAsBoolean());
+      // Check for CAN errors
+      rioCanError.set(!rioCanStatusTrigger.getAsBoolean());
+      canivoreError.set(!drivetrainCanStatusTrigger.getAsBoolean());
 
-    if (Robot.canConfigFailed || !rioCanStatusTrigger.getAsBoolean()
-        || !drivetrainCanStatusTrigger.getAsBoolean()) {
-      canFaultDetected.set(true);
-    } else {
-      canFaultDetected.set(false);
+      if (Robot.canConfigFailed || !rioCanStatusTrigger.getAsBoolean()
+          || !drivetrainCanStatusTrigger.getAsBoolean()) {
+        canFaultDetected.set(true);
+      } else {
+        canFaultDetected.set(false);
+      }
+
+      checkVisionFault();
+
     }
-
-    checkVisionFault();
+    EpochTimer.EndEpoch("Telemetry");
   }
 
   /**

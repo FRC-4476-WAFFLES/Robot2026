@@ -9,13 +9,14 @@ import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.util.Units;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CANIds;
 import frc.robot.data.Constants.ExpanderConstants;
@@ -30,7 +31,7 @@ public class IntakeIOTalonFX implements IntakeIO {
   protected final TalonFXIO intake1;
 
   private final MotionMagicVoltage expanderRequest = new MotionMagicVoltage(0);
-  private final MotionMagicVelocityVoltage intakeRequest = new MotionMagicVelocityVoltage(0);
+  private final VelocityVoltage intakeRequest = new VelocityVoltage(0);
   private final Follower followerRequest;
 
   public IntakeIOTalonFX() {
@@ -54,16 +55,11 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     var slot0Configs = new Slot0Configs();
     slot0Configs.kP = IntakeConstants.MOTOR_kP;
-    slot0Configs.kD = IntakeConstants.MOTOR_kD;
-    slot0Configs.kI = 0;
+    slot0Configs.kD = 0;
+    slot0Configs.kS = IntakeConstants.MOTOR_kS;
     slot0Configs.kV = IntakeConstants.MOTOR_kV;
     slot0Configs.kG = 0;
     intakeConfigs.Slot0 = slot0Configs;
-
-    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
-    motionMagic.MotionMagicAcceleration = IntakeConstants.MAX_ACCELERATION;
-    motionMagic.MotionMagicJerk = IntakeConstants.MAX_JERK;
-    intakeConfigs.MotionMagic = motionMagic;
 
     intakeConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.INTAKE_REDUCTION;
 
@@ -93,6 +89,11 @@ public class IntakeIOTalonFX implements IntakeIO {
     slot0Configs.kA = ExpanderConstants.MOTOR_kA;
     extensionConfigs.Slot0 = slot0Configs;
 
+    MotionMagicConfigs motionMagic = new MotionMagicConfigs();
+    motionMagic.MotionMagicAcceleration = ExpanderConstants.MAX_ACCELERATION;
+    motionMagic.MotionMagicCruiseVelocity = ExpanderConstants.MAX_VELOCITY;
+    extensionConfigs.MotionMagic = motionMagic;
+
     extensionConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.EXPANDER_REDUCTION;
     extensionConfigs.Feedback.RotorToSensorRatio = 1;
 
@@ -102,7 +103,7 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     extensionConfigs.Voltage.PeakForwardVoltage = ExpanderConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;
     extensionConfigs.Voltage.PeakReverseVoltage = -ExpanderConstants.MOTOR_PEAK_SUPPLY_VOLTAGE;
-    extensionConfigs.Voltage.SupplyVoltageTimeConstant = 0.1;
+    // extensionConfigs.Voltage.SupplyVoltageTimeConstant = 0.1;
 
     extensionConfigs.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
     extensionConfigs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
@@ -130,7 +131,13 @@ public class IntakeIOTalonFX implements IntakeIO {
         position, Constants.ExpanderConstants.MIN_POSITION_ROTATIONS,
         Constants.ExpanderConstants.MAX_POSITION_ROTATIONS);
 
-    expander.setControl(expanderRequest.withPosition(setpointRotations));
+    double feedforward = Math.cos(
+        Units.rotationsToRadians(expander.getRawSignals().position().getValueAsDouble()) - (Math.PI / 2)
+    );
+    feedforward = MathUtil.clamp(feedforward, 0, 1);
+    double kG = -0.2;
+
+    expander.setControl(expanderRequest.withPosition(setpointRotations).withFeedForward(feedforward * kG));
   }
 
   @Override

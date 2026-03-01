@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.TurretConstants;
+import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 
 public class Turret extends ExpandedSubsystem {
@@ -60,45 +61,50 @@ public class Turret extends ExpandedSubsystem {
 
   @Override
   public void latePeriodic() {
-    // Run after commandscheduler so commands can set a target properly
-    if (!RobotContainer.state.robotEnabled()) {
-      profileState = new State(inputs.relativePosition, 0);
-      return;
+    EpochTimer.BeginEpoch("Turret");
+    {
+      // Run after commandscheduler so commands can set a target properly
+      if (!RobotContainer.state.robotEnabled()) {
+        profileState = new State(inputs.relativePosition, 0);
+        return;
+      }
+
+      if (state == TurretState.BRAKE) {
+        runSetpoint(0, 0);
+        return;
+      }
+
+      Rotation2d robotRotation = RobotContainer.state.getRotation();
+      double robotTheta = Units.radiansToRotations(RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond);
+
+      Rotation2d robotRelativeGoalHeading = goalHeading;
+      double robotRelativeGoalVelocity = goalVelocity;
+
+      if (state == TurretState.TRACK_FIELD_RELATIVE) {
+        robotRelativeGoalHeading = goalHeading.minus(robotRotation);
+        robotRelativeGoalVelocity = goalVelocity - robotTheta;
+      }
+
+      Rotation2d turretRelativeGoalHeading = robotRelativeGoalHeading.minus(TurretConstants.PHYSICAL_ZERO);
+
+      double chosenHeading = adjustSetpointForWrap(turretRelativeGoalHeading.getRotations());
+
+      State goalState = new State(
+          MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
+          robotRelativeGoalVelocity);
+
+      profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
+
+      Logger.recordOutput("Turret/MotionProfile/GoalHeading", goalState.position);
+      Logger.recordOutput("Turret/MotionProfile/GoalVelocity", goalState.velocity);
+      Logger.recordOutput("Turret/MotionProfile/ProfileHeading", profileState.position);
+      Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
+
+      runSetpoint(profileState.position, profileState.velocity);
+      latestGoalState = goalState;
+
     }
-
-    if (state == TurretState.BRAKE) {
-      runSetpoint(0, 0);
-      return;
-    }
-
-    Rotation2d robotRotation = RobotContainer.state.getRotation();
-    double robotTheta = Units.radiansToRotations(RobotContainer.state.getRobotVelocity().omegaRadiansPerSecond);
-
-    Rotation2d robotRelativeGoalHeading = goalHeading;
-    double robotRelativeGoalVelocity = goalVelocity;
-
-    if (state == TurretState.TRACK_FIELD_RELATIVE) {
-      robotRelativeGoalHeading = goalHeading.minus(robotRotation);
-      robotRelativeGoalVelocity = goalVelocity - robotTheta;
-    }
-
-    Rotation2d turretRelativeGoalHeading = robotRelativeGoalHeading.minus(TurretConstants.PHYSICAL_ZERO);
-
-    double chosenHeading = adjustSetpointForWrap(turretRelativeGoalHeading.getRotations());
-
-    State goalState = new State(
-        MathUtil.clamp(chosenHeading, TurretConstants.MIN_POSITION_ROTATIONS, TurretConstants.MAX_POSITION_ROTATIONS),
-        robotRelativeGoalVelocity);
-
-    profileState = profile.calculate(CodeConstants.PERIODIC_LOOP_TIME, profileState, goalState);
-
-    Logger.recordOutput("Turret/MotionProfile/GoalHeading", goalState.position);
-    Logger.recordOutput("Turret/MotionProfile/GoalVelocity", goalState.velocity);
-    Logger.recordOutput("Turret/MotionProfile/ProfileHeading", profileState.position);
-    Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
-
-    runSetpoint(profileState.position, profileState.velocity);
-    latestGoalState = goalState;
+    EpochTimer.EndEpoch("Turret");
   }
 
   // Can be rewritten later to handle different turret capabilities
