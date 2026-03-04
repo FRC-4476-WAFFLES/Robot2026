@@ -101,6 +101,20 @@ public class Drive extends ExpandedSubsystem {
           new SwerveModulePosition(),
           new SwerveModulePosition()
       };
+
+  private final SwerveModulePosition[] odometryModulePositions = new SwerveModulePosition[] {
+      new SwerveModulePosition(),
+      new SwerveModulePosition(),
+      new SwerveModulePosition(),
+      new SwerveModulePosition()
+  };
+  private final SwerveModulePosition[] odometryModuleDeltas = new SwerveModulePosition[] {
+      new SwerveModulePosition(),
+      new SwerveModulePosition(),
+      new SwerveModulePosition(),
+      new SwerveModulePosition()
+  };
+
   private SwerveDrivePoseEstimator poseEstimator = new SwerveDrivePoseEstimator(kinematics, rawGyroRotation,
       lastModulePositions, Pose2d.kZero);
 
@@ -189,15 +203,15 @@ public class Drive extends ExpandedSubsystem {
       int sampleCount = sampleTimestamps.length;
       for (int i = 0; i < sampleCount; i++) {
         // Read wheel positions and deltas from each module
-        SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-        SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
         for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
-          modulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
-          moduleDeltas[moduleIndex] = new SwerveModulePosition(
-              modulePositions[moduleIndex].distanceMeters
-                  - lastModulePositions[moduleIndex].distanceMeters,
-              modulePositions[moduleIndex].angle);
-          lastModulePositions[moduleIndex] = modulePositions[moduleIndex];
+          odometryModulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
+
+          odometryModuleDeltas[moduleIndex].distanceMeters = odometryModulePositions[moduleIndex].distanceMeters
+              - lastModulePositions[moduleIndex].distanceMeters;
+          odometryModuleDeltas[moduleIndex].angle = odometryModulePositions[moduleIndex].angle;
+
+          lastModulePositions[moduleIndex].distanceMeters = odometryModulePositions[moduleIndex].distanceMeters;
+          lastModulePositions[moduleIndex].angle = odometryModulePositions[moduleIndex].angle;
         }
 
         // Update gyro angle
@@ -206,15 +220,15 @@ public class Drive extends ExpandedSubsystem {
           rawGyroRotation = gyroInputs.odometryYawPositions[i];
         } else {
           // Use the angle delta from the kinematics and module deltas
-          Twist2d twist = kinematics.toTwist2d(moduleDeltas);
+          Twist2d twist = kinematics.toTwist2d(odometryModuleDeltas);
           rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
         }
 
         // Apply update
-        poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+        poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, odometryModulePositions);
         if (Constants.getMode() == Mode.SIM) {
           RobotContainer.simState.getSwerveDrivePoseEstimator().updateWithTime(sampleTimestamps[i], rawGyroRotation,
-              modulePositions);
+              odometryModulePositions);
         }
       }
 
@@ -300,7 +314,7 @@ public class Drive extends ExpandedSubsystem {
   }
 
   /** Returns the module positions (turn angles and drive positions) for all of the modules. */
-  private SwerveModulePosition[] getModulePositions() {
+  private SwerveModulePosition[] getOdometryModulePositions() {
     SwerveModulePosition[] states = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
       states[i] = modules[i].getPosition();
@@ -339,9 +353,10 @@ public class Drive extends ExpandedSubsystem {
 
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    poseEstimator.resetPosition(rawGyroRotation, getOdometryModulePositions(), pose);
     if (Constants.getMode() == Mode.SIM) {
-      RobotContainer.simState.getSwerveDrivePoseEstimator().resetPosition(rawGyroRotation, getModulePositions(), pose);
+      RobotContainer.simState.getSwerveDrivePoseEstimator().resetPosition(rawGyroRotation, getOdometryModulePositions(),
+          pose);
     }
   }
 
