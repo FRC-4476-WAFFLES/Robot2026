@@ -131,6 +131,18 @@ public final class Constants {
     public static final Distance AUTO_MAX_TRACKING_ERROR = Meters.of(0.5);
 
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
+
+    public static final NodePoint[] TimeofFlightMap = new NodePoint[] {
+        new NodePoint(1, 2),
+        new NodePoint(2, 3),
+        new NodePoint(3, 4),
+        new NodePoint(4, 5),
+        new NodePoint(5, 6)
+    };
+    public static final double MIN_TOF = 2;
+    public static final double MAX_TOF = 4;
+
+    public static final boolean LIMIT_TO_HUB_SHIFTS = true;
   }
 
   /* Vision */

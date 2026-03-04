@@ -159,39 +159,6 @@ public class WafflesUtilities {
   }
 
   /**
-   * Returns whether our alliance's hub is currently active for scoring.
-   *
-   * During ALLIANCE SHIFT (2:10 to 0:55 on teleop timer), hubs alternate
-   * being active in windows. The game specific message ('R' or 'B') indicates
-   * which alliance is inactive first.
-   *
-   * Before 2:10 and during endgame (0:30 and below), both hubs are active.
-   */
-  public static boolean isHubActive() {
-    double matchTime = DriverStation.getMatchTime();
-
-    if (matchTime < 0 || matchTime > 130 || matchTime <= 30) {
-      return true;
-    }
-
-    String gameData = DriverStation.getGameSpecificMessage();
-    if (gameData == null || gameData.isEmpty()) {
-      return true;
-    }
-
-    boolean weGoFirstInactive = (gameData.charAt(0) == 'R') == IsRedAlliance();
-
-    boolean inOddWindow = (matchTime > 105 && matchTime <= 130)
-                       || (matchTime > 55 && matchTime <= 80);
-
-    if (weGoFirstInactive) {
-      return !inOddWindow;
-    } else {
-      return inOddWindow;
-    }
-  }
-
-  /**
    * Returns the angle for the driver's forward direction, depending on alliance
    * @return a rotation2d representing driver forward in field space
    */
