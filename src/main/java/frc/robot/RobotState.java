@@ -21,7 +21,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.utils.vendor.HubShiftUtil;
+import lombok.Getter;
+import lombok.Setter;
 
 public class RobotState {
   public static enum ShooterState {
@@ -54,6 +57,11 @@ public class RobotState {
 
   @AutoLogOutput(key = "RobotState/Auto Winner Override")
   private AutoWinnerOverride autoWinnerOverride = AutoWinnerOverride.NONE;
+
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Manual Target")
+  private ManualOverrideTarget manualOverrideTarget = ManualOverrideTarget.FRONT_CLOSE;
 
   /*                       */
   /* Latency Compensation */

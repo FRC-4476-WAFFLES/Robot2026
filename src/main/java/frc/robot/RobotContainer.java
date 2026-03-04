@@ -33,10 +33,10 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
-import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
@@ -317,13 +317,6 @@ public class RobotContainer {
     // Bottom face button
     Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
-    // Operator controller is for test binds
-    Controls.operatorController.b().onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
-        .onFalse(climber.moveElevator(0));
-    Controls.operatorController.a()
-        .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
-        .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
-
     // Right face button
     // Manually toggles intake
     Controls.leftJoystick.button(4).onTrue(intake.toggleExtended());
@@ -404,6 +397,14 @@ public class RobotContainer {
                 }))
         .whileTrue(
             Commands.startEnd(() -> autoWinnerNotSet.set(true), () -> autoWinnerNotSet.set(false)));
+
+    // Overrides - Operator Controller
+    Controls.operatorController.y()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
+    Controls.operatorController.b()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
+    Controls.operatorController.a()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.FRONT_CLOSE)));
 
     // Simulation
     if (RobotBase.isSimulation()) {

@@ -96,13 +96,13 @@ public class ShotPlanner {
     );
   }
 
-  public static final double MANUAL_SHOT_DISTANCE = 3;
-
   public static ShootingParameters aimManual() {
+    var target = RobotContainer.state.getManualOverrideTarget();
+
     parameters = new ShootingParameters(
-        new TurretSetpoint(Rotation2d.kZero, 0),
-        hoodAngle.interpolate(MANUAL_SHOT_DISTANCE),
-        flywheelSpeeds.interpolate(MANUAL_SHOT_DISTANCE)
+        new TurretSetpoint(target.getTurretSetpoint(), 0),
+        hoodAngle.interpolate(target.getDistance()),
+        flywheelSpeeds.interpolate(target.getDistance())
     );
     return parameters;
   }

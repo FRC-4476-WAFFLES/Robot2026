@@ -143,6 +143,28 @@ public final class Constants {
     public static final double MAX_TOF = 4;
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = true;
+
+    public enum ManualOverrideTarget {
+      FRONT_CLOSE(Rotation2d.kZero, 1.5),
+      TRENCH(Rotation2d.kZero, 5),
+      PASS(Rotation2d.kZero, 8);
+
+      private final Rotation2d turretSetpoint; // Robot relative
+      private final double distance;
+
+      ManualOverrideTarget(Rotation2d turretSetpoint, double distance) {
+        this.turretSetpoint = turretSetpoint;
+        this.distance = distance;
+      }
+
+      public Rotation2d getTurretSetpoint() {
+        return turretSetpoint;
+      }
+
+      public double getDistance() {
+        return distance;
+      }
+    }
   }
 
   /* Vision */
