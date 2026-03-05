@@ -366,7 +366,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(1, 30),
+      RUN(5, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
