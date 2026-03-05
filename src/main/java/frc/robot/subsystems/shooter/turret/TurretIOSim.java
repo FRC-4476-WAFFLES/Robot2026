@@ -6,6 +6,8 @@ package frc.robot.subsystems.shooter.turret;
 
 import static edu.wpi.first.units.Units.Rotations;
 
+import org.littletonrobotics.junction.Logger;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
@@ -33,6 +35,7 @@ public class TurretIOSim extends TurretIOTalonFX {
     sim.update(CodeConstants.PERIODIC_LOOP_TIME);
 
     var talonFXSim = turret.getSimState();
+    Logger.recordOutput("Turret/SimHeading", sim.getAngularPositionRotations());
 
     talonFXSim.setRawRotorPosition(sim.getAngularPosition().in(Rotations) *
         PhysicalConstants.TURRET_REDUCTION);
@@ -58,6 +61,6 @@ public class TurretIOSim extends TurretIOTalonFX {
   @Override
   public void setPosition(double position) {
     sim.setState(Units.rotationsToRadians(position), 0);
-    super.setPosition(position);
+    // super.setPosition(position);
   }
 }

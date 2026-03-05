@@ -169,7 +169,7 @@ public class TurretIOTalonFX implements TurretIO {
   public void updateInputs(TurretIOInputs inputs) {
     if (!turretZeroed) {
       // Get initial turret pos
-      turret.setPosition(calculateTurretStartupPosition(true));
+      setPosition(calculateTurretStartupPosition(true));
       turretZeroed = true;
     }
     // inputs.motorData = turret.getSignalData();
