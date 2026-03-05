@@ -64,7 +64,7 @@ public class Hood extends SubsystemBase {
 
   @AutoLogOutput(key = "Hood/At Setpoint")
   public boolean atSetpoint() {
-    return Math.abs(inputs.hoodMotor.position() - setpoint) < HoodConstants.ANGLE_RANGE;
+    return Math.abs(getPosition() - setpoint) < HoodConstants.ANGLE_RANGE;
   }
 
   public Command runSetpointCommand(DoubleSupplier angle) {

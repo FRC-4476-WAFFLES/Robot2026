@@ -19,7 +19,8 @@ import frc.robot.utils.lib.EpochTimer;
 public class Intake extends SubsystemBase {
   public static enum ExpanderState {
     STOWED,
-    EXTENDED
+    EXTENDED,
+    AGITATING
   }
 
   private final IntakeIO io;
@@ -27,10 +28,10 @@ public class Intake extends SubsystemBase {
 
   @AutoLogOutput(key = "Intake/Expander Zeroed")
   private boolean expanderZeroed = true; // Assume started against hard stop
-  @AutoLogOutput(key = "Intake/Expander State")
-  private ExpanderState expanderState = ExpanderState.STOWED;
   @AutoLogOutput(key = "Intake/Intake Goal Velocity")
   private double intakeGoalVelocity = 0;
+  @AutoLogOutput(key = "Intake/Expander Setpoint")
+  private double expanderSetpoint = 0;
 
   private boolean zeroingTriggered = false;
 
@@ -65,11 +66,6 @@ public class Intake extends SubsystemBase {
           zeroingTriggered = false;
         }
       } else {
-        // Normal operation: position control to stowed/extended
-        double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
-        if (expanderState == ExpanderState.EXTENDED) {
-          expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
-        }
         io.runExpanderPosition(expanderSetpoint / 360);
       }
     }
@@ -85,12 +81,12 @@ public class Intake extends SubsystemBase {
     intakeGoalVelocity = velocity;
   }
 
-  public ExpanderState getExpanderState() {
-    return expanderState;
+  public void setExpanderSetpoint(double setpoint) {
+    expanderSetpoint = setpoint;
   }
 
-  public void setExpanderState(ExpanderState state) {
-    this.expanderState = state;
+  public void setExpanderSetpoint(ExpanderPosition setpoint) {
+    expanderSetpoint = setpoint.getDegrees();
   }
 
   public double getExpanderPosition() {
@@ -98,19 +94,23 @@ public class Intake extends SubsystemBase {
   }
 
   public Command extend() {
-    return Commands.runOnce(() -> setExpanderState(ExpanderState.EXTENDED));
+    return Commands.runOnce(() -> RobotContainer.state.setExpanderState(ExpanderState.EXTENDED));
   }
 
   public Command stow() {
-    return Commands.runOnce(() -> setExpanderState(ExpanderState.STOWED));
+    return Commands.runOnce(() -> RobotContainer.state.setExpanderState(ExpanderState.STOWED));
+  }
+
+  public Command agitate() {
+    return Commands.runOnce(() -> RobotContainer.state.setExpanderState(ExpanderState.AGITATING));
   }
 
   public Command toggleExtended() {
     return Commands.runOnce(() -> {
-      if (expanderState == ExpanderState.EXTENDED) {
-        setExpanderState(ExpanderState.STOWED);
+      if (RobotContainer.state.getExpanderState() == ExpanderState.EXTENDED) {
+        RobotContainer.state.setExpanderState(ExpanderState.STOWED);
       } else {
-        setExpanderState(ExpanderState.EXTENDED);
+        RobotContainer.state.setExpanderState(ExpanderState.EXTENDED);
       }
     }, this);
   }

@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
+import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.utils.vendor.HubShiftUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,6 +50,9 @@ public class RobotState {
   @AutoLogOutput(key = "RobotState/Autonomous Enabled")
   private boolean autonomousEnabled = false;
 
+  @AutoLogOutput(key = "RobotState/Hub Enabled")
+  private boolean hubEnabled = false;
+
   public enum AutoWinnerOverride {
     US,
     THEM,
@@ -62,6 +66,11 @@ public class RobotState {
   @Setter
   @AutoLogOutput(key = "RobotState/Manual Target")
   private ManualOverrideTarget manualOverrideTarget = ManualOverrideTarget.FRONT_CLOSE;
+
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "Intake/Expander State")
+  private ExpanderState expanderState = ExpanderState.STOWED;
 
   /*                       */
   /* Latency Compensation */
@@ -180,6 +189,9 @@ public class RobotState {
     // Collect checks here once a loop since checking enabled has a mutex lock
     enabled = DriverStation.isEnabled();
     autonomousEnabled = DriverStation.isAutonomousEnabled();
+
+    // checking this is kind of slow so aggregate
+    hubEnabled = !CodeConstants.LIMIT_TO_HUB_SHIFTS || HubShiftUtil.getShiftedShiftInfo().active();
   }
 
   public ShooterState getShooterState() {
@@ -204,6 +216,10 @@ public class RobotState {
 
   public boolean robotEnabled() {
     return enabled;
+  }
+
+  public boolean hubEnabled() {
+    return hubEnabled;
   }
 
   public AutoWinnerOverride autoWinnerOverride() {
@@ -242,10 +258,26 @@ public class RobotState {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
         RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
     ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode())
-        .and(() -> CodeConstants.LIMIT_TO_HUB_SHIFTS && HubShiftUtil.getShiftedShiftInfo().active());
+        .and(() -> hubEnabled());
   }
 
   public Trigger shouldFireManual() {
     return Controls.shootButton.and(manualMode());
+  }
+  // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
+  // if (expanderState == ExpanderState.EXTENDED) {
+  // expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
+  // }
+
+  public Trigger expanderStowed() {
+    return new Trigger(() -> expanderState == ExpanderState.STOWED);
+  }
+
+  public Trigger expanderExtended() {
+    return new Trigger(() -> expanderState == ExpanderState.EXTENDED);
+  }
+
+  public Trigger expanderAgitating() {
+    return new Trigger(() -> expanderState == ExpanderState.AGITATING);
   }
 }

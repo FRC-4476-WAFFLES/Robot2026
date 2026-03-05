@@ -34,6 +34,8 @@ import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
+import frc.robot.data.Constants.ExpanderConstants;
+import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
 import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
@@ -324,9 +326,27 @@ public class RobotContainer {
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed
     Controls.leftJoystick.button(1)
-        .onTrue(Commands.runOnce(() -> intake.setExpanderState(ExpanderState.EXTENDED)))
+        .onTrue(Commands.runOnce(() -> state.setExpanderState(ExpanderState.EXTENDED)))
         .whileTrue(Commands.startEnd(() -> intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED),
             () -> intake.setIntakeSetpoint(0)));
+
+    // Intake
+    state.expanderStowed().whileTrue(Commands.run(
+        () -> intake.setExpanderSetpoint(ExpanderPosition.STOWED)
+    ).withName("IntakeStowed"));
+    state.expanderExtended().whileTrue(Commands.run(
+        () -> intake.setExpanderSetpoint(ExpanderPosition.EXTENDED)
+    ).withName("IntakeExtended"));
+    Timer agitationTimer = new Timer();
+    state.expanderAgitating().whileTrue(Commands.run(
+        () -> {
+          if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
+            intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX);
+          } else {
+            intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+          }
+        }
+    ).beforeStarting(() -> agitationTimer.restart()).withName("IntakeAgitation"));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
@@ -493,7 +513,7 @@ public class RobotContainer {
         PhysicalConstants.FULL_LENGTH.div(2).plus(Inches.of(7)).in(Meters),
         -PhysicalConstants.FULL_WIDTH.div(2).in(Meters),
         PhysicalConstants.FULL_WIDTH.div(2).in(Meters),
-        () -> intake.getExpanderState() == ExpanderState.EXTENDED,
+        () -> state.getExpanderState() == ExpanderState.EXTENDED,
         simState::simIntake);
 
     instance.start();

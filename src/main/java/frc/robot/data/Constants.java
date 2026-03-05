@@ -142,7 +142,7 @@ public final class Constants {
     public static final double MIN_TOF = 2;
     public static final double MAX_TOF = 4;
 
-    public static final boolean LIMIT_TO_HUB_SHIFTS = true;
+    public static final boolean LIMIT_TO_HUB_SHIFTS = false;
 
     public enum ManualOverrideTarget {
       FRONT_CLOSE(Rotation2d.kZero, 1.5),
@@ -412,10 +412,13 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
+    public static final double AGITATION_CYCLE_TIME = 1;
+
     // Configured positions
     public enum ExpanderPosition {
       STOWED(0.0),
-      EXTENDED(97.0);
+      EXTENDED(97.0),
+      AGITATION_MAX(80);
 
       private final double degrees;
 

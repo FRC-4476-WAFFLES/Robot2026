@@ -5,6 +5,7 @@
 package frc.robot.subsystems.shooter.flywheel;
 
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.lib.SecondOrderSim;
 
 public class FlywheelIOSim extends FlywheelIOTalonFX {
@@ -25,9 +26,10 @@ public class FlywheelIOSim extends FlywheelIOTalonFX {
     // note that this is rotor position/velocity (before gear ratio), but
     // WPILIB sim objects return mechanism position/velocity (after gear ratio)
     // talonFXSim.setRawRotorPosition(
-    //     (flywheel0.getSignalData().position() + (simResult.get(0) * CodeConstants.PERIODIC_LOOP_TIME))
-    //         * PhysicalConstants.HOOD_REDUCTION);
-    talonFXSim.setRotorVelocity(simResult.get(0));
+    // (flywheel0.getSignalData().position() + (simResult.get(0) *
+    // CodeConstants.PERIODIC_LOOP_TIME))
+    // * PhysicalConstants.HOOD_REDUCTION);
+    talonFXSim.setRotorVelocity(simResult.get(0) * PhysicalConstants.FLYWHEEL_REDUCTION);
 
     super.updateInputs(inputs);
   }

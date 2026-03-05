@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
+import frc.robot.subsystems.intake.Intake.ExpanderState;
 
 public class ShooterCommands {
   public static Command shootCommand() {
@@ -19,7 +20,10 @@ public class ShooterCommands {
                 .withName("Lock Wheels").asProxy()
         ).repeatedly(),
         RobotContainer.indexer.runIndexerCommand(IndexerState.RUN)
-    ).withName("Fire shot");
+    )
+        .beforeStarting(RobotContainer.intake.agitate())
+        .finallyDo(() -> RobotContainer.state.setExpanderState(ExpanderState.EXTENDED))
+        .withName("Fire shot");
   }
 
   public static Command backoffIndexer() {
