@@ -7,6 +7,8 @@
 
 package frc.robot.subsystems.drive;
 
+import java.util.Arrays;
+
 import org.littletonrobotics.junction.Logger;
 
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
@@ -29,7 +31,7 @@ public class Module {
   private final Alert driveDisconnectedAlert;
   private final Alert turnDisconnectedAlert;
   private final Alert turnEncoderDisconnectedAlert;
-  private SwerveModulePosition[] odometryPositions = new SwerveModulePosition[] {};
+  private SwerveModulePosition[] odometryPositions = new SwerveModulePosition[PhoenixOdometryThread.MaxQueueSize];
 
   public Module(
       ModuleIO io,
@@ -46,6 +48,9 @@ public class Module {
     turnEncoderDisconnectedAlert = new Alert(
         "Disconnected turn encoder on module " + Integer.toString(index) + ".",
         AlertType.kError);
+
+    // Prefill scratch array
+    Arrays.setAll(odometryPositions, i -> new SwerveModulePosition());
   }
 
   public void periodic() {
@@ -54,11 +59,13 @@ public class Module {
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
-    odometryPositions = new SwerveModulePosition[sampleCount];
+
     for (int i = 0; i < sampleCount; i++) {
       double positionMeters = inputs.odometryDrivePositionsRad[i] * constants.WheelRadius;
       Rotation2d angle = inputs.odometryTurnPositions[i];
-      odometryPositions[i] = new SwerveModulePosition(positionMeters, angle);
+
+      odometryPositions[i].distanceMeters = positionMeters;
+      odometryPositions[i].angle = angle;
     }
 
     // Update alerts
