@@ -406,7 +406,7 @@ public class RobotContainer {
     RobotModeTriggers.teleop()
         .and(() -> !(DriverStation.getGameSpecificMessage().length() > 0))
         .and(() -> HubShiftUtil.getAllianceWinOverride().isEmpty())
-        .and(() -> teleopElapsedTimer.hasElapsed(1.0))
+        .and(() -> teleopElapsedTimer.hasElapsed(1.0) && CodeConstants.LIMIT_TO_HUB_SHIFTS)
         .whileTrue(
             Commands.runEnd(
                 () -> {
