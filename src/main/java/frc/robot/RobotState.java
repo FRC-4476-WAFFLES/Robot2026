@@ -21,6 +21,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
+import frc.robot.utils.vendor.HubShiftUtil;
+import lombok.Getter;
+import lombok.Setter;
 
 public class RobotState {
   public static enum ShooterState {
@@ -41,6 +45,23 @@ public class RobotState {
 
   @AutoLogOutput(key = "RobotState/Triggers Enabled")
   private boolean enabled = false;
+
+  @AutoLogOutput(key = "RobotState/Autonomous Enabled")
+  private boolean autonomousEnabled = false;
+
+  public enum AutoWinnerOverride {
+    US,
+    THEM,
+    NONE
+  }
+
+  @AutoLogOutput(key = "RobotState/Auto Winner Override")
+  private AutoWinnerOverride autoWinnerOverride = AutoWinnerOverride.NONE;
+
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Manual Target")
+  private ManualOverrideTarget manualOverrideTarget = ManualOverrideTarget.FRONT_CLOSE;
 
   /*                       */
   /* Latency Compensation */
@@ -158,6 +179,7 @@ public class RobotState {
   public void updateEnabledState() {
     // Collect checks here once a loop since checking enabled has a mutex lock
     enabled = DriverStation.isEnabled();
+    autonomousEnabled = DriverStation.isAutonomousEnabled();
   }
 
   public ShooterState getShooterState() {
@@ -176,8 +198,20 @@ public class RobotState {
     return manualMode;
   }
 
+  public boolean autonomousEnabled() {
+    return autonomousEnabled;
+  }
+
   public boolean robotEnabled() {
     return enabled;
+  }
+
+  public AutoWinnerOverride autoWinnerOverride() {
+    return autoWinnerOverride;
+  }
+
+  public void setAutoWinnerOverride(AutoWinnerOverride override) {
+    autoWinnerOverride = override;
   }
 
   public Trigger normalMode() {
@@ -207,7 +241,8 @@ public class RobotState {
   public Trigger shouldFire() {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
         RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
-    ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode());
+    ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode())
+        .and(() -> CodeConstants.LIMIT_TO_HUB_SHIFTS && HubShiftUtil.getShiftedShiftInfo().active());
   }
 
   public Trigger shouldFireManual() {

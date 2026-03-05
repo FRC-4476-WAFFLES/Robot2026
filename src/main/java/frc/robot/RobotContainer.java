@@ -7,17 +7,25 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 
+import java.util.Optional;
+
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.commands.FollowPathCommand;
 
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.RobotState.AutoWinnerOverride;
 import frc.robot.autos.NotOlympic;
 import frc.robot.autos.TemplateAuto;
 import frc.robot.commands.drive.DriveCommands;
@@ -25,10 +33,10 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
-import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.TunerConstants;
 import frc.robot.subsystems.MechanismPoses;
@@ -70,6 +78,7 @@ import frc.robot.subsystems.vision.SimVisionIO;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.utils.vendor.FuelSim;
+import frc.robot.utils.vendor.HubShiftUtil;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -116,7 +125,7 @@ public class RobotContainer {
   public static final Lights lightsSubsystem;
   public static final StateOrchestrator stateOrchestrator;
 
-  /* Commands */
+  private final Alert autoWinnerNotSet = new Alert("AUTO WINNER NOT SET", AlertType.kError);
 
   static {
     switch (Constants.getMode()) {
@@ -139,7 +148,7 @@ public class RobotContainer {
 
         indexer = new Indexer(new IndexerIOTalonFX());
 
-        flywheel = new Flywheel(new FlywheelIOTalonFX() {});
+        flywheel = new Flywheel(new FlywheelIOTalonFX());
 
         // climber = new Climber(new ClimberIOTalonFX());
         climber = new Climber(new ClimberIO() {}); // No climber on robot yet
@@ -241,8 +250,19 @@ public class RobotContainer {
       configureFuelSim();
     }
 
+    HubShiftUtil.setAllianceWinOverride(
+        () -> {
+          if (state.autoWinnerOverride() == AutoWinnerOverride.THEM) {
+            return Optional.of(false);
+          }
+          if (state.autoWinnerOverride() == AutoWinnerOverride.US) {
+            return Optional.of(true);
+          }
+          return Optional.empty();
+        });
+
     // Warmup pathplanner to reduce delay when dynamic pathing
-    FollowPathCommand.warmupCommand().schedule();
+    // FollowPathCommand.warmupCommand().schedule();
   }
 
   /**
@@ -297,13 +317,6 @@ public class RobotContainer {
     // Bottom face button
     Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
-    // Operator controller is for test binds
-    Controls.operatorController.b().onTrue(climber.moveElevator(Constants.ClimberConstants.CLIMBER_ROTATIONS))
-        .onFalse(climber.moveElevator(0));
-    Controls.operatorController.a()
-        .onTrue(Commands.runOnce(() -> indexer.setIndexerSetpoint(Constants.SpindexerConstants.TEST_VELOCITY, 0)))
-        .onFalse(indexer.runIndexerCommand(IndexerState.STOP));
-
     // Right face button
     // Manually toggles intake
     Controls.leftJoystick.button(4).onTrue(intake.toggleExtended());
@@ -352,6 +365,46 @@ public class RobotContainer {
     state.shouldFireManual().whileTrue(ShooterCommands.shootCommand()).onFalse(
         ShooterCommands.backoffIndexer()
     );
+
+    // Auto winner override
+    RobotModeTriggers.teleop().onTrue(Commands.runOnce(HubShiftUtil::initialize));
+    RobotModeTriggers.autonomous().onTrue(Commands.runOnce(HubShiftUtil::initialize));
+
+    Controls.operatorController.povUp()
+        .onTrue(Commands.runOnce(() -> state.setAutoWinnerOverride(AutoWinnerOverride.THEM)));
+    Controls.operatorController.povDown()
+        .onTrue(Commands.runOnce(() -> state.setAutoWinnerOverride(AutoWinnerOverride.US)));
+
+    // Warnings about auto winner not being set
+    Timer teleopElapsedTimer = new Timer();
+    RobotModeTriggers.teleop()
+        .onTrue(
+            Commands.runOnce(
+                () -> {
+                  teleopElapsedTimer.restart();
+                }));
+    RobotModeTriggers.teleop()
+        .and(() -> !(DriverStation.getGameSpecificMessage().length() > 0))
+        .and(() -> HubShiftUtil.getAllianceWinOverride().isEmpty())
+        .and(() -> teleopElapsedTimer.hasElapsed(1.0))
+        .whileTrue(
+            Commands.runEnd(
+                () -> {
+                  Controls.operatorController.setRumble(RumbleType.kBothRumble, 1);
+                },
+                () -> {
+                  Controls.operatorController.setRumble(RumbleType.kBothRumble, 0);
+                }))
+        .whileTrue(
+            Commands.startEnd(() -> autoWinnerNotSet.set(true), () -> autoWinnerNotSet.set(false)));
+
+    // Overrides - Operator Controller
+    Controls.operatorController.y()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
+    Controls.operatorController.b()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
+    Controls.operatorController.a()
+        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.FRONT_CLOSE)));
 
     // Simulation
     if (RobotBase.isSimulation()) {

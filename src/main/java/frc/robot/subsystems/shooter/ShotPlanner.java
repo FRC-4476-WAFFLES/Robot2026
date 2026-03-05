@@ -17,8 +17,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.FlywheelConstants;
+import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.FieldConstants;
@@ -34,8 +35,10 @@ public class ShotPlanner {
   ) {}
 
   private static ShootingParameters parameters = null;
-  private static final Spline1D flywheelSpeeds = new Spline1D(Constants.FlywheelConstants.DistanceMap);
-  private static final Spline1D hoodAngle = new Spline1D(Constants.HoodConstants.DistanceMap);
+  private static final Spline1D flywheelSpeeds = new Spline1D(FlywheelConstants.DistanceMap);
+  private static final Spline1D hoodAngle = new Spline1D(HoodConstants.DistanceMap);
+  // TODO: Setup sotm. Mostly ready to drop in.
+  private static final Spline1D timeOfFlight = new Spline1D(CodeConstants.TimeofFlightMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
@@ -93,13 +96,13 @@ public class ShotPlanner {
     );
   }
 
-  public static final double MANUAL_SHOT_DISTANCE = 3;
-
   public static ShootingParameters aimManual() {
+    var target = RobotContainer.state.getManualOverrideTarget();
+
     parameters = new ShootingParameters(
-        new TurretSetpoint(Rotation2d.kZero, 0),
-        hoodAngle.interpolate(MANUAL_SHOT_DISTANCE),
-        flywheelSpeeds.interpolate(MANUAL_SHOT_DISTANCE)
+        new TurretSetpoint(target.getTurretSetpoint(), 0),
+        hoodAngle.interpolate(target.getDistance()),
+        flywheelSpeeds.interpolate(target.getDistance())
     );
     return parameters;
   }
