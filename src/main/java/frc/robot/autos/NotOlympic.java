@@ -12,7 +12,6 @@ import frc.robot.commands.drive.DriveCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class NotOlympic extends SequentialCommandGroup {
-  // Targets (headings adjusted -90 for front-of-robot orientation fix)
   public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.882, Rotation2d.fromDegrees(-90));
   public final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 6.067, Rotation2d.fromDegrees(-10))
       .withVelocity(2);

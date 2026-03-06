@@ -16,17 +16,13 @@ import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 public class MechanismPoses extends VirtualSubsystem {
   private Pose3d[] poseArray = new Pose3d[4];
 
-  // private Transform3d turretRestPose = new Transform3d(0.25082500, 0.09842500,
-  // 0.5509895, Rotation3d.kZero);
   private Transform3d turretRestPose = PhysicalConstants.ROBOT_TO_TURRET_CENTER;
 
-  // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
   private Transform3d intakeRestPose = new Transform3d(0.2, 0, 0.2032, Rotation3d.kZero);
 
   private Transform3d hoodRestPoseTurretSpace = new Transform3d(0.10001250, 0, 0.09048750,
       new Rotation3d(Units.degreesToRadians(180), Units.degreesToRadians(21.74), 0));
 
-  // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
   private Transform3d climbRestPose = new Transform3d(0.2, 0, 0.2032, Rotation3d.kZero);
 
   public MechanismPoses() {
@@ -39,13 +35,12 @@ public class MechanismPoses extends VirtualSubsystem {
         turretRestPose.getTranslation(),
         new Rotation3d(0, 0,
             Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition())
-                .plus(TurretConstants.PHYSICAL_ZERO).getRadians()
+                .plus(TurretConstants.PHYSICAL_ZERO).getRadianvtrsys()
         )
     );
     poseArray[0] = turretPose;
 
     // Create ground intake pose (intake on +X side, swings around Y axis)
-    // Old X rotation axis → new Y rotation axis (same sign)
     Pose3d groundIntakePose = new Pose3d(
         intakeRestPose.getTranslation(),
         new Rotation3d(0, Units.rotationsToRadians(RobotContainer.intake.getExpanderPosition()), 0)

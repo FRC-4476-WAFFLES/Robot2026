@@ -249,7 +249,6 @@ public final class Constants {
 
     // Height is applied megatag side, this is converted to a translation2d where
     // needed
-    // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
     public static final Transform3d ROBOT_TO_TURRET_CENTER = new Transform3d(
         new Translation3d(-0.07302500, 0.22542500, 0.49093120),
         new Rotation3d(0, 0, 0)
@@ -266,8 +265,6 @@ public final class Constants {
     );
 
     // Pitch & height are applied megatag side
-    // Rotated 90 CW from old frame: new_X = -old_Y, new_Y = old_X
-    // Camera physically points toward old +X (now +Y), so yaw = +90 in new frame
     public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(
         new Translation3d(-0.17570000, 0.39606565, 0.26416456),
         new Rotation3d(0, Units.degreesToRadians(-35), Units.degreesToRadians(90))
@@ -279,9 +276,6 @@ public final class Constants {
         ROBOT_TO_FRAME_CAMERA.getTranslation(),
         new Rotation3d(0, 0, ROBOT_TO_FRAME_CAMERA.getRotation().getZ())
     );
-
-    // Swapped to match new code frame: length along X (front-back), width along Y
-    // (left-right)
     public static final Distance FULL_WIDTH = Meters.of(0.762);
     public static final Distance FULL_LENGTH = Meters.of(0.6604);
     public static final Distance BUMPER_HEIGHT = Meters.of(0.1);
