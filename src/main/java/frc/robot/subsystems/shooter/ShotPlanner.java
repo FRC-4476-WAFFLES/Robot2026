@@ -24,7 +24,7 @@ import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
-import frc.robot.utils.lib.Spline1D;
+import frc.robot.utils.lib.SplineMonotone1D;
 import frc.robot.utils.lib.WafflesUtilities;
 
 public class ShotPlanner {
@@ -35,10 +35,10 @@ public class ShotPlanner {
   ) {}
 
   private static ShootingParameters parameters = null;
-  private static final Spline1D flywheelSpeeds = new Spline1D(FlywheelConstants.DistanceMap);
-  private static final Spline1D hoodAngle = new Spline1D(HoodConstants.DistanceMap);
+  private static final SplineMonotone1D flywheelSpeeds = new SplineMonotone1D(FlywheelConstants.DistanceMap);
+  private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   // TODO: Setup sotm. Mostly ready to drop in.
-  private static final Spline1D timeOfFlight = new Spline1D(CodeConstants.TimeofFlightMap);
+  private static final SplineMonotone1D timeOfFlight = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
@@ -62,6 +62,7 @@ public class ShotPlanner {
 
     Logger.recordOutput("RobotState/Shooter Target", new Pose2d(fieldPose, Rotation2d.kZero));
     Logger.recordOutput("RobotState/Turret Position", turretPose);
+    Logger.recordOutput("RobotState/Distance To Target", distanceToTarget);
 
     Rotation2d turretAngle = fieldPose.minus(turretPose.getTranslation()).getAngle();
 

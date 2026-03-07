@@ -331,10 +331,10 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(0, 5),
-        new NodePoint(1, 5),
-        new NodePoint(2, 5),
-        new NodePoint(3, 50),
+        new NodePoint(0, 20),
+        new NodePoint(1, 40),
+        new NodePoint(2, 20),
+        new NodePoint(3, 30),
         new NodePoint(4, 50)
     };
 
