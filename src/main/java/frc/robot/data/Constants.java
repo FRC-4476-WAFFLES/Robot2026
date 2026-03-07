@@ -411,7 +411,8 @@ public final class Constants {
     // Configured positions
     public enum ExpanderPosition {
       STOWED(0.0),
-      EXTENDED(97.0),
+      EXTENDED(70.0),
+      INTAKING(97.0),
       AGITATION_MAX(55);
 
       private final double degrees;
@@ -428,6 +429,7 @@ public final class Constants {
 
   public static class IntakeConstants {
     public static final double INTAKE_SPEED = 28;
+    public static final double AGITATION_SPEED = 5;
 
     public static final double MAX_ACCELERATION = 8;
     public static final double MAX_JERK = 200;

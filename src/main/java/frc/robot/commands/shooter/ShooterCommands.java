@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
 import frc.robot.commands.drive.DriveCommands;
+import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 
@@ -19,7 +20,9 @@ public class ShooterCommands {
             DriveCommands.stopWithX(RobotContainer.drive).until(() -> !RobotContainer.state.joysticksFree())
                 .withName("Lock Wheels").asProxy()
         ).repeatedly(),
-        RobotContainer.indexer.runIndexerCommand(IndexerState.RUN)
+        RobotContainer.indexer.runIndexerCommand(IndexerState.RUN),
+        Commands.run(() -> RobotContainer.intake.setIntakeSetpoint(IntakeConstants.AGITATION_SPEED),
+            RobotContainer.intake).finallyDo(() -> RobotContainer.intake.setIntakeSetpoint(0))
     )
         .beforeStarting(RobotContainer.intake.agitate())
         .finallyDo(() -> RobotContainer.state.setExpanderState(ExpanderState.EXTENDED))

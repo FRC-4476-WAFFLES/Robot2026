@@ -20,6 +20,7 @@ public class Intake extends SubsystemBase {
   public static enum ExpanderState {
     STOWED,
     EXTENDED,
+    INTAKING,
     AGITATING
   }
 
@@ -107,10 +108,10 @@ public class Intake extends SubsystemBase {
 
   public Command toggleExtended() {
     return Commands.runOnce(() -> {
-      if (RobotContainer.state.getExpanderState() == ExpanderState.EXTENDED) {
-        RobotContainer.state.setExpanderState(ExpanderState.STOWED);
-      } else {
+      if (RobotContainer.state.getExpanderState() == ExpanderState.STOWED) {
         RobotContainer.state.setExpanderState(ExpanderState.EXTENDED);
+      } else {
+        RobotContainer.state.setExpanderState(ExpanderState.STOWED);
       }
     }, this);
   }

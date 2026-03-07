@@ -277,6 +277,10 @@ public class RobotState {
     return new Trigger(() -> expanderState == ExpanderState.EXTENDED);
   }
 
+  public Trigger expanderIntaking() {
+    return new Trigger(() -> expanderState == ExpanderState.INTAKING);
+  }
+
   public Trigger expanderAgitating() {
     return new Trigger(() -> expanderState == ExpanderState.AGITATING);
   }

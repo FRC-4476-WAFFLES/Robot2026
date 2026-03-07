@@ -326,9 +326,16 @@ public class RobotContainer {
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed
     Controls.leftJoystick.button(1)
-        .onTrue(Commands.runOnce(() -> state.setExpanderState(ExpanderState.EXTENDED)))
-        .whileTrue(Commands.startEnd(() -> intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED),
-            () -> intake.setIntakeSetpoint(0)));
+        .whileTrue(Commands.startEnd(
+            () -> {
+              intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED);
+              state.setExpanderState(ExpanderState.INTAKING);
+            },
+            () -> {
+              intake.setIntakeSetpoint(0);
+              state.setExpanderState(ExpanderState.EXTENDED);
+            }, intake)
+        );
 
     // Intake
     state.expanderStowed().whileTrue(Commands.run(
@@ -337,6 +344,9 @@ public class RobotContainer {
     state.expanderExtended().whileTrue(Commands.run(
         () -> intake.setExpanderSetpoint(ExpanderPosition.EXTENDED)
     ).withName("IntakeExtended"));
+    state.expanderIntaking().whileTrue(Commands.run(
+        () -> intake.setExpanderSetpoint(ExpanderPosition.INTAKING)
+    ).withName("IntakeIntaking"));
     Timer agitationTimer = new Timer();
     state.expanderAgitating().whileTrue(Commands.run(
         () -> {
