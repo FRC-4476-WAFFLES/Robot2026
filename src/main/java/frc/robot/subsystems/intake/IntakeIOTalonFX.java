@@ -43,6 +43,8 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     ConfigureExpander();
     ConfigureIntake();
+
+    setExpanderPosition(0);
   }
 
   private void ConfigureIntake() {

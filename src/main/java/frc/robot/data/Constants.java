@@ -360,7 +360,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(5, 40),
+      RUN(8, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -412,7 +412,7 @@ public final class Constants {
     public enum ExpanderPosition {
       STOWED(0.0),
       EXTENDED(97.0),
-      AGITATION_MAX(80);
+      AGITATION_MAX(55);
 
       private final double degrees;
 
@@ -427,7 +427,7 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_SPEED = 36;
+    public static final double INTAKE_SPEED = 28;
 
     public static final double MAX_ACCELERATION = 8;
     public static final double MAX_JERK = 200;

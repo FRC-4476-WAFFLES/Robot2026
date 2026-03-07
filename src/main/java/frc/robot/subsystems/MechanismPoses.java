@@ -35,7 +35,7 @@ public class MechanismPoses extends VirtualSubsystem {
         turretRestPose.getTranslation(),
         new Rotation3d(0, 0,
             Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition())
-                .plus(TurretConstants.PHYSICAL_ZERO).getRadianvtrsys()
+                .plus(TurretConstants.PHYSICAL_ZERO).getRadians()
         )
     );
     poseArray[0] = turretPose;
