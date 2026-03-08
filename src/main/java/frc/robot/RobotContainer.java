@@ -74,6 +74,7 @@ import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
 import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.turret.TurretIO;
 import frc.robot.subsystems.shooter.turret.TurretIOSim;
+import frc.robot.subsystems.shooter.turret.TurretIOTalonFX;
 import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
@@ -142,7 +143,7 @@ public class RobotContainer {
             new ModuleIOTalonFX(TunerConstants.BackLeft),
             new ModuleIOTalonFX(TunerConstants.BackRight));
 
-        turret = new Turret(new TurretIO() {});
+        turret = new Turret(new TurretIOTalonFX());
 
         hood = new Hood(new HoodIOTalonFX());
 
@@ -263,6 +264,8 @@ public class RobotContainer {
           return Optional.empty();
         });
 
+    // Force static initialization
+    ShotPlanner.aimManual();
     // Warmup pathplanner to reduce delay when dynamic pathing
     // FollowPathCommand.warmupCommand().schedule();
   }

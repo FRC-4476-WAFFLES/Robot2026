@@ -75,9 +75,10 @@ public class LimelightIO implements VisionIO {
       );
     }
     // Clear out old tags
-    for (int i = inputs.fiducialArrayLength; i < inputs.rawFiducials.length; i++) {
-      inputs.rawFiducials[i] = null;
-    }
+    // for (int i = inputs.fiducialArrayLength; i < inputs.rawFiducials.length; i++)
+    // {
+    // inputs.rawFiducials[i] = null;
+    // }
 
     inputs.rawPose3d = LimelightHelpers.getBotPose3d_wpiBlue(limelightName);
     // Get latest standard deviations from cameras

@@ -36,6 +36,7 @@ public class TurretIOTalonFX implements TurretIO {
   protected final CANcoderIO cancoder1;
 
   private final PositionVoltage setpointRequest = new PositionVoltage(0);
+  private double lastPosition = 0;
 
   // protected final StatusSignal<Angle> absolutePosition0;
   // protected final StatusSignal<AngularVelocity> velocity0;
@@ -49,15 +50,16 @@ public class TurretIOTalonFX implements TurretIO {
     cancoder1 = new CANcoderIO(CANIds.turretEncoder1, CANIds.CANivoreBus, 250);
 
     var cancoder0Config = new CANcoderConfiguration();
-    cancoder0Config.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
+    cancoder0Config.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
     cancoder0Config.MagnetSensor.MagnetOffset = TurretConstants.CANCODER_0_OFFSET;
-    cancoder0Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1; // makes output in range of 0-1
+    // cancoder0Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1; // makes
+    // output in range of 0-1
     PhoenixHelpers.tryConfig(() -> cancoder0.getConfigurator().apply(cancoder0Config));
 
     var cancoder1Config = new CANcoderConfiguration();
-    cancoder1Config.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
+    cancoder1Config.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
     cancoder1Config.MagnetSensor.MagnetOffset = TurretConstants.CANCODER_1_OFFSET;
-    cancoder1Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1;
+    // cancoder1Config.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 1;
     PhoenixHelpers.tryConfig(() -> cancoder1.getConfigurator().apply(cancoder1Config));
 
     if (Constants.getMode() == Mode.SIM) {
@@ -111,6 +113,9 @@ public class TurretIOTalonFX implements TurretIO {
     } else {
       // Fuse to 36t cancoder
 
+      // turretConfigs.Feedback.SensorToMechanismRatio =
+      // PhysicalConstants.TURRET_REDUCTION;
+
       turretConfigs.Feedback.RotorToSensorRatio = PhysicalConstants.TURRET_REDUCTION
           / PhysicalConstants.TURRET_ENCODER_1_REDUCTION;
       turretConfigs.Feedback.FeedbackRemoteSensorID = cancoder1.getDeviceID();
@@ -144,24 +149,34 @@ public class TurretIOTalonFX implements TurretIO {
     if (difference < 0)
       difference += 1;
 
+    Logger.recordOutput("Turret/y", y);
+    Logger.recordOutput("Turret/z", z);
+    Logger.recordOutput("Turret/Bruh?", difference);
+
     double fullrange = PhysicalConstants.ENCODER_0_TEETH * PhysicalConstants.ENCODER_1_TEETH
         / PhysicalConstants.TURRET_GEAR_TEETH;
 
     double simpleVernier = difference * fullrange;
-    double n = PhysicalConstants.ENCODER_0_TEETH * difference - y;
+    double n = PhysicalConstants.ENCODER_0_TEETH * difference - z;
 
     if (simpleVernier > (fullrange / 2)) {
       simpleVernier -= fullrange;
-      n -= PhysicalConstants.ENCODER_0_TEETH; // Works
-      // n -= 36; // Cursed
+      // n -= PhysicalConstants.ENCODER_0_TEETH; // Works
+      Logger.recordOutput("Turret/Bruh? 2", true);
+
+      n -= 36; // Cursed
+    } else {
+      Logger.recordOutput("Turret/Bruh? 2", false);
+
     }
 
     // Removes noise from simpleVernier if the gear is off by less than a tooth or
     // two
     // Actually makes things worse if there's more significant error
-    double x1 = PhysicalConstants.ENCODER_1_TEETH * (Math.round(n) + y) / PhysicalConstants.TURRET_GEAR_TEETH;
-    // double x1 = PhysicalConstants.ENCODER_0_TEETH * (Math.round(n) + z) /
-    // PhysicalConstants.TURRET_GEAR_TEETH; // Cursed
+    // double x1 = PhysicalConstants.ENCODER_1_TEETH * (Math.round(n) + y) /
+    // PhysicalConstants.TURRET_GEAR_TEETH;
+    double x1 = PhysicalConstants.ENCODER_0_TEETH * (Math.round(n) + z) /
+        PhysicalConstants.TURRET_GEAR_TEETH; // Cursed
     return x1;
   }
 
@@ -169,11 +184,12 @@ public class TurretIOTalonFX implements TurretIO {
   public void updateInputs(TurretIOInputs inputs) {
     if (!turretZeroed) {
       // Get initial turret pos
-      setPosition(calculateTurretStartupPosition(true));
+      // setPosition(calculateTurretStartupPosition(true));
       turretZeroed = true;
     }
     // inputs.motorData = turret.getSignalData();
-    Logger.recordOutput("Turret/Zeroing Diagnostic", calculateTurretStartupPosition(false));
+    // Logger.recordOutput("Turret/Zeroing Diagnostic",
+    // calculateTurretStartupPosition(false));
 
     // inputs.absolutePosition = Rotation2d
     // .fromRotations(BaseStatusSignal.getLatencyCompensatedValue(cancoder1.getRawSignals().absolutePosition(),
@@ -182,11 +198,13 @@ public class TurretIOTalonFX implements TurretIO {
         turret.getRawSignals().velocity()).in(Rotations);
     inputs.absolutePosition = Rotation2d.fromRotations(inputs.relativePosition).plus(TurretConstants.PHYSICAL_ZERO);
     inputs.velocity = turret.getRawSignals().velocity().getValueAsDouble();
+
+    lastPosition = inputs.relativePosition;
   }
 
   @Override
   public void runDutyCycle(double speed) {
-    turret.set(speed); // Applies throttle percentage (-1 to 1)
+    turret.set(speed);
   }
 
   @Override
@@ -195,12 +213,21 @@ public class TurretIOTalonFX implements TurretIO {
         position, Constants.TurretConstants.MIN_POSITION_ROTATIONS,
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
-    turret.setControl(setpointRequest.withPosition(setpointRotations).withVelocity(velocity));
-    // Run control mode (so a control request from phoneix 6)
+    double feedforward = 0;
+    double deadband = 0.01;
+    double springFF = 0;
+    if (lastPosition > deadband) {
+      feedforward = springFF;
+    } else if (lastPosition < deadband) {
+      feedforward = -springFF;
+    }
+    turret.setControl(
+        setpointRequest.withPosition(setpointRotations).withVelocity(velocity).withFeedForward(feedforward));
   }
 
   @Override
   public void setPosition(double position) {
-    turret.setPosition(position); // Tells motor where it is
+    Logger.recordOutput("Turret/ZeroedPos", position);
+    PhoenixHelpers.tryConfig(5, () -> turret.setPosition(position));
   }
 }

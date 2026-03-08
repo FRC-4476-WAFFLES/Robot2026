@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.FlywheelConstants;
@@ -45,8 +46,14 @@ public class ShotPlanner {
       WafflesUtilities.FlipYIfRedAlliance(passingTargetLeft.getY()));
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
+  // private static final LoggedNetworkNumber hoodAngleTuner = new
+  // LoggedNetworkNumber("/Tuning/");
+  // private static final LoggedNetworkNumber shooterSpeedTuner = new
+  // LoggedNetworkNumber("/Tuning/Shooter Speed");
+
   public static ShootingParameters aimAtField(Translation2d fieldPose) { // Pose is flipped before this function
     Pose2d robotPose = RobotContainer.state.getPose();
+
     ChassisSpeeds robotChassisSpeeds = RobotContainer.state.getRobotVelocity();
     robotPose = robotPose.exp(
         new Twist2d(
@@ -98,12 +105,18 @@ public class ShotPlanner {
   }
 
   public static ShootingParameters aimManual() {
-    var target = RobotContainer.state.getManualOverrideTarget();
+    // var target = RobotContainer.state.getManualOverrideTarget();
+
+    // parameters = new ShootingParameters(
+    // new TurretSetpoint(target.getTurretSetpoint(), 0),
+    // hoodAngle.interpolate(target.getDistance()),
+    // flywheelSpeeds.interpolate(target.getDistance())
+    // );
 
     parameters = new ShootingParameters(
-        new TurretSetpoint(target.getTurretSetpoint(), 0),
-        hoodAngle.interpolate(target.getDistance()),
-        flywheelSpeeds.interpolate(target.getDistance())
+        new TurretSetpoint(Rotation2d.kZero, 0),
+        SmartDashboard.getNumber("Hood Angle", 0),
+        SmartDashboard.getNumber("Shooter Speed", 0)
     );
     return parameters;
   }

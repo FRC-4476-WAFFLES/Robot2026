@@ -100,7 +100,7 @@ public class Turret extends ExpandedSubsystem {
       Logger.recordOutput("Turret/MotionProfile/ProfileHeading", profileState.position);
       Logger.recordOutput("Turret/MotionProfile/ProfileVelocity", profileState.velocity);
 
-      runSetpoint(profileState.position, profileState.velocity);
+      // runSetpoint(profileState.position, profileState.velocity);
       latestGoalState = goalState;
 
     }

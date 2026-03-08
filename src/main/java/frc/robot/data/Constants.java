@@ -133,11 +133,12 @@ public final class Constants {
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
 
     public static final NodePoint[] TimeofFlightMap = new NodePoint[] {
-        new NodePoint(1, 2),
-        new NodePoint(2, 3),
-        new NodePoint(3, 4),
-        new NodePoint(4, 5),
-        new NodePoint(5, 6)
+        new NodePoint(1.5, 0.82),
+        new NodePoint(1.884, 1.17),
+        new NodePoint(2.33, 1.08),
+        new NodePoint(3.05, 1.27),
+        new NodePoint(3.827, 1.44),
+        new NodePoint(5.28, 1.23)
     };
     public static final double MIN_TOF = 2;
     public static final double MAX_TOF = 4;
@@ -231,7 +232,7 @@ public final class Constants {
   /* Physical */
   public static class PhysicalConstants {
     // In number of motor rotations per mechanism rotation
-    public static final double TURRET_REDUCTION = 33.33333;
+    public static final double TURRET_REDUCTION = 19.5556;
     public static final double EXPANDER_REDUCTION = 111.2142825;
     public static final double FLYWHEEL_REDUCTION = 0.5000;
     public static final double INDEXER_REDUCTION = 5.33333;
@@ -283,14 +284,14 @@ public final class Constants {
   }
 
   public static class TurretConstants {
-    public static final double CANCODER_0_OFFSET = -0.322509765625;
-    public static final double CANCODER_1_OFFSET = -0.871826171875;
+    public static final double CANCODER_0_OFFSET = -0.670166015625;
+    public static final double CANCODER_1_OFFSET = -0.10791015625;
 
     public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-45); // Facing diagonally back into robot
 
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-360); // Can be up to +/- 360 deg
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-170); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(360);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(170);
 
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 20;
@@ -331,11 +332,12 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(0, 20),
-        new NodePoint(1, 40),
-        new NodePoint(2, 20),
-        new NodePoint(3, 30),
-        new NodePoint(4, 50)
+        new NodePoint(1.5, 42.6),
+        new NodePoint(1.884, 50.34),
+        new NodePoint(2.33, 51.45),
+        new NodePoint(3.05, 56),
+        new NodePoint(3.827, 61.92),
+        new NodePoint(5.28, 62.28)
     };
 
     public static final double RPM_RANGE = 80;
@@ -360,7 +362,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(8, 40),
+      RUN(12, 20),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -411,7 +413,7 @@ public final class Constants {
     // Configured positions
     public enum ExpanderPosition {
       STOWED(0.0),
-      EXTENDED(70.0),
+      EXTENDED(97.0),
       INTAKING(97.0),
       AGITATION_MAX(55);
 
@@ -467,11 +469,12 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> hood angle (rotations)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(1, 0),
-        new NodePoint(2, 5),
-        new NodePoint(3, 10),
-        new NodePoint(4, 15),
-        new NodePoint(5, 20)
+        new NodePoint(1.5, 0),
+        new NodePoint(1.884, 3.09),
+        new NodePoint(2.33, 5.09),
+        new NodePoint(3.05, 6.13),
+        new NodePoint(3.827, 5.17),
+        new NodePoint(5.28, 13.86)
     };
 
     public static final double ANGLE_RANGE = 1.0;
