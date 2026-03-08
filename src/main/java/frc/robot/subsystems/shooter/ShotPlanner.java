@@ -80,6 +80,7 @@ public class ShotPlanner {
       Logger.recordOutput("RobotState/Turret Position", turretPose);
       Logger.recordOutput("RobotState/Distance To Target", distanceToTarget);
 
+      Translation2d currentTarget = fieldTarget;
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE) {
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
@@ -93,28 +94,30 @@ public class ShotPlanner {
                 * (PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX() * Math.cos(robotAngle)
                     - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY() * Math.sin(robotAngle));
 
-        // Account for imparted velocity by robot (turret) to offset
-        double timeOfFlight;
-        Pose2d lookaheadPose = turretPose;
-        double lookaheadTurretToTargetDistance = distanceToTarget;
-        for (int i = 0; i < 20; i++) {
-          timeOfFlight = timeOfFlightMap.interpolate(lookaheadTurretToTargetDistance);
-          double offsetX = turretVelocityX * timeOfFlight;
-          double offsetY = turretVelocityY * timeOfFlight;
-          lookaheadPose = new Pose2d(
-              turretPose.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-              turretPose.getRotation());
-          lookaheadTurretToTargetDistance = fieldTarget.getDistance(lookaheadPose.getTranslation());
+        Translation2d turretVel = new Translation2d(turretVelocityX, turretVelocityY);
+
+        double previousTimeOfFlight = Double.NaN;
+        double currentDistance = distanceToTarget;
+        for (int i = 0; i < 5; i++) {
+          double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
+
+          currentTarget = fieldTarget.minus(turretVel.times(timeOfFlight * 0.1));
+
+          currentDistance = currentTarget.getDistance(turretPose.getTranslation());
+
+          if (previousTimeOfFlight != Double.NaN && Math.abs(timeOfFlight - previousTimeOfFlight) < 0.1) {
+            break;
+          }
+          previousTimeOfFlight = timeOfFlight;
         }
 
-        turretPose = lookaheadPose;
-        distanceToTarget = lookaheadTurretToTargetDistance;
+        distanceToTarget = currentDistance;
 
-        Logger.recordOutput("RobotState/Adjusted Turret Position", turretPose);
-        Logger.recordOutput("RobotState/Adjusted Distance To Target", distanceToTarget);
+        Logger.recordOutput("RobotState/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
+        Logger.recordOutput("RobotState/Adjusted Distance To Target", currentDistance);
       }
 
-      Rotation2d turretAngle = fieldTarget.minus(turretPose.getTranslation()).getAngle();
+      Rotation2d turretAngle = currentTarget.minus(turretPose.getTranslation()).getAngle();
 
       double turretVelocity = 0;
       if (CodeConstants.SHOOT_ON_MOVE) {

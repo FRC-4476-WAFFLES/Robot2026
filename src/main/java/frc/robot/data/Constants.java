@@ -145,7 +145,7 @@ public final class Constants {
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = true;
-    public static final boolean SHOOT_ON_MOVE = true;
+    public static final boolean SHOOT_ON_MOVE = false;
 
     public enum ManualOverrideTarget {
       FRONT_CLOSE(Rotation2d.kZero, 1.5),
