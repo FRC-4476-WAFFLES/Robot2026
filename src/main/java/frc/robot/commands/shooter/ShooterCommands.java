@@ -16,7 +16,7 @@ public class ShooterCommands {
   public static Command shootCommand() {
     return Commands.parallel(
         Commands.sequence(
-            Commands.waitUntil(() -> RobotContainer.state.joysticksFree()),
+            Commands.waitUntil(() -> RobotContainer.state.joysticksFree() && !RobotContainer.state.autonomousEnabled()),
             DriveCommands.stopWithX(RobotContainer.drive).until(() -> !RobotContainer.state.joysticksFree())
                 .withName("Lock Wheels").asProxy()
         ).repeatedly(),

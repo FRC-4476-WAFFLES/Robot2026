@@ -29,6 +29,7 @@ import frc.robot.RobotState.AutoWinnerOverride;
 import frc.robot.autos.NotOlympic;
 import frc.robot.autos.TemplateAuto;
 import frc.robot.commands.drive.DriveCommands;
+import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.commands.test.WheelRadiusCharacterization;
 import frc.robot.data.Constants;
@@ -36,7 +37,6 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
-import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
@@ -328,17 +328,7 @@ public class RobotContainer {
 
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed
-    Controls.leftJoystick.button(1)
-        .whileTrue(Commands.startEnd(
-            () -> {
-              intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED);
-              state.setExpanderState(ExpanderState.INTAKING);
-            },
-            () -> {
-              intake.setIntakeSetpoint(0);
-              state.setExpanderState(ExpanderState.EXTENDED);
-            }, intake)
-        );
+    Controls.leftJoystick.button(1).whileTrue(IntakeCommands.intakeCommand());
 
     // Intake
     state.expanderStowed().whileTrue(Commands.run(

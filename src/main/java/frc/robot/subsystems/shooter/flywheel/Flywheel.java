@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.utils.lib.EpochTimer;
 
 public class Flywheel extends SubsystemBase {
@@ -69,7 +68,9 @@ public class Flywheel extends SubsystemBase {
 
   @AutoLogOutput(key = "Flywheel/At Setpoint")
   public boolean atSetpoint() {
-    return Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
+    return true;
+    // return Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity)
+    // < (FlywheelConstants.RPM_RANGE / 60.0);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {

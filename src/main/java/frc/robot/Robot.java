@@ -20,6 +20,7 @@ import frc.robot.data.BuildConstants;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.Mode;
+import frc.robot.data.Constants.VisionConstants;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystemManager;
@@ -80,6 +81,11 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("Deployed Branch", BuildConstants.GIT_BRANCH);
     Logger.recordMetadata("Build Timestamp", BuildConstants.BUILD_DATE);
     Logger.recordMetadata("Repository", BuildConstants.MAVEN_NAME);
+
+    // Force load map early
+    System.out.println("Loading Apriltag Map: " + VisionConstants.APRIL_TAG_FIELD_LAYOUT.toString());
+    Logger.recordMetadata("Apriltag Map", VisionConstants.APRITL_TAG_MAP_NAME);
+
     Logger.recordMetadata(
         "GitDirty",
         switch (BuildConstants.DIRTY) {

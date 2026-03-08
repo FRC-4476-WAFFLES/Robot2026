@@ -23,6 +23,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.utils.lib.Spline1D.NodePoint;
 
@@ -115,7 +116,7 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 8.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 4.5;
+    public static final double AUTO_MAX_ACCEL = 2.5;
     public static final double AUTO_MAX_JERK = 4.0;
 
     public static final double AUTO_SLEW_LIMIT = 4.4;
@@ -195,8 +196,14 @@ public final class Constants {
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
     public static final int MOVING_LL_IMU_MODE = 2; // Uses internal IMU
 
-    public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = AprilTagFieldLayout
-        .loadField(AprilTagFields.k2026RebuiltAndymark);
+    public static String APRITL_TAG_MAP_NAME = "";
+    // Default option
+    // public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT =
+    // loadDefaultFieldMap();
+    public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = loadFieldMap("/fieldmaps/BGConlyred.json");
+    // Practice Red
+    // public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT =
+    // loadFieldMap();
 
     // Vision validation thresholds
     public static final double AMBIGUITY_THRESHOLD = 0.7; // Max ambiguity for single tag (0-1, lower is better), 0.19
@@ -229,6 +236,22 @@ public final class Constants {
     public static final int MEGATAG_1_YStdDevIndex = 1;
     public static final int MEGATAG_1_YawStdDevIndex = 5;
 
+    public static AprilTagFieldLayout loadFieldMap(String path) {
+      AprilTagFieldLayout layout;
+      try {
+        layout = new AprilTagFieldLayout(Filesystem.getDeployDirectory().toPath().resolve(path));
+        APRITL_TAG_MAP_NAME = path;
+      } catch (Exception e) {
+        layout = loadDefaultFieldMap();
+      }
+      return layout;
+    }
+
+    public static AprilTagFieldLayout loadDefaultFieldMap() {
+      APRITL_TAG_MAP_NAME = "k2026RebuiltAndymark";
+      return AprilTagFieldLayout
+          .loadField(AprilTagFields.k2026RebuiltAndymark);
+    }
   }
 
   /* Physical */
@@ -296,17 +319,17 @@ public final class Constants {
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(170);
 
     public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 20;
+    public static final double MAX_ACCELERATION = 10;
 
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 0;
-    public static final double MOTOR_kD = 0;
-    public static final double MOTOR_kS = 0;
-    public static final double MOTOR_kV = 0;
+    public static final double MOTOR_kP = 50;
+    public static final double MOTOR_kD = 0.5;
+    public static final double MOTOR_kS = 0.6;
+    public static final double MOTOR_kV = 4;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;
@@ -342,7 +365,7 @@ public final class Constants {
         new NodePoint(5.28, 62.28)
     };
 
-    public static final double RPM_RANGE = 80;
+    public static final double RPM_RANGE = 450;
   }
 
   public static class SpindexerConstants {

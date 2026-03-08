@@ -214,13 +214,15 @@ public class TurretIOTalonFX implements TurretIO {
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
     double feedforward = 0;
-    double deadband = 0.01;
-    double springFF = 0;
+    double deadband = 0.02;
+    double springFF = 1;
     if (lastPosition > deadband) {
       feedforward = springFF;
     } else if (lastPosition < deadband) {
       feedforward = -springFF;
     }
+
+    Logger.recordOutput("Turret/Feedforward", feedforward);
     turret.setControl(
         setpointRequest.withPosition(setpointRotations).withVelocity(velocity).withFeedForward(feedforward));
   }

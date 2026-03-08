@@ -257,7 +257,7 @@ public class RobotState {
   public Trigger shouldFire() {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
         RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
-    ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode())
+    ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode()).and(() -> robotEnabled())
         .and(() -> hubEnabled());
   }
 
