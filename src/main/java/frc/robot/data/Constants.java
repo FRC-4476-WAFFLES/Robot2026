@@ -364,7 +364,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(12, 20),
+      RUN(12, 30),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -417,7 +417,7 @@ public final class Constants {
       STOWED(0.0),
       EXTENDED(97.0),
       INTAKING(97.0),
-      AGITATION_MAX(55);
+      AGITATION_MAX(35);
 
       private final double degrees;
 

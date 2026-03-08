@@ -40,7 +40,6 @@ public class ShotPlanner {
   private static ShootingParameters parameters = null;
   private static final SplineMonotone1D flywheelSpeeds = new SplineMonotone1D(FlywheelConstants.DistanceMap);
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
-  // TODO: Setup sotm. Mostly ready to drop in.
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
@@ -84,14 +83,14 @@ public class ShotPlanner {
       if (CodeConstants.SHOOT_ON_MOVE) {
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
         double robotAngle = robotPose.getRotation().getRadians();
+        double turretOffsetX = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX();
+        double turretOffsetY = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY();
         double turretVelocityX = robotVelocity.vxMetersPerSecond
-            + robotVelocity.omegaRadiansPerSecond
-                * (PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY() * Math.cos(robotAngle)
-                    - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX() * Math.sin(robotAngle));
+            - robotVelocity.omegaRadiansPerSecond
+                * (turretOffsetX * Math.sin(robotAngle) + turretOffsetY * Math.cos(robotAngle));
         double turretVelocityY = robotVelocity.vyMetersPerSecond
             + robotVelocity.omegaRadiansPerSecond
-                * (PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX() * Math.cos(robotAngle)
-                    - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY() * Math.sin(robotAngle));
+                * (turretOffsetX * Math.cos(robotAngle) - turretOffsetY * Math.sin(robotAngle));
 
         // Account for imparted velocity by robot (turret) to offset
         double timeOfFlight;
@@ -118,11 +117,12 @@ public class ShotPlanner {
 
       double turretVelocity = 0;
       if (CodeConstants.SHOOT_ON_MOVE) {
-        // Basically low pass the velocity
+        // Numerically differentiate the desired turret angle and low pass filter it
         if (lastTurretAngle == null)
           lastTurretAngle = turretAngle;
+        // Convert to rotations/sec to match turret profile units
         turretVelocity = turretAngleFilter.calculate(
-            turretAngle.minus(lastTurretAngle).getRadians() / CodeConstants.PERIODIC_LOOP_TIME);
+            turretAngle.minus(lastTurretAngle).getRotations() / CodeConstants.PERIODIC_LOOP_TIME);
         lastTurretAngle = turretAngle;
       }
 

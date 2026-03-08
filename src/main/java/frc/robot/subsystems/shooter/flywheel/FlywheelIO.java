@@ -16,4 +16,8 @@ public interface FlywheelIO {
   default void runDutyCycle(double speed) {}
 
   default void runFlywheelVelocity(double velocity) {}
+
+  default void runFlywheelVelocity(double velocity, double feedForward) {
+    runFlywheelVelocity(velocity);
+  }
 }
