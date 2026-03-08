@@ -115,8 +115,11 @@ public class Robot extends LoggedRobot {
         command -> Logger.recordOutput("Commands/" + command.getName(), false)
     );
 
-    SmartDashboard.putNumber("Shooter Speed", 0);
-    SmartDashboard.putNumber("Hood Angle", 0);
+    if (CodeConstants.MANUAL_SHOOTER_TUNING) {
+      // Quick & dirty
+      SmartDashboard.putNumber("Shooter Speed", 0);
+      SmartDashboard.putNumber("Hood Angle", 0);
+    }
   }
 
   /**

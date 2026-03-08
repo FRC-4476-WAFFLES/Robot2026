@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
 
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -25,6 +26,7 @@ import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
+import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.SplineMonotone1D;
 import frc.robot.utils.lib.WafflesUtilities;
 
@@ -39,45 +41,98 @@ public class ShotPlanner {
   private static final SplineMonotone1D flywheelSpeeds = new SplineMonotone1D(FlywheelConstants.DistanceMap);
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   // TODO: Setup sotm. Mostly ready to drop in.
-  private static final SplineMonotone1D timeOfFlight = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
+  private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
       WafflesUtilities.FlipYIfRedAlliance(passingTargetLeft.getY()));
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
+  private static Rotation2d lastTurretAngle;
+
   // private static final LoggedNetworkNumber hoodAngleTuner = new
   // LoggedNetworkNumber("/Tuning/");
   // private static final LoggedNetworkNumber shooterSpeedTuner = new
   // LoggedNetworkNumber("/Tuning/Shooter Speed");
 
-  public static ShootingParameters aimAtField(Translation2d fieldPose) { // Pose is flipped before this function
-    Pose2d robotPose = RobotContainer.state.getPose();
+  private static final LinearFilter turretAngleFilter = LinearFilter
+      .movingAverage((int) (0.1 / CodeConstants.PERIODIC_LOOP_TIME));
 
-    ChassisSpeeds robotChassisSpeeds = RobotContainer.state.getRobotVelocity();
-    robotPose = robotPose.exp(
-        new Twist2d(
-            robotChassisSpeeds.vxMetersPerSecond * latencyCompensationStep,
-            robotChassisSpeeds.vyMetersPerSecond * latencyCompensationStep,
-            robotChassisSpeeds.omegaRadiansPerSecond * latencyCompensationStep));
+  public static ShootingParameters aimAtField(Translation2d fieldTarget) { // Pose is flipped before this function
+    EpochTimer.BeginEpoch("Aiming");
+    {
+      Pose2d robotPose = RobotContainer.state.getPose();
 
-    Pose2d turretPose = robotPose.transformBy(
-        new Transform2d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation().toTranslation2d(), Rotation2d.kZero)
-    );
+      ChassisSpeeds robotChassisSpeeds = RobotContainer.state.getRobotVelocity();
+      robotPose = robotPose.exp(
+          new Twist2d(
+              robotChassisSpeeds.vxMetersPerSecond * latencyCompensationStep,
+              robotChassisSpeeds.vyMetersPerSecond * latencyCompensationStep,
+              robotChassisSpeeds.omegaRadiansPerSecond * latencyCompensationStep));
 
-    double distanceToTarget = turretPose.getTranslation().getDistance(fieldPose);
+      Pose2d turretPose = robotPose.transformBy(
+          new Transform2d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation().toTranslation2d(), Rotation2d.kZero)
+      );
 
-    Logger.recordOutput("RobotState/Shooter Target", new Pose2d(fieldPose, Rotation2d.kZero));
-    Logger.recordOutput("RobotState/Turret Position", turretPose);
-    Logger.recordOutput("RobotState/Distance To Target", distanceToTarget);
+      double distanceToTarget = turretPose.getTranslation().getDistance(fieldTarget);
 
-    Rotation2d turretAngle = fieldPose.minus(turretPose.getTranslation()).getAngle();
+      Logger.recordOutput("RobotState/Shooter Target", new Pose2d(fieldTarget, Rotation2d.kZero));
+      Logger.recordOutput("RobotState/Turret Position", turretPose);
+      Logger.recordOutput("RobotState/Distance To Target", distanceToTarget);
 
-    parameters = new ShootingParameters(
-        new TurretSetpoint(turretAngle, 0),
-        hoodAngle.interpolate(distanceToTarget),
-        flywheelSpeeds.interpolate(distanceToTarget)
-    );
+      // Hastily taken from 6328. Everybody say thank you 6328.
+      if (CodeConstants.SHOOT_ON_MOVE) {
+        ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
+        double robotAngle = robotPose.getRotation().getRadians();
+        double turretVelocityX = robotVelocity.vxMetersPerSecond
+            + robotVelocity.omegaRadiansPerSecond
+                * (PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY() * Math.cos(robotAngle)
+                    - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX() * Math.sin(robotAngle));
+        double turretVelocityY = robotVelocity.vyMetersPerSecond
+            + robotVelocity.omegaRadiansPerSecond
+                * (PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX() * Math.cos(robotAngle)
+                    - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY() * Math.sin(robotAngle));
+
+        // Account for imparted velocity by robot (turret) to offset
+        double timeOfFlight;
+        Pose2d lookaheadPose = turretPose;
+        double lookaheadTurretToTargetDistance = distanceToTarget;
+        for (int i = 0; i < 20; i++) {
+          timeOfFlight = timeOfFlightMap.interpolate(lookaheadTurretToTargetDistance);
+          double offsetX = turretVelocityX * timeOfFlight;
+          double offsetY = turretVelocityY * timeOfFlight;
+          lookaheadPose = new Pose2d(
+              turretPose.getTranslation().plus(new Translation2d(offsetX, offsetY)),
+              turretPose.getRotation());
+          lookaheadTurretToTargetDistance = fieldTarget.getDistance(lookaheadPose.getTranslation());
+        }
+
+        turretPose = lookaheadPose;
+        distanceToTarget = lookaheadTurretToTargetDistance;
+
+        Logger.recordOutput("RobotState/Adjusted Turret Position", turretPose);
+        Logger.recordOutput("RobotState/Adjusted Distance To Target", distanceToTarget);
+      }
+
+      Rotation2d turretAngle = fieldTarget.minus(turretPose.getTranslation()).getAngle();
+
+      double turretVelocity = 0;
+      if (CodeConstants.SHOOT_ON_MOVE) {
+        // Basically low pass the velocity
+        if (lastTurretAngle == null)
+          lastTurretAngle = turretAngle;
+        turretVelocity = turretAngleFilter.calculate(
+            turretAngle.minus(lastTurretAngle).getRadians() / CodeConstants.PERIODIC_LOOP_TIME);
+        lastTurretAngle = turretAngle;
+      }
+
+      parameters = new ShootingParameters(
+          new TurretSetpoint(turretAngle, turretVelocity),
+          hoodAngle.interpolate(distanceToTarget),
+          flywheelSpeeds.interpolate(distanceToTarget)
+      );
+    }
+    EpochTimer.EndEpoch("Aiming");
 
     return parameters;
   }
@@ -105,19 +160,23 @@ public class ShotPlanner {
   }
 
   public static ShootingParameters aimManual() {
-    // var target = RobotContainer.state.getManualOverrideTarget();
+    if (CodeConstants.MANUAL_SHOOTER_TUNING) {
+      parameters = new ShootingParameters(
+          new TurretSetpoint(Rotation2d.kZero, 0),
+          SmartDashboard.getNumber("Hood Angle", 0),
+          SmartDashboard.getNumber("Shooter Speed", 0)
+      );
 
-    // parameters = new ShootingParameters(
-    // new TurretSetpoint(target.getTurretSetpoint(), 0),
-    // hoodAngle.interpolate(target.getDistance()),
-    // flywheelSpeeds.interpolate(target.getDistance())
-    // );
+    } else {
+      var target = RobotContainer.state.getManualOverrideTarget();
 
-    parameters = new ShootingParameters(
-        new TurretSetpoint(Rotation2d.kZero, 0),
-        SmartDashboard.getNumber("Hood Angle", 0),
-        SmartDashboard.getNumber("Shooter Speed", 0)
-    );
+      parameters = new ShootingParameters(
+          new TurretSetpoint(target.getTurretSetpoint(), 0),
+          hoodAngle.interpolate(target.getDistance()),
+          flywheelSpeeds.interpolate(target.getDistance())
+      );
+    }
+
     return parameters;
   }
 
