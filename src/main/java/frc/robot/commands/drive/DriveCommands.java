@@ -38,6 +38,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
+import frc.robot.RobotState;
 import frc.robot.autos.PassThroughTarget;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.drive.Drive;
@@ -321,13 +322,15 @@ public class DriveCommands {
     return new PassThroughTarget(target).follow();
   }
 
-  public static Command autoToPose(Pose2d target) {
-    var pose = new BlueRelativeTarget(target);
-    return autoToFieldPose(() -> pose.getFieldRelative());
+  public static Command autoToPose(Pose2d pose) {
+    var target = new BlueRelativeTarget(pose);
+    return autoToFieldPose(() -> target.getFieldRelative())
+        .beforeStarting(() -> RobotState.setAutopilotMaxVelocity(target.getMaxVelocity()));
   }
 
   public static Command autoToTarget(BlueRelativeTarget target) {
-    return autoToFieldPose(() -> target.getFieldRelative());
+    return autoToFieldPose(() -> target.getFieldRelative())
+        .beforeStarting(() -> RobotState.setAutopilotMaxVelocity(target.getMaxVelocity()));
   }
 
   // public static Command autoToTarget(BlueRelativeTarget target, Distance
@@ -345,7 +348,8 @@ public class DriveCommands {
     return autoToFieldPose(target, () -> false, true);
   }
 
-  public static Command autoToFieldPose(Supplier<APTarget> target, BooleanSupplier limitSlew, boolean selfEnd) {
+  public static Command autoToFieldPose(Supplier<APTarget> target, BooleanSupplier limitSlew,
+      boolean selfEnd) {
     ProfiledPIDController angleController = new ProfiledPIDController(
         ANGLE_KP,
         0.0,
@@ -389,6 +393,7 @@ public class DriveCommands {
 
       Logger.recordOutput("RobotState/Autopilot/Target", target.get().getReference());
       Logger.recordOutput("RobotState/Autopilot/Field Relative Goal Speeds", fieldRelativeGoalSpeed);
+      Logger.recordOutput("RobotState/Autopilot/Velocity Limit", RobotState.getAutopilotVelocityConstraint());
 
       var trackingError = actualSpeeds.minus(robotRelativeGoalSpeed);
       if (Math.hypot(trackingError.vxMetersPerSecond,
@@ -414,6 +419,8 @@ public class DriveCommands {
           copyChassisSpeeds(lastOutput, robotRelativeSpeeds);
         })
         .finallyDo(() -> {
+          RobotState.resetAutopilotConstraints();
+
           if (target.get().getVelocity() > 0) {
             return;
           }

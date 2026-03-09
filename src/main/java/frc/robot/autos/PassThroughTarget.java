@@ -7,6 +7,7 @@ package frc.robot.autos;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
+import frc.robot.RobotState;
 import frc.robot.commands.drive.AutoPath;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
@@ -28,6 +29,7 @@ public class PassThroughTarget {
         .beforeStarting(() -> {
           startPose = state.getPose();
           targetPose = target.getFieldRelativePose();
+          RobotState.setAutopilotMaxVelocity(target.getMaxVelocity());
         });
   }
 

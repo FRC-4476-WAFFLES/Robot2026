@@ -309,13 +309,10 @@ public class FieldConstants {
     OFFICIAL("2026-official"),
     NONE("2026-none");
 
-    private final String name;
     private volatile AprilTagFieldLayout layout;
     private volatile String layoutString;
 
-    AprilTagLayoutType(String name) {
-      this.name = name;
-    }
+    AprilTagLayoutType(String name) {}
 
     public AprilTagFieldLayout getLayout() {
       if (layout == null) {

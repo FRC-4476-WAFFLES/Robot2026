@@ -18,14 +18,15 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class NotOlympic extends SequentialCommandGroup {
   public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   public final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withVelocity(2);
+      .withExitVelocity(2);
   public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(-80));
-  public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90));
+  public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90))
+      .withMaxVelocity(1.5);
   public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(0))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
-      .withVelocity(1.5);
+      .withExitVelocity(1.5);
   public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.2, Rotation2d.fromDegrees(0))
-      .withVelocity(2);
+      .withExitVelocity(2);
   public final BlueRelativeTarget end = new BlueRelativeTarget(2, 5.2, Rotation2d.fromDegrees(0));
 
   public NotOlympic() {

@@ -8,8 +8,11 @@ import static edu.wpi.first.units.Units.Centimeters;
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Meters;
 
+import java.util.List;
+
 import com.ctre.phoenix6.CANBus;
 
+import edu.wpi.first.apriltag.AprilTag;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
@@ -116,7 +119,7 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 8.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 1.8;
+    public static final double AUTO_MAX_ACCEL = 3.0;
     public static final double AUTO_MAX_JERK = 4.0;
 
     public static final double AUTO_SLEW_LIMIT = 4.4;
@@ -141,8 +144,8 @@ public final class Constants {
         new NodePoint(3.827, 1.44),
         new NodePoint(5.28, 1.23)
     };
-    public static final double MIN_TOF = 2;
-    public static final double MAX_TOF = 4;
+    public static final double MIN_TOF = 1;
+    public static final double MAX_TOF = 3;
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = true;
@@ -198,12 +201,11 @@ public final class Constants {
 
     public static String APRITL_TAG_MAP_NAME = "";
     // Default option
-    // public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT =
-    // loadDefaultFieldMap();
-    public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = loadFieldMap("/fieldmaps/BGConlyred.json");
+    public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT = loadDefaultFieldMap();
+
     // Practice Red
     // public static final AprilTagFieldLayout APRIL_TAG_FIELD_LAYOUT =
-    // loadFieldMap();
+    // loadFieldMap("fieldmaps/BGConlyred.json");
 
     // Vision validation thresholds
     public static final double AMBIGUITY_THRESHOLD = 0.7; // Max ambiguity for single tag (0-1, lower is better), 0.19
@@ -237,12 +239,24 @@ public final class Constants {
     public static final int MEGATAG_1_YawStdDevIndex = 5;
 
     public static AprilTagFieldLayout loadFieldMap(String path) {
-      AprilTagFieldLayout layout;
+      AprilTagFieldLayout layout = loadDefaultFieldMap();
       try {
-        layout = new AprilTagFieldLayout(Filesystem.getDeployDirectory().toPath().resolve(path));
+        var loadedLayout = new AprilTagFieldLayout(Filesystem.getDeployDirectory().toPath().resolve(path));
+        List<AprilTag> loadedTags = loadedLayout.getTags();
+
+        // Handle partial tag layout
+        for (var tag : layout.getTags()) {
+          if (!loadedTags.stream().anyMatch(chosenTag -> chosenTag.ID == tag.ID)) {
+            loadedTags.add(tag);
+          }
+        }
+
+        layout = new AprilTagFieldLayout(loadedTags, layout.getFieldLength(), layout.getFieldWidth());
+
         APRITL_TAG_MAP_NAME = path;
       } catch (Exception e) {
-        layout = loadDefaultFieldMap();
+        System.out.println("Error reading fieldmap");
+        e.printStackTrace();
       }
       return layout;
     }

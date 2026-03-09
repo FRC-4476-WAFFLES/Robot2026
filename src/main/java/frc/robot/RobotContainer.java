@@ -242,6 +242,7 @@ public class RobotContainer {
    * The static entry point for the robot. Contains subsystems, OI devices, and
    * commands.
    */
+  @SuppressWarnings("unused")
   public RobotContainer() {
     configureBindings();
     configureDefaultCommands();

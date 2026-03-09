@@ -90,16 +90,31 @@ public class RobotState {
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
 
-  public static final APConstraints autopilotConstraints = new APConstraints()
+  private static final APConstraints autopilotConstraints = new APConstraints()
       .withAcceleration(CodeConstants.AUTO_MAX_ACCEL)
       .withJerk(CodeConstants.AUTO_MAX_JERK);
+  // Why doesn't APConstraints have getters?? Didn't bother subclassing to add
+  // them.
+  @Getter
+  private static double autopilotVelocityConstraint = Double.MAX_VALUE;
 
-  public static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
+  private static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
       .withErrorXY(CodeConstants.AUTO_POSITION_TOLERANCE_PRECISE)
       .withErrorTheta(CodeConstants.AUTO_ANGLE_TOLERANCE_PRECISE)
       .withBeelineRadius(Centimeters.of(8));
 
   private Autopilot autopilot = new Autopilot(autopilotProfile);
+
+  public static void resetAutopilotConstraints() {
+    autopilotConstraints.withVelocity(Double.POSITIVE_INFINITY);
+    autopilotConstraints.withAcceleration(CodeConstants.AUTO_MAX_ACCEL);
+    autopilotConstraints.withJerk(CodeConstants.AUTO_MAX_JERK);
+  }
+
+  public static void setAutopilotMaxVelocity(double velocity) {
+    autopilotConstraints.withVelocity(velocity);
+    autopilotVelocityConstraint = velocity;
+  }
 
   public Autopilot autopilot() {
     return autopilot;
@@ -185,6 +200,7 @@ public class RobotState {
     turretVelocityHistoryBuffer.addSample(timestamp, velocity);
   }
 
+  @SuppressWarnings("unused")
   public void updateEnabledState() {
     // Collect checks here once a loop since checking enabled has a mutex lock
     enabled = DriverStation.isEnabled();

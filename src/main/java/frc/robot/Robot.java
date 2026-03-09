@@ -251,6 +251,7 @@ public class Robot extends LoggedRobot {
 
   /** This function is called periodically whilst in simulation. */
   @Override
+  @SuppressWarnings("unused")
   public void simulationPeriodic() {
     if (Constants.getMode() == Mode.SIM && CodeConstants.USE_FUEL_SIMULATION) {
       FuelSim.getInstance().updateSim();

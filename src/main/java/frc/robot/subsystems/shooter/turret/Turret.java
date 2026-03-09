@@ -131,6 +131,7 @@ public class Turret extends ExpandedSubsystem {
     // return getPosition() % 1.0;
   }
 
+  @SuppressWarnings("unused")
   private void runDutyCycle(double dutyCycle) {
     Logger.recordOutput("Turret/OutputDutyCycle", dutyCycle);
     io.runDutyCycle(dutyCycle);

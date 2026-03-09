@@ -127,6 +127,7 @@ public class TurretIOTalonFX implements TurretIO {
   }
 
   // Borderline black magic I do not fully understand
+  @SuppressWarnings("unused")
   private double calculateTurretStartupPosition(boolean waitForStartup) {
     if (waitForStartup) {
       BaseStatusSignal.waitForAll(10.0, cancoder0.getRawSignals().absolutePosition(),
@@ -151,7 +152,7 @@ public class TurretIOTalonFX implements TurretIO {
 
     Logger.recordOutput("Turret/y", y);
     Logger.recordOutput("Turret/z", z);
-    Logger.recordOutput("Turret/Bruh?", difference);
+    Logger.recordOutput("Turret/Difference", difference);
 
     double fullrange = PhysicalConstants.ENCODER_0_TEETH * PhysicalConstants.ENCODER_1_TEETH
         / PhysicalConstants.TURRET_GEAR_TEETH;
@@ -162,11 +163,9 @@ public class TurretIOTalonFX implements TurretIO {
     if (simpleVernier > (fullrange / 2)) {
       simpleVernier -= fullrange;
       // n -= PhysicalConstants.ENCODER_0_TEETH; // Works
-      Logger.recordOutput("Turret/Bruh? 2", true);
 
       n -= 36; // Cursed
     } else {
-      Logger.recordOutput("Turret/Bruh? 2", false);
 
     }
 

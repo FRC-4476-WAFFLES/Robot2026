@@ -13,12 +13,16 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.utils.lib.WafflesUtilities;
+import lombok.Getter;
 
 public class BlueRelativeTarget {
   protected Pose2d m_reference;
   protected Optional<Rotation2d> m_entryAngle;
-  protected double m_velocity;
+  protected double m_exitVelocity;
   protected Optional<Distance> m_rotationRadius;
+
+  @Getter
+  protected double maxVelocity;
 
   private boolean isRedFlipped = false;
   private APTarget target;
@@ -29,9 +33,10 @@ public class BlueRelativeTarget {
 
   public BlueRelativeTarget(Pose2d target) {
     m_reference = target;
-    m_velocity = 0;
+    m_exitVelocity = 0;
     m_entryAngle = Optional.empty();
     m_rotationRadius = Optional.empty();
+    maxVelocity = Double.MAX_VALUE;
   }
 
   public Pose2d getFieldRelativePose() {
@@ -43,7 +48,7 @@ public class BlueRelativeTarget {
       return target;
     }
 
-    target = new APTarget(WafflesUtilities.FlipIfRedAlliance(m_reference)).withVelocity(m_velocity);
+    target = new APTarget(WafflesUtilities.FlipIfRedAlliance(m_reference)).withVelocity(m_exitVelocity);
     if (m_entryAngle.isPresent()) {
       target = target.withEntryAngle(WafflesUtilities.FlipIfRedAlliance(m_entryAngle.get()));
     }
@@ -77,10 +82,10 @@ public class BlueRelativeTarget {
     return this;
   }
 
-  public BlueRelativeTarget withVelocity(double velocity) {
+  public BlueRelativeTarget withExitVelocity(double velocity) {
     target = null;
 
-    m_velocity = velocity;
+    m_exitVelocity = velocity;
     return this;
   }
 
@@ -88,6 +93,12 @@ public class BlueRelativeTarget {
     this.target = null;
 
     m_reference = newTarget;
+    return this;
+  }
+
+  // Does not invalidate cached APTarget
+  public BlueRelativeTarget withMaxVelocity(double maxVelocity) {
+    this.maxVelocity = maxVelocity;
     return this;
   }
 }

@@ -14,7 +14,6 @@ import com.ctre.phoenix.led.CANdleConfiguration;
 import frc.robot.data.Constants;
 import frc.robot.subsystems.lights.Lights.LedRange;
 
-@SuppressWarnings("removal")
 public class LightStripIOCandle implements LightStripIO {
   private final int LED_COUNT;
   private final CANdle candle = new CANdle(Constants.CANIds.CANdle);
