@@ -21,12 +21,12 @@ public class NotOlympic extends SequentialCommandGroup {
       .withVelocity(2);
   public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(-80));
   public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90));
-  public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(90))
+  public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(0))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withVelocity(1.5);
-  public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.2, Rotation2d.fromDegrees(90))
+  public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.2, Rotation2d.fromDegrees(0))
       .withVelocity(2);
-  public final BlueRelativeTarget end = new BlueRelativeTarget(2, 5.2, Rotation2d.fromDegrees(90));
+  public final BlueRelativeTarget end = new BlueRelativeTarget(2, 5.2, Rotation2d.fromDegrees(0));
 
   public NotOlympic() {
     // AutoPath pathTest = new AutoPath(point1, point2, point3, point4, point5);
@@ -41,7 +41,8 @@ public class NotOlympic extends SequentialCommandGroup {
         Commands.parallel(
             Commands.sequence(
                 IntakeCommands.intakeCommand()
-                    .until(() -> RobotContainer.state.getShooterState() == ShooterState.TARGET_HUB),
+                    .until(() -> RobotContainer.state.getShooterState() == ShooterState.TARGET_HUB &&
+                        RobotContainer.state.notMoving()),
                 ShooterCommands.shootCommand()
             ),
             collectBalls.follow()

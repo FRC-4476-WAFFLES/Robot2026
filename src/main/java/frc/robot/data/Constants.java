@@ -116,7 +116,7 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 8.0; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 2.5;
+    public static final double AUTO_MAX_ACCEL = 1.8;
     public static final double AUTO_MAX_JERK = 4.0;
 
     public static final double AUTO_SLEW_LIMIT = 4.4;
@@ -146,7 +146,7 @@ public final class Constants {
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = true;
-    public static final boolean SHOOT_ON_MOVE = false;
+    public static final boolean SHOOT_ON_MOVE = true;
 
     public enum ManualOverrideTarget {
       FRONT_CLOSE(Rotation2d.kZero, 1.5),
@@ -319,17 +319,17 @@ public final class Constants {
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(170);
 
     public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 10;
+    public static final double MAX_ACCELERATION = 15;
 
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 50;
-    public static final double MOTOR_kD = 0.5;
-    public static final double MOTOR_kS = 0.6;
-    public static final double MOTOR_kV = 4;
+    public static final double MOTOR_kP = 55;
+    public static final double MOTOR_kD = 3;
+    public static final double MOTOR_kS = 0.4;
+    public static final double MOTOR_kV = 5;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;
@@ -359,10 +359,10 @@ public final class Constants {
     public static final NodePoint[] DistanceMap = new NodePoint[] {
         new NodePoint(1.5, 42.6),
         new NodePoint(1.884, 50.34),
-        new NodePoint(2.33, 51.45),
-        new NodePoint(3.05, 56),
-        new NodePoint(3.827, 61.92),
-        new NodePoint(5.28, 62.28)
+        new NodePoint(2.33, 53.0),
+        new NodePoint(3.05, 55.0),
+        new NodePoint(3.827, 63),
+        new NodePoint(5.28, 66.5)
     };
 
     public static final double RPM_RANGE = 450;

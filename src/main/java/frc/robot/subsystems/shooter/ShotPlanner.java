@@ -100,7 +100,7 @@ public class ShotPlanner {
         for (int i = 0; i < 5; i++) {
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
-          currentTarget = fieldTarget.minus(turretVel.times(timeOfFlight * 0.1));
+          currentTarget = fieldTarget.minus(turretVel.times(timeOfFlight));
 
           currentDistance = currentTarget.getDistance(turretPose.getTranslation());
 

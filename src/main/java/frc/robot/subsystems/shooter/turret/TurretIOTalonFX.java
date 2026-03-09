@@ -215,7 +215,7 @@ public class TurretIOTalonFX implements TurretIO {
 
     double feedforward = 0;
     double deadband = 0.02;
-    double springFF = 1;
+    double springFF = 0;
     if (lastPosition > deadband) {
       feedforward = springFF;
     } else if (lastPosition < deadband) {
