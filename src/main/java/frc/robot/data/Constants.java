@@ -148,11 +148,11 @@ public final class Constants {
     public static final double MAX_TOF = 3;
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
-    public static final boolean MANUAL_SHOOTER_TUNING = true;
+    public static final boolean MANUAL_SHOOTER_TUNING = false;
     public static final boolean SHOOT_ON_MOVE = true;
 
     public enum ManualOverrideTarget {
-      FRONT_CLOSE(Rotation2d.kZero, 1.5),
+      FRONT_CLOSE(Rotation2d.kZero, 3.2),
       TRENCH(Rotation2d.kZero, 5),
       PASS(Rotation2d.kZero, 8);
 
@@ -374,7 +374,8 @@ public final class Constants {
         new NodePoint(2.33, 53.0),
         new NodePoint(3.05, 55.0),
         new NodePoint(3.827, 63),
-        new NodePoint(5.28, 66.5)
+        new NodePoint(5.28, 66.5),
+        new NodePoint(15.5, 94.0) // Super long passing
     };
 
     public static final double RPM_RANGE = 450;
@@ -511,7 +512,8 @@ public final class Constants {
         new NodePoint(2.33, 5.09),
         new NodePoint(3.05, 6.13),
         new NodePoint(3.827, 5.17),
-        new NodePoint(5.28, 13.86)
+        new NodePoint(5.28, 13.86),
+        new NodePoint(15.5, 21) // Super long passing
     };
 
     public static final double ANGLE_RANGE = 1.0;

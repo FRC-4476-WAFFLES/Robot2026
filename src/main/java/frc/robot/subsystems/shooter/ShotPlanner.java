@@ -9,6 +9,8 @@ import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
 
+import com.pathplanner.lib.util.FlippingUtil;
+
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -44,7 +46,7 @@ public class ShotPlanner {
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
-      WafflesUtilities.FlipYIfRedAlliance(passingTargetLeft.getY()));
+      FlippingUtil.fieldSizeY - passingTargetLeft.getY());
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
   private static Rotation2d lastTurretAngle;

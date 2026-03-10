@@ -424,10 +424,11 @@ public class RobotContainer {
             Commands.startEnd(() -> autoWinnerNotSet.set(true), () -> autoWinnerNotSet.set(false)));
 
     // Overrides - Operator Controller
-    Controls.operatorController.y()
-        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
-    Controls.operatorController.b()
-        .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
+    // Temporarily disabledw
+    // Controls.operatorController.y()
+    //     .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
+    // Controls.operatorController.b()
+    //     .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
     Controls.operatorController.a()
         .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.FRONT_CLOSE)));
 
