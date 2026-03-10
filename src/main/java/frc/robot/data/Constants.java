@@ -219,8 +219,6 @@ public final class Constants {
                                                              // for single tag
     public static final double MIN_POSE_DISTANCE_FROM_ORIGIN = 1.0; // Minimum distance from field origin (0,0) in
                                                                     // meters
-    public static final double MEGATAG1_MAX_DISTANCE_THRESHOLD = 1; // Max distance at which MT1 estimates are used raw
-                                                                    // from cameras
     public static final double MAX_YAW_RATE_RADS = 5.0;
     public static final double MAX_YAW_RATE_RADS_GYRO_ESTIMATE = 1.5;
     public static final double MAX_TURRET_YAW_RATE_ROTATIONS = 2;

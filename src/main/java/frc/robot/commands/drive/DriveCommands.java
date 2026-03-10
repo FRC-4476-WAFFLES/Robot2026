@@ -39,7 +39,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Controls;
 import frc.robot.RobotContainer;
 import frc.robot.RobotState;
-import frc.robot.autos.PassThroughTarget;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.utils.vendor.BlueRelativeTarget;

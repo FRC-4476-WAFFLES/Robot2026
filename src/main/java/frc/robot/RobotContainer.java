@@ -26,8 +26,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotState.AutoWinnerOverride;
-import frc.robot.autos.NotOlympic;
-import frc.robot.autos.TemplateAuto;
+import frc.robot.autos.Left;
+import frc.robot.autos.Preload;
+import frc.robot.autos.Right;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -153,7 +154,6 @@ public class RobotContainer {
 
         flywheel = new Flywheel(new FlywheelIOTalonFX());
 
-        // climber = new Climber(new ClimberIOTalonFX());
         climber = new Climber(new ClimberIO() {}); // No climber on robot yet
 
         vision = new Vision(
@@ -304,8 +304,9 @@ public class RobotContainer {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser", AutoBuilder.buildAutoChooser());
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
-      autoChooser.addOption("Template", new TemplateAuto());
-      autoChooser.addOption("Olympic Left", new NotOlympic());
+      autoChooser.addOption("Preload", new Preload());
+      autoChooser.addOption("Left", new Left());
+      autoChooser.addOption("Right", new Right());
       // autoChooser.addOption("OPP2 Lolipop", new OPP2Lolipop());
     }
 

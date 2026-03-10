@@ -15,23 +15,20 @@ import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class NotOlympic extends SequentialCommandGroup {
-  public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  public final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
+public class Left extends SequentialCommandGroup {
+  private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
+  private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(2);
-  public final BlueRelativeTarget point2 = new BlueRelativeTarget(7.65, 6.606, Rotation2d.fromDegrees(-80));
-  public final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 3.4, Rotation2d.fromDegrees(-90))
+  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.5, 7, Rotation2d.fromDegrees(-45));
+  private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.74, 4.5, Rotation2d.fromDegrees(-90))
       .withMaxVelocity(1.5);
-  public final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(0))
+  private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withExitVelocity(1.5);
-  public final BlueRelativeTarget point5 = new BlueRelativeTarget(2.950, 5.2, Rotation2d.fromDegrees(0))
-      .withExitVelocity(2);
-  public final BlueRelativeTarget end = new BlueRelativeTarget(2, 5.2, Rotation2d.fromDegrees(0));
+  private final BlueRelativeTarget end = new BlueRelativeTarget(0.65, 5.95, Rotation2d.fromDegrees(180));
 
-  public NotOlympic() {
-    // AutoPath pathTest = new AutoPath(point1, point2, point3, point4, point5);
-    AutoPath collectBalls = new AutoPath(point2, point3, point4, point5, end)
+  public Left() {
+    AutoPath collectBalls = new AutoPath(point2, point3, point4, end)
         .withPreciseFinish();
 
     addCommands(

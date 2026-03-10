@@ -61,7 +61,7 @@ public class BlueRelativeTarget {
    */
   public BlueRelativeTarget mirror() {
     m_reference = new Pose2d(m_reference.getX(), FlippingUtil.fieldSizeY - m_reference.getY(),
-        m_reference.getRotation().unaryMinus().plus(Rotation2d.k180deg));
+        m_reference.getRotation().unaryMinus());
     if (m_entryAngle.isPresent()) {
       m_entryAngle = Optional.of(m_entryAngle.get().unaryMinus());
     }

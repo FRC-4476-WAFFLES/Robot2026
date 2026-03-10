@@ -7,16 +7,18 @@ package frc.robot.autos;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.commands.drive.DriveCommands;
-import frc.robot.data.AutoCoordinates;
+import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class TemplateAuto extends SequentialCommandGroup {
-  public TemplateAuto() {
+public class Preload extends SequentialCommandGroup {
+  BlueRelativeTarget start = new BlueRelativeTarget(3.570, 4, Rotation2d.fromDegrees(0));
+  BlueRelativeTarget end = new BlueRelativeTarget(2.5, 4, Rotation2d.fromDegrees(0));
+
+  public Preload() {
     addCommands(
-        AutoUtils.resetOdometry(() -> AutoCoordinates.Example, true),
-        DriveCommands.autoToPose(AutoCoordinates.Test),
-        DriveCommands
-            .autoToTarget(new BlueRelativeTarget(AutoCoordinates.Example).withEntryAngle(Rotation2d.kCW_90deg))
+        AutoUtils.resetOdometry(start),
+        DriveCommands.autoToTarget(end),
+        ShooterCommands.shootCommand()
     );
   }
 }
