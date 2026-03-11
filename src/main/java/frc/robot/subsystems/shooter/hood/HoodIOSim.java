@@ -13,7 +13,7 @@ public class HoodIOSim extends HoodIOTalonFX {
   private double setpointPos;
 
   public HoodIOSim() {
-    simState = new SecondOrderSim(2.5, 1, 0, 0);
+    simState = new SecondOrderSim(8, 1, 0, 0);
   }
 
   @Override

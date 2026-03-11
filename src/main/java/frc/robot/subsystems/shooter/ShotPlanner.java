@@ -79,7 +79,7 @@ public class ShotPlanner {
 
       Logger.recordOutput("RobotState/Shooter Target", new Pose2d(fieldTarget, Rotation2d.kZero));
       Logger.recordOutput("RobotState/Turret Position", turretPose);
-      Logger.recordOutput("RobotState/Distance To Target", distanceToTarget);
+      Logger.recordOutput("Turret/Distance To Target", distanceToTarget);
 
       Translation2d currentTarget = fieldTarget;
       // Hastily taken from 6328. Everybody say thank you 6328.
@@ -114,9 +114,9 @@ public class ShotPlanner {
 
         distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget) * 1.2);
 
-        Logger.recordOutput("RobotState/Turret Vel", turretVel);
-        Logger.recordOutput("RobotState/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
-        Logger.recordOutput("RobotState/Adjusted Distance To Target", distanceToTarget);
+        // Logger.recordOutput("RobotState/Turret Vel", turretVel);
+        Logger.recordOutput("Turret/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
+        Logger.recordOutput("Turret/Adjusted Distance To Target", distanceToTarget);
       }
 
       Rotation2d turretAngle = currentTarget.minus(turretPose.getTranslation()).getAngle();

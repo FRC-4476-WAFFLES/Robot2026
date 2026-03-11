@@ -38,6 +38,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
+import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
@@ -352,6 +353,29 @@ public class RobotContainer {
           }
         }
     ).beforeStarting(() -> agitationTimer.restart()).withName("IntakeAgitation"));
+
+    state.shouldAgitate()
+        .whileTrue(Commands.runEnd(
+            () -> {
+              intake.setIntakeSetpoint(IntakeConstants.AGITATION_SPEED);
+              state.setExpanderState(ExpanderState.AGITATING);
+            },
+            () -> {
+              intake.setIntakeSetpoint(0);
+              state.setExpanderState(ExpanderState.EXTENDED);
+            }
+        ));
+
+    state.shouldIntake().whileTrue(Commands.runEnd(
+        () -> {
+          intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED);
+          state.setExpanderState(ExpanderState.INTAKING);
+        },
+        () -> {
+          intake.setIntakeSetpoint(0);
+          state.setExpanderState(ExpanderState.EXTENDED);
+        }, intake
+    ));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {

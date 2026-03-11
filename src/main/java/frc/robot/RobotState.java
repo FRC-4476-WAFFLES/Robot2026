@@ -72,6 +72,16 @@ public class RobotState {
   @AutoLogOutput(key = "Intake/Expander State")
   private ExpanderState expanderState = ExpanderState.STOWED;
 
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Shooting")
+  private boolean isShooting = false;
+
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Intaking")
+  private boolean isIntaking = false;
+
   /*                       */
   /* Latency Compensation */
   /*                       */
@@ -281,6 +291,14 @@ public class RobotState {
 
   public Trigger shouldFireManual() {
     return Controls.shootButton.and(manualMode());
+  }
+
+  public Trigger shouldAgitate() {
+    return new Trigger(() -> isShooting && !isIntaking);
+  }
+
+  public Trigger shouldIntake() {
+    return new Trigger(() -> isIntaking);
   }
 
   public Trigger shouldStabilize() {
