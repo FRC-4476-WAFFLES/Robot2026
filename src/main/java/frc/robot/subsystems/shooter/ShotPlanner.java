@@ -106,7 +106,7 @@ public class ShotPlanner {
 
           currentDistance = currentTarget.getDistance(turretPose.getTranslation());
 
-          if (previousTimeOfFlight != Double.NaN && Math.abs(timeOfFlight - previousTimeOfFlight) < 0.1) {
+          if (previousTimeOfFlight != Double.NaN && Math.abs(timeOfFlight - previousTimeOfFlight) < 0.02) {
             break;
           }
           previousTimeOfFlight = timeOfFlight;
@@ -114,6 +114,7 @@ public class ShotPlanner {
 
         distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget) * 1.2);
 
+        Logger.recordOutput("RobotState/Turret Vel", turretVel);
         Logger.recordOutput("RobotState/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
         Logger.recordOutput("RobotState/Adjusted Distance To Target", distanceToTarget);
       }

@@ -88,6 +88,7 @@ public class RobotState {
       .createBuffer(CodeConstants.TELEMETRY_LOOKBACK_TIME);
 
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
+  private ChassisSpeeds latestFieldSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
 
   private static final APConstraints autopilotConstraints = new APConstraints()
@@ -154,7 +155,7 @@ public class RobotState {
    */
   @AutoLogOutput(key = "RobotState/FieldVelocity")
   public ChassisSpeeds getFieldVelocity() {
-    return ChassisSpeeds.fromRobotRelativeSpeeds(latestChassisSpeeds, getRotation());
+    return latestFieldSpeeds;
   }
 
   /**
@@ -192,6 +193,7 @@ public class RobotState {
     poseHistoryBuffer.addSample(timestamp, pose);
     yawVelocityHistoryBuffer.addSample(timestamp, chassisSpeeds.omegaRadiansPerSecond);
     latestChassisSpeeds = chassisSpeeds;
+    latestFieldSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(latestChassisSpeeds, getRotation());
     latestPose = pose;
   }
 
@@ -279,6 +281,10 @@ public class RobotState {
 
   public Trigger shouldFireManual() {
     return Controls.shootButton.and(manualMode());
+  }
+
+  public Trigger shouldStabilize() {
+    return Controls.shootButton;
   }
   // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
   // if (expanderState == ExpanderState.EXTENDED) {

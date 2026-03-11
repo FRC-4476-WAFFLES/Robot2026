@@ -61,6 +61,7 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
+import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
 import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
@@ -147,7 +148,7 @@ public class RobotContainer {
 
         hood = new Hood(new HoodIOTalonFX());
 
-        intake = new Intake(new IntakeIO() {});
+        intake = new Intake(new IntakeIOTalonFX() {});
 
         indexer = new Indexer(new IndexerIOTalonFX());
 

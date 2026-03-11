@@ -63,6 +63,9 @@ public class DriveCommands {
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,
       DoubleSupplier omegaSupplier) {
+
+    SlewRateLimiting limiter = new SlewRateLimiting();
+
     return Commands.run(
         () -> {
           // Get linear velocity
@@ -79,6 +82,22 @@ public class DriveCommands {
               linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
               linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
               omega * drive.getMaxAngularSpeedRadPerSec());
+
+          boolean limitSlew = RobotContainer.state.shouldStabilize().getAsBoolean();
+          if (limitSlew) {
+            if (!limiter.slewInitialized) {
+              limiter.xLimiter.reset(speeds.vxMetersPerSecond);
+              limiter.yLimiter.reset(speeds.vyMetersPerSecond);
+              limiter.omegaLimiter.reset(speeds.omegaRadiansPerSecond);
+              limiter.slewInitialized = true;
+            }
+            speeds.vxMetersPerSecond = limiter.xLimiter.calculate(speeds.vxMetersPerSecond);
+            speeds.vyMetersPerSecond = limiter.yLimiter.calculate(speeds.vyMetersPerSecond);
+            speeds.omegaRadiansPerSecond = limiter.omegaLimiter.calculate(speeds.omegaRadiansPerSecond);
+          } else {
+            limiter.slewInitialized = false;
+          }
+
           boolean isFlipped = DriverStation.getAlliance().isPresent()
               && DriverStation.getAlliance().get() == Alliance.Red;
 
@@ -93,6 +112,15 @@ public class DriveCommands {
         },
         drive)
         .withName("Joystick Drive");
+  }
+
+  private static class SlewRateLimiting {
+    // For acceleration limiting while shooting
+    SlewRateLimiter xLimiter = new SlewRateLimiter(CodeConstants.SOTM_SLEW_LIMIT);
+    SlewRateLimiter yLimiter = new SlewRateLimiter(CodeConstants.SOTM_SLEW_LIMIT);
+    SlewRateLimiter omegaLimiter = new SlewRateLimiter(CodeConstants.SOTM_ANGLE_SLEW_LIMIT);
+
+    Boolean slewInitialized = false;
   }
 
   public static Command testDrive(
