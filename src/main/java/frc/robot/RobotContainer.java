@@ -61,7 +61,6 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
-import frc.robot.subsystems.intake.IntakeIOTalonFX;
 import frc.robot.subsystems.lights.Lights;
 import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
@@ -148,7 +147,7 @@ public class RobotContainer {
 
         hood = new Hood(new HoodIOTalonFX());
 
-        intake = new Intake(new IntakeIOTalonFX());
+        intake = new Intake(new IntakeIO() {});
 
         indexer = new Indexer(new IndexerIOTalonFX());
 
@@ -426,9 +425,11 @@ public class RobotContainer {
     // Overrides - Operator Controller
     // Temporarily disabledw
     // Controls.operatorController.y()
-    //     .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
+    // .onTrue(Commands.runOnce(() ->
+    // state.setManualOverrideTarget(ManualOverrideTarget.PASS)));
     // Controls.operatorController.b()
-    //     .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
+    // .onTrue(Commands.runOnce(() ->
+    // state.setManualOverrideTarget(ManualOverrideTarget.TRENCH)));
     Controls.operatorController.a()
         .onTrue(Commands.runOnce(() -> state.setManualOverrideTarget(ManualOverrideTarget.FRONT_CLOSE)));
 

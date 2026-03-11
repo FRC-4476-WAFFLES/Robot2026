@@ -54,7 +54,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void runFlywheelVelocity(double velocity, double feedForward) {
-    flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity).withFeedForward(feedForward));
+    flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity));
+    // flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity).withFeedForward(feedForward));
     flywheel1.setControl(followerRequest);
   }
 
@@ -72,11 +73,11 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     flywheelConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FLYWHEEL_REDUCTION;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 5;
+    slot0Configs.kP = 9;
     slot0Configs.kI = 0;
     slot0Configs.kD = 0;
-    slot0Configs.kS = 10;
-    slot0Configs.kV = 0.094;
+    slot0Configs.kS = 7.5;
+    slot0Configs.kV = 0.0175;
     slot0Configs.kG = 0.0;
     flywheelConfigs.Slot0 = slot0Configs;
 

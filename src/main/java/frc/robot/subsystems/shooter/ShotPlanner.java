@@ -99,7 +99,7 @@ public class ShotPlanner {
 
         double previousTimeOfFlight = Double.NaN;
         double currentDistance = distanceToTarget;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
           currentTarget = fieldTarget.minus(turretVel.times(timeOfFlight));
@@ -112,10 +112,10 @@ public class ShotPlanner {
           previousTimeOfFlight = timeOfFlight;
         }
 
-        distanceToTarget = currentDistance;
+        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget) * 1.2);
 
         Logger.recordOutput("RobotState/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
-        Logger.recordOutput("RobotState/Adjusted Distance To Target", currentDistance);
+        Logger.recordOutput("RobotState/Adjusted Distance To Target", distanceToTarget);
       }
 
       Rotation2d turretAngle = currentTarget.minus(turretPose.getTranslation()).getAngle();

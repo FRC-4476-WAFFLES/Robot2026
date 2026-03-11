@@ -137,12 +137,9 @@ public final class Constants {
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
 
     public static final NodePoint[] TimeofFlightMap = new NodePoint[] {
-        new NodePoint(1.5, 0.82),
-        new NodePoint(1.884, 1.17),
-        new NodePoint(2.33, 1.08),
-        new NodePoint(3.05, 1.27),
-        new NodePoint(3.827, 1.44),
-        new NodePoint(5.28, 1.23)
+        new NodePoint(1.8, 0.97),
+        new NodePoint(3.175, 1.34),
+        new NodePoint(4.778, 1.55)
     };
     public static final double MIN_TOF = 1;
     public static final double MAX_TOF = 3;
@@ -271,7 +268,7 @@ public final class Constants {
     // In number of motor rotations per mechanism rotation
     public static final double TURRET_REDUCTION = 19.5556;
     public static final double EXPANDER_REDUCTION = 111.2142825;
-    public static final double FLYWHEEL_REDUCTION = 0.5000;
+    public static final double FLYWHEEL_REDUCTION = 1;
     public static final double INDEXER_REDUCTION = 5.33333;
     public static final double INTAKE_REDUCTION = 3;
     public static final double HOOD_REDUCTION = 73.3333;
@@ -326,12 +323,12 @@ public final class Constants {
 
     public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-45); // Facing diagonally back into robot
 
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-170); // Can be up to +/- 360 deg
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-200); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(170);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(200);
 
     public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 15;
+    public static final double MAX_ACCELERATION = 10;
 
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
 
@@ -369,13 +366,13 @@ public final class Constants {
 
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(1.5, 42.6),
-        new NodePoint(1.884, 50.34),
-        new NodePoint(2.33, 53.0),
-        new NodePoint(3.05, 55.0),
-        new NodePoint(3.827, 63),
-        new NodePoint(5.28, 66.5),
-        new NodePoint(15.5, 94.0) // Super long passing
+        new NodePoint(1.5, 40),
+        new NodePoint(1.884, 41),
+        new NodePoint(2.33, 44.0),
+        new NodePoint(3.05, 51.0),
+        new NodePoint(3.827, 57.5),
+        new NodePoint(5.28, 60.5),
+        new NodePoint(12.5, 94.0) // Super long passing
     };
 
     public static final double RPM_RANGE = 450;
@@ -509,14 +506,14 @@ public final class Constants {
     public static final NodePoint[] DistanceMap = new NodePoint[] {
         new NodePoint(1.5, 0),
         new NodePoint(1.884, 3.09),
-        new NodePoint(2.33, 5.09),
+        new NodePoint(2.33, 6.09),
         new NodePoint(3.05, 6.13),
         new NodePoint(3.827, 5.17),
         new NodePoint(5.28, 13.86),
         new NodePoint(15.5, 21) // Super long passing
     };
 
-    public static final double ANGLE_RANGE = 1.0;
+    public static final double ANGLE_RANGE = 2.0;
   }
 
   public static class ClimberConstants {
