@@ -7,6 +7,10 @@ import com.ctre.phoenix6.CANBus.CANBusStatus;
 
 import edu.wpi.first.hal.can.CANJNI;
 import edu.wpi.first.hal.can.CANStatus;
+import edu.wpi.first.networktables.DoubleArrayPublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -78,6 +82,11 @@ public class Telemetry extends VirtualSubsystem {
   private final Alert operatorControllerDisconnected = new Alert("Operator controller disconnected [port 2].",
       AlertType.kWarning);
 
+  // Dashboard pose test
+  private final NetworkTable table = NetworkTableInstance.getDefault().getTable("DashboardPose");
+  private final DoubleArrayPublisher fieldPub = table.getDoubleArrayTopic("robotPose").publish();
+  private final StringPublisher fieldTypePub = table.getStringTopic(".type").publish();
+
   /**
    * Construct a telemetry subsystem
    */
@@ -108,6 +117,13 @@ public class Telemetry extends VirtualSubsystem {
 
       checkVisionFault();
 
+      var pose = RobotContainer.state.getPose();
+      fieldTypePub.set("Field2d");
+      fieldPub.set(new double[] {
+          pose.getX(),
+          pose.getY(),
+          pose.getRotation().getDegrees()
+      });
     }
     EpochTimer.EndEpoch("Telemetry");
   }
