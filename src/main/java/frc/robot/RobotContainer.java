@@ -27,6 +27,7 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotState.AutoWinnerOverride;
 import frc.robot.autos.Left;
+import frc.robot.autos.LeftSimple;
 import frc.robot.autos.Preload;
 import frc.robot.autos.Right;
 import frc.robot.commands.drive.DriveCommands;
@@ -307,8 +308,8 @@ public class RobotContainer {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
       autoChooser.addOption("Preload", new Preload());
       autoChooser.addOption("Left", new Left());
+      autoChooser.addOption("Left Simple", new LeftSimple());
       autoChooser.addOption("Right", new Right());
-      // autoChooser.addOption("OPP2 Lolipop", new OPP2Lolipop());
     }
 
     testChooser = new LoggedDashboardChooser<>("Test Chooser", buildTestChooser());
