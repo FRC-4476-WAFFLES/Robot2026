@@ -21,7 +21,8 @@ public class Intake extends SubsystemBase {
     STOWED,
     EXTENDED,
     INTAKING,
-    AGITATING
+    AGITATING,
+    FULLY_AGITATING
   }
 
   private final IntakeIO io;

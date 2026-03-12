@@ -116,15 +116,15 @@ public final class Constants {
     public static final double BASE_CAN_FREQUENCY = 50;
     public static final double LOW_IMPORTANCE_CAN_FREQUENCY = 20;
 
-    public static final double ON_BUMP_TILT = 8.0; // Degrees, how much off vertical axis is considered the bump
+    public static final double ON_BUMP_TILT = 9.5; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
     public static final double AUTO_MAX_ACCEL = 3.0;
     public static final double AUTO_MAX_JERK = 4.0;
 
     public static final double AUTO_SLEW_LIMIT = 4.4;
-    public static final double SOTM_SLEW_LIMIT = 2.5;
-    public static final double SOTM_ANGLE_SLEW_LIMIT = 1;
+    public static final double SOTM_SLEW_LIMIT = 3.5;
+    public static final double SOTM_ANGLE_SLEW_LIMIT = 2;
 
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;

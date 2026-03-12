@@ -346,19 +346,29 @@ public class RobotContainer {
     Timer agitationTimer = new Timer();
     state.expanderAgitating().whileTrue(Commands.run(
         () -> {
-          if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
-            intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX);
+          if (state.getExpanderState() == ExpanderState.FULLY_AGITATING ||
+              (state.isForceIntakeIn() && state.autonomousEnabled())) {
+            intake.setExpanderSetpoint(ExpanderPosition.STOWED);
           } else {
-            intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+            if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
+              intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX);
+            } else {
+              intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+            }
           }
         }
     ).beforeStarting(() -> agitationTimer.restart()).withName("IntakeAgitation"));
 
+    var fullMotionAgitation = Controls.operatorController.leftTrigger();
     state.shouldAgitate()
         .whileTrue(Commands.runEnd(
             () -> {
+              if (fullMotionAgitation.getAsBoolean()) {
+                state.setExpanderState(ExpanderState.FULLY_AGITATING);
+              } else {
+                state.setExpanderState(ExpanderState.AGITATING);
+              }
               intake.setIntakeSetpoint(IntakeConstants.AGITATION_SPEED);
-              state.setExpanderState(ExpanderState.AGITATING);
             },
             () -> {
               intake.setIntakeSetpoint(0);

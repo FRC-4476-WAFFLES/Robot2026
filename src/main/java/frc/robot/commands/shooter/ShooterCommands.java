@@ -4,6 +4,7 @@
 
 package frc.robot.commands.shooter;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
@@ -23,6 +24,19 @@ public class ShooterCommands {
         .beforeStarting(() -> RobotContainer.state.setShooting(true))
         .finallyDo(() -> RobotContainer.state.setShooting(false))
         .withName("Fire shot");
+  }
+
+  public static Command shootAutoCommand(double delay) {
+    Timer timer = new Timer();
+    return Commands.parallel(
+        shootCommand(),
+        Commands.sequence(
+            Commands.waitUntil(() -> timer.get() > delay),
+            Commands.runOnce(() -> RobotContainer.state.setForceIntakeIn(true))
+        )
+    )
+        .beforeStarting(() -> timer.restart())
+        .finallyDo(() -> RobotContainer.state.setForceIntakeIn(false));
   }
 
   public static Command backoffIndexer() {

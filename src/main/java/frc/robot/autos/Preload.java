@@ -11,14 +11,14 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class Preload extends SequentialCommandGroup {
-  BlueRelativeTarget start = new BlueRelativeTarget(3.570, 4, Rotation2d.fromDegrees(0));
-  BlueRelativeTarget end = new BlueRelativeTarget(2.5, 4, Rotation2d.fromDegrees(0));
+  BlueRelativeTarget start = new BlueRelativeTarget(3.450, 4, Rotation2d.fromDegrees(90));
+  BlueRelativeTarget end = new BlueRelativeTarget(2.5, 4, Rotation2d.fromDegrees(90));
 
   public Preload() {
     addCommands(
         AutoUtils.resetOdometry(start),
         DriveCommands.autoToTarget(end),
-        ShooterCommands.shootCommand()
+        ShooterCommands.shootAutoCommand(5)
     );
   }
 }

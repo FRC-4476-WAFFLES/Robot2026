@@ -82,6 +82,11 @@ public class RobotState {
   @AutoLogOutput(key = "RobotState/Intaking")
   private boolean isIntaking = false;
 
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Force Intake In")
+  private boolean forceIntakeIn = false;
+
   /*                       */
   /* Latency Compensation */
   /*                       */
@@ -322,6 +327,7 @@ public class RobotState {
   }
 
   public Trigger expanderAgitating() {
-    return new Trigger(() -> expanderState == ExpanderState.AGITATING);
+    return new Trigger(
+        () -> (expanderState == ExpanderState.FULLY_AGITATING || expanderState == ExpanderState.AGITATING));
   }
 }
