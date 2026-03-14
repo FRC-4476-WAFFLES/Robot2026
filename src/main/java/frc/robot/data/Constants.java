@@ -333,7 +333,7 @@ public final class Constants {
     public static final double MAX_VELOCITY = 10;
     public static final double MAX_ACCELERATION = 8;
 
-    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
+    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(12);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
