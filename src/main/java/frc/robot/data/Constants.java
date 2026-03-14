@@ -330,7 +330,7 @@ public final class Constants {
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(200);
 
     public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 10;
+    public static final double MAX_ACCELERATION = 8;
 
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
 
@@ -371,9 +371,10 @@ public final class Constants {
         new NodePoint(1.5, 40),
         new NodePoint(1.884, 41),
         new NodePoint(2.33, 44.0),
-        new NodePoint(3.05, 51.0),
-        new NodePoint(3.827, 57.5),
+        new NodePoint(3.05, 49.0),
+        new NodePoint(3.827, 54.5),
         new NodePoint(5.28, 60.5),
+        new NodePoint(7.022, 63.0),
         new NodePoint(12.5, 94.0) // Super long passing
     };
 
