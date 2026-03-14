@@ -29,15 +29,20 @@ public class ShooterCommands {
   public static Command shootAutoCommand(double delay) {
     Timer timer = new Timer();
     return Commands.parallel(
-        shootCommand(),
+        Commands.repeatingSequence( // Handle turret wrap event
+            shootCommand().until(() -> !RobotContainer.turret.atGoal()),
+            backoffIndexer().until(() -> RobotContainer.turret.atGoal())
+        ),
         Commands.sequence(
             Commands.waitUntil(() -> timer.get() > delay),
             Commands.runOnce(() -> RobotContainer.state.setForceIntakeIn(true))
         )
     )
         .beforeStarting(() -> timer.restart())
-        .finallyDo(() -> RobotContainer.state.setForceIntakeIn(false))
-        .withName("Fire shot");
+        .finallyDo(() -> {
+          RobotContainer.state.setForceIntakeIn(false);
+          RobotContainer.indexer.stopIndexer();
+        });
   }
 
   public static Command backoffIndexer() {

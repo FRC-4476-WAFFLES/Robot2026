@@ -1,6 +1,7 @@
 package frc.robot.subsystems.indexer;
 
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.lib.SecondOrderSim;
 
 public class IndexerIOSim extends IndexerIOTalonFX {
@@ -20,11 +21,11 @@ public class IndexerIOSim extends IndexerIOTalonFX {
   public void updateInputs(IndexerIOInputs inputs) {
     var indexerSim = indexer1.getSimState();
     var simResult0 = indexerSimState.Evaluate(setpointIndexer, CodeConstants.PERIODIC_LOOP_TIME);
-    indexerSim.setRotorVelocity(simResult0.get(0));
+    indexerSim.setRotorVelocity(simResult0.get(0) * PhysicalConstants.INDEXER_REDUCTION);
 
     var feederSim = feeder.getSimState();
     var simResult1 = feederSimState.Evaluate(setpointFeeder, CodeConstants.PERIODIC_LOOP_TIME);
-    feederSim.setRotorVelocity(simResult1.get(0));
+    feederSim.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);
 
     super.updateInputs(inputs);
   }

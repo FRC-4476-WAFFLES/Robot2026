@@ -122,7 +122,8 @@ public final class Constants {
     public static final double AUTO_MAX_ACCEL = 3.0;
     public static final double AUTO_MAX_JERK = 4.0;
 
-    public static final double AUTO_SLEW_LIMIT = 4.4;
+    public static final double AUTO_SLEW_LIMIT = 10; // Ignore. Optionally make lower than AUTO_MAX_ACCEL to smooth
+                                                     // transitions in path
     public static final double SOTM_SLEW_LIMIT = 3.5;
     public static final double SOTM_ANGLE_SLEW_LIMIT = 2;
 
