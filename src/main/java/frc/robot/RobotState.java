@@ -291,7 +291,7 @@ public class RobotState {
     return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
         RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
     ).and(Controls.shootButton).and(shooterDisabled().negate()).and(normalMode()).and(() -> robotEnabled())
-        .and(() -> hubEnabled());
+        .and(() -> shooterState == shooterState.TARGET_HUB ? hubEnabled() : true);
   }
 
   public Trigger shouldFireManual() {

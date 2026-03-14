@@ -36,7 +36,8 @@ public class ShooterCommands {
         )
     )
         .beforeStarting(() -> timer.restart())
-        .finallyDo(() -> RobotContainer.state.setForceIntakeIn(false));
+        .finallyDo(() -> RobotContainer.state.setForceIntakeIn(false))
+        .withName("Fire shot");
   }
 
   public static Command backoffIndexer() {
