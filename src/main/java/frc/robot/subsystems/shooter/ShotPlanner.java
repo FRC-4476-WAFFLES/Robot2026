@@ -112,7 +112,7 @@ public class ShotPlanner {
           previousTimeOfFlight = timeOfFlight;
         }
 
-        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget) * 1.2);
+        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget));
 
         // Logger.recordOutput("RobotState/Turret Vel", turretVel);
         Logger.recordOutput("Turret/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));

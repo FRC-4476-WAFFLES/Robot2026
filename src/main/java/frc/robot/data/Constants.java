@@ -118,9 +118,9 @@ public final class Constants {
 
     public static final double ON_BUMP_TILT = 9.5; // Degrees, how much off vertical axis is considered the bump
 
-    public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 3.0;
-    public static final double AUTO_MAX_JERK = 4.0;
+    public static final double AUTO_MAX_SPEED = 2.5; // Not respected by autopilot
+    public static final double AUTO_MAX_ACCEL = 7.0;
+    public static final double AUTO_MAX_JERK = 10.0;
 
     public static final double AUTO_SLEW_LIMIT = 10; // Ignore. Optionally make lower than AUTO_MAX_ACCEL to smooth
                                                      // transitions in path
@@ -374,6 +374,7 @@ public final class Constants {
         new NodePoint(2.33, 44.0),
         new NodePoint(3.05, 49.0),
         new NodePoint(3.827, 54.5),
+        new NodePoint(4.31, 57.5),
         new NodePoint(5.28, 60.5),
         new NodePoint(7.022, 63.0),
         new NodePoint(12.5, 94.0) // Super long passing
