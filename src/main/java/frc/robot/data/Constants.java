@@ -120,7 +120,7 @@ public final class Constants {
 
     public static final double AUTO_MAX_SPEED = 2.5; // Not respected by autopilot
     public static final double AUTO_MAX_ACCEL = 7.0;
-    public static final double AUTO_MAX_JERK = 10.0;
+    public static final double AUTO_MAX_JERK = 6.0;
 
     public static final double AUTO_SLEW_LIMIT = 10; // Ignore. Optionally make lower than AUTO_MAX_ACCEL to smooth
                                                      // transitions in path

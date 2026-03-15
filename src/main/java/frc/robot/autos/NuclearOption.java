@@ -17,21 +17,24 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class NuclearOption extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget middle = new BlueRelativeTarget(8.2, 5.6, Rotation2d.fromDegrees(-2.5))
-      .withExitVelocity(3);
+  private final BlueRelativeTarget depkoyIntake = new BlueRelativeTarget(6, 5.8, Rotation2d.fromDegrees(0));
+
+  private final BlueRelativeTarget middle = new BlueRelativeTarget(8.0, 5.6, Rotation2d.fromDegrees(0));
   private final BlueRelativeTarget sweep = new BlueRelativeTarget(8.2, 4.3, Rotation2d.fromDegrees(-90));
   private final BlueRelativeTarget point3 = new BlueRelativeTarget(6.691, 4.3, Rotation2d.fromDegrees(180));
   private final BlueRelativeTarget point4 = new BlueRelativeTarget(6.213, 5.516, Rotation2d.fromDegrees(112));
+  private final BlueRelativeTarget point5 = new BlueRelativeTarget(3.2, 5.516, Rotation2d.fromDegrees(112))
+      .withMaxVelocity(1.5);
   private final BlueRelativeTarget end = new BlueRelativeTarget(0.60, 5.95, Rotation2d.fromDegrees(180));
 
   public NuclearOption() {
-    AutoPath collectPath = new AutoPath(sweep, point3, point4, end)
+    AutoPath collectPath = new AutoPath(middle, sweep, point3, point4, point5, end)
         .withPreciseFinish();
 
     addCommands(
         AutoUtils.resetOdometry(start),
 
-        DriveCommands.passThroughTarget(middle),
+        DriveCommands.passThroughTarget(depkoyIntake),
 
         Commands.parallel(
             Commands.sequence(
