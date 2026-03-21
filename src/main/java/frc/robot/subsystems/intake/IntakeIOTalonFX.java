@@ -152,4 +152,10 @@ public class IntakeIOTalonFX implements IntakeIO {
   public void setExpanderPosition(double position) {
     expander.setPosition(position);
   }
+
+  @Override
+  public void runIntakeDutyCycle(double dutyCycle) {
+    intake0.set(MathUtil.clamp(dutyCycle, -1, 1));
+    intake1.setControl(followerRequest);
+  }
 }

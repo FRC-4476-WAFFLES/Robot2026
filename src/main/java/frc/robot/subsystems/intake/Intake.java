@@ -31,7 +31,7 @@ public class Intake extends SubsystemBase {
   @AutoLogOutput(key = "Intake/Expander Zeroed")
   private boolean expanderZeroed = true; // Assume started against hard stop
   @AutoLogOutput(key = "Intake/Intake Goal Velocity")
-  private double intakeGoalVelocity = 0;
+  private double intakeGoalDutyCycle = 0;
   @AutoLogOutput(key = "Intake/Expander Setpoint")
   private double expanderSetpoint = 0;
 
@@ -53,11 +53,11 @@ public class Intake extends SubsystemBase {
       Logger.processInputs("Inputs/Intake", inputs);
 
       if (!RobotContainer.state.robotEnabled()) {
-        io.runIntakeVelocity(0);
+        io.runIntakeDutyCycle(0);
         return;
       }
 
-      io.runIntakeVelocity(intakeGoalVelocity);
+      io.runIntakeDutyCycle(intakeGoalDutyCycle);
 
       if (!expanderZeroed) {
         // Zeroing: run expander into hard stop until torque threshold is held
@@ -79,8 +79,8 @@ public class Intake extends SubsystemBase {
     expanderZeroed = false;
   }
 
-  public void setIntakeSetpoint(double velocity) {
-    intakeGoalVelocity = velocity;
+  public void setIntakeDutyCycle(double dutyCycle) {
+    intakeGoalDutyCycle = dutyCycle;
   }
 
   public void setExpanderSetpoint(double setpoint) {

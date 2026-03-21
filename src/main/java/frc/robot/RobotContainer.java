@@ -371,21 +371,21 @@ public class RobotContainer {
               } else {
                 state.setExpanderState(ExpanderState.AGITATING);
               }
-              intake.setIntakeSetpoint(IntakeConstants.AGITATION_SPEED);
+              intake.setIntakeDutyCycle(IntakeConstants.AGITATION_SPEED);
             },
             () -> {
-              intake.setIntakeSetpoint(0);
+              intake.setIntakeDutyCycle(0);
               state.setExpanderState(ExpanderState.EXTENDED);
             }
         ));
 
     state.shouldIntake().whileTrue(Commands.runEnd(
         () -> {
-          intake.setIntakeSetpoint(IntakeConstants.INTAKE_SPEED);
+          intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE);
           state.setExpanderState(ExpanderState.INTAKING);
         },
         () -> {
-          intake.setIntakeSetpoint(0);
+          intake.setIntakeDutyCycle(0);
           state.setExpanderState(ExpanderState.EXTENDED);
         }, intake
     ));

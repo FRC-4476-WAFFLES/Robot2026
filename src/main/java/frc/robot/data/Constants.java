@@ -470,11 +470,8 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_SPEED = 28;
-    public static final double AGITATION_SPEED = 5;
-
-    public static final double MAX_ACCELERATION = 8;
-    public static final double MAX_JERK = 200;
+    public static final double INTAKE_DUTY_CYCLE = 0.8; // Was 28rps with velocity control
+    public static final double AGITATION_SPEED = 0.3; // Was 5 rps with velocity control
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
