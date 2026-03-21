@@ -68,7 +68,7 @@ public class GyroIOPigeon2 implements GyroIO {
     // The gravity vector as [X, Y, Z]
     // On a flat surface, X and Y are near 0, and Z is near 1
     // Except we are upside down
-    double gz = -pigeon.getGravityVectorZ().getValueAsDouble();
+    double gz = pigeon.getGravityVectorZ().getValueAsDouble();
     double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
     double tiltDeg = Math.toDegrees(tiltRad);
     Logger.recordOutput("TiltDeg", tiltDeg);

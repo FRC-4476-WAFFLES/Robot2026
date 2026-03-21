@@ -44,7 +44,7 @@ public class ShotPlanner {
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
-  public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1);
+  public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1.5);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
       FlippingUtil.fieldSizeY - passingTargetLeft.getY());
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
@@ -112,7 +112,7 @@ public class ShotPlanner {
           previousTimeOfFlight = timeOfFlight;
         }
 
-        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget) * 1.2);
+        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget));
 
         // Logger.recordOutput("RobotState/Turret Vel", turretVel);
         Logger.recordOutput("Turret/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));

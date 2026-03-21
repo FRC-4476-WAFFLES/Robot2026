@@ -15,35 +15,35 @@ import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class LeftSimple extends SequentialCommandGroup {
+public class NuclearOption extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(6);
-  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.9, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
-      .withMaxVelocity(2.0);
-  private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(180))
-      .withEntryAngle(Rotation2d.fromDegrees(-180))
-      .withExitVelocity(0.7);
+  private final BlueRelativeTarget depkoyIntake = new BlueRelativeTarget(6, 5.8, Rotation2d.fromDegrees(0));
+
+  private final BlueRelativeTarget middle = new BlueRelativeTarget(8.0, 5.6, Rotation2d.fromDegrees(0));
+  private final BlueRelativeTarget sweep = new BlueRelativeTarget(8.2, 4.3, Rotation2d.fromDegrees(-90));
+  private final BlueRelativeTarget point3 = new BlueRelativeTarget(6.691, 4.3, Rotation2d.fromDegrees(180));
+  private final BlueRelativeTarget point4 = new BlueRelativeTarget(6.213, 5.516, Rotation2d.fromDegrees(112));
+  private final BlueRelativeTarget point5 = new BlueRelativeTarget(3.2, 5.516, Rotation2d.fromDegrees(112))
+      .withMaxVelocity(1.5);
   private final BlueRelativeTarget end = new BlueRelativeTarget(0.60, 5.95, Rotation2d.fromDegrees(180));
 
-  public LeftSimple() {
-    AutoPath collectBalls = new AutoPath(point2, point3, point4, end)
+  public NuclearOption() {
+    AutoPath collectPath = new AutoPath(middle, sweep, point3, point4, point5, end)
         .withPreciseFinish();
 
     addCommands(
         AutoUtils.resetOdometry(start),
 
-        DriveCommands.passThroughTarget(point1),
+        DriveCommands.passThroughTarget(depkoyIntake),
 
         Commands.parallel(
             Commands.sequence(
                 IntakeCommands.intakeCommand()
-                    .until(() -> RobotContainer.state.getShooterState() == ShooterState.TARGET_HUB &&
-                        RobotContainer.state.notMoving()),
+                    .until(() -> RobotContainer.state.getShooterState() == ShooterState.TARGET_HUB),
+                Commands.waitSeconds(1),
                 ShooterCommands.shootAutoCommand(8)
             ),
-            collectBalls.follow()
+            collectPath.follow()
         )
     );
   }

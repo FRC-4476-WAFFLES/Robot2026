@@ -17,15 +17,15 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class Right extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(2);
-  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.4, 6.9, Rotation2d.fromDegrees(-45));
-  private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.55, 4.5, Rotation2d.fromDegrees(-90))
+  private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
+      .withExitVelocity(9);
+  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.9, Rotation2d.fromDegrees(-45));
+  private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
       .withMaxVelocity(1.5);
-  private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(0))
+  private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withExitVelocity(0.7);
-  private final BlueRelativeTarget end = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
+  private final BlueRelativeTarget end = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
   public Right() {
     AutoPath collectBalls = new AutoPath(point2, point3, point4, end)

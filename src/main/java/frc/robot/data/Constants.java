@@ -118,11 +118,12 @@ public final class Constants {
 
     public static final double ON_BUMP_TILT = 9.5; // Degrees, how much off vertical axis is considered the bump
 
-    public static final double AUTO_MAX_SPEED = 2; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 3.0;
-    public static final double AUTO_MAX_JERK = 4.0;
+    public static final double AUTO_MAX_SPEED = 2.5; // Not respected by autopilot
+    public static final double AUTO_MAX_ACCEL = 9.0;
+    public static final double AUTO_MAX_JERK = 8.0;
 
-    public static final double AUTO_SLEW_LIMIT = 4.4;
+    public static final double AUTO_SLEW_LIMIT = 10; // Ignore. Optionally make lower than AUTO_MAX_ACCEL to smooth
+                                                     // transitions in path
     public static final double SOTM_SLEW_LIMIT = 3.5;
     public static final double SOTM_ANGLE_SLEW_LIMIT = 2;
 
@@ -330,16 +331,16 @@ public final class Constants {
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(200);
 
     public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 10;
+    public static final double MAX_ACCELERATION = 8;
 
-    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(8);
+    public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(12);
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
     public static final double MOTOR_kP = 55;
     public static final double MOTOR_kD = 3;
-    public static final double MOTOR_kS = 0.4;
+    public static final double MOTOR_kS = 0.42;
     public static final double MOTOR_kV = 5;
     public static final double MOTOR_kA = 0;
 
@@ -371,9 +372,11 @@ public final class Constants {
         new NodePoint(1.5, 40),
         new NodePoint(1.884, 41),
         new NodePoint(2.33, 44.0),
-        new NodePoint(3.05, 51.0),
-        new NodePoint(3.827, 57.5),
+        new NodePoint(3.05, 49.0),
+        new NodePoint(3.827, 54.5),
+        new NodePoint(4.31, 57.5),
         new NodePoint(5.28, 60.5),
+        new NodePoint(7.022, 63.0),
         new NodePoint(12.5, 94.0) // Super long passing
     };
 
