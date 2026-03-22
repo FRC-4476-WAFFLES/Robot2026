@@ -18,6 +18,8 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.VisionConstants;
@@ -38,6 +40,16 @@ public class Vision extends VirtualSubsystem {
   public final TagCamera frameCamera;
   public final TagCamera turretCamera;
 
+  public int highTrustEstimatesLeft = 0;
+  public final Trigger onGround = new Trigger(() -> {
+    return !RobotContainer.state.onBump;
+  }).onTrue(Commands.runOnce(() -> {
+    highTrustEstimatesLeft = 5;
+  }));
+  // public final Trigger returnToNormal = new Trigger(() ->
+  // shouldReturnToNormal).debounce(0.1)
+  // .onTrue(Commands.runOnce(() -> justCrossedBump = false));
+
   public Vision(VisionIO frameIO, VisionIO turretIO) {
     frameCamera = new TagCamera(frameIO,
         VisionConstants.LIMELIGHT_NAME_FRAME, (timestamp) -> PhysicalConstants.ROBOT_TO_FRAME_CAMERA_PARTIAL);
@@ -54,7 +66,7 @@ public class Vision extends VirtualSubsystem {
       var frameEstimate = frameCamera.update(false);
       var turretEstimate = turretCamera.update(true);
 
-      if ((RobotContainer.state.onBump || RobotContainer.state.isManualMode()) && RobotContainer.state.robotEnabled()) {
+      if ((RobotContainer.state.isManualMode()) && RobotContainer.state.robotEnabled()) {
         // Ignore vision when on bump or manual mode
         frameEstimate = Optional.empty();
         turretEstimate = Optional.empty();
@@ -79,18 +91,29 @@ public class Vision extends VirtualSubsystem {
         chosenEstimate = combineEstimates(frameEstimate.get(), turretEstimate.get());
       }
 
+      Logger.recordOutput("Vision/Bump High Trust Estimates", highTrustEstimatesLeft);
+      // Logger.recordOutput("Vision/Bump Vision Reset Finishing",
+      // shouldReturnToNormal);
+
       // Only fuse in one estimate to avoid "double tapping" the Kalman filter
       // Prevents excessively weighting vision over odometry
       if (chosenEstimate.isPresent()) {
+
         var estimate = chosenEstimate.get();
 
         if (VisionHelpers.isValidPose(estimate.pose)
             && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
           Logger.recordOutput("Vision/Validated Pose", estimate.pose);
+
+          Matrix<N3, N1> chosenDeviations = estimate.standardDeviation;
+          if (highTrustEstimatesLeft > 0) {
+            chosenDeviations = chosenDeviations.times(0.1); // Essentially teleport to the first few things we see
+            highTrustEstimatesLeft--;
+          }
           RobotContainer.drive.addVisionMeasurement(
               estimate.pose,
               estimate.timestampSeconds,
-              estimate.standardDeviation
+              chosenDeviations
           );
         }
       }

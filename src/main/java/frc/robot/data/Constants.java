@@ -368,17 +368,18 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
+    public static final double OFFSET = 5;
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(1.5, 40),
-        new NodePoint(1.884, 41),
-        new NodePoint(2.33, 44.0),
-        new NodePoint(3.05, 49.0),
-        new NodePoint(3.827, 54.5),
-        new NodePoint(4.31, 57.5),
-        new NodePoint(5.28, 60.5),
-        new NodePoint(7.022, 63.0),
-        new NodePoint(12.5, 94.0) // Super long passing
+        new NodePoint(1.5, 40 + OFFSET),
+        new NodePoint(1.884, 41 + OFFSET),
+        new NodePoint(2.33, 44.0 + OFFSET),
+        new NodePoint(3.05, 49.0 + OFFSET),
+        new NodePoint(3.827, 54.5 + OFFSET),
+        new NodePoint(4.31, 57.5 + OFFSET),
+        new NodePoint(5.28, 60.5 + OFFSET),
+        new NodePoint(7.022, 63.0 + OFFSET),
+        new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };
 
     public static final double RPM_RANGE = 450;

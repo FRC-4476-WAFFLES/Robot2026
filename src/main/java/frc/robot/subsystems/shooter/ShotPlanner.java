@@ -21,6 +21,7 @@ import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.RobotContainer;
+import frc.robot.RobotState.ShooterState;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.data.Constants.HoodConstants;
@@ -83,7 +84,11 @@ public class ShotPlanner {
 
       Translation2d currentTarget = fieldTarget;
       // Hastily taken from 6328. Everybody say thank you 6328.
-      if (CodeConstants.SHOOT_ON_MOVE) {
+      if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
+          && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
+                                                                          // (so turret sees tags)
+      ) {
+
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
         double robotAngle = robotPose.getRotation().getRadians();
         double turretOffsetX = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX();

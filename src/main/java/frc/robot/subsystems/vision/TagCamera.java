@@ -217,7 +217,7 @@ public class TagCamera {
 
     if (Math.abs(RobotContainer.state.getTurretVelocityTimestamp(
         megatagResult.timestampSeconds()
-    ).orElse(Double.POSITIVE_INFINITY)) > VisionConstants.MAX_TURRET_YAW_RATE_ROTATIONS) {
+    ).orElse(Double.POSITIVE_INFINITY)) > VisionConstants.MAX_TURRET_YAW_RATE_ROTATIONS && isTurret) {
 
       return Optional.empty();
     }
