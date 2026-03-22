@@ -12,12 +12,14 @@ import com.therekrab.autopilot.APTarget;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Distance;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.lib.WafflesUtilities;
 import lombok.Getter;
 
 public class BlueRelativeTarget {
   protected Pose2d m_reference;
   protected Optional<Rotation2d> m_entryAngle;
+  @Getter
   protected double m_exitVelocity;
   protected Optional<Distance> m_rotationRadius;
 
@@ -36,7 +38,7 @@ public class BlueRelativeTarget {
     m_exitVelocity = 0;
     m_entryAngle = Optional.empty();
     m_rotationRadius = Optional.empty();
-    maxVelocity = Double.MAX_VALUE;
+    maxVelocity = CodeConstants.AUTO_MAX_SPEED;
   }
 
   public Pose2d getFieldRelativePose() {
@@ -67,6 +69,10 @@ public class BlueRelativeTarget {
     }
     target = null;
     return this;
+  }
+
+  public boolean hasEntryAngle() {
+    return !m_entryAngle.isEmpty();
   }
 
   public BlueRelativeTarget withEntryAngle(Rotation2d entryAngle) {

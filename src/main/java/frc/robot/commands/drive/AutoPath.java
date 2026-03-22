@@ -11,7 +11,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
-import frc.robot.RobotState;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
@@ -59,10 +58,7 @@ public class AutoPath {
             }
           }
 
-          // Mutate constraints
-          RobotState.setAutopilotMaxVelocity(targets[targetIndex].getMaxVelocity());
-
-          return targets[targetIndex].getFieldRelative();
+          return targets[targetIndex];
         }, () -> !onFinalTarget, false).until(this::shouldFinish)
     ).beforeStarting(() -> {
       targetIndex = 0;

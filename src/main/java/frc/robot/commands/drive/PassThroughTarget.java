@@ -22,7 +22,7 @@ public class PassThroughTarget {
   private Command passThroughTarget(BlueRelativeTarget target) {
     var state = RobotContainer.state;
 
-    return DriveCommands.autoToFieldPose(() -> target.getFieldRelative(), () -> false, false)
+    return DriveCommands.autoToFieldPose(() -> target, () -> true, false)
         .onlyWhile(() -> !AutoPath.ShouldAdvanceToNextTarget(state.getPose(), targetPose, startPose))
         .beforeStarting(() -> {
           startPose = state.getPose();

@@ -18,8 +18,8 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class Left extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   private final BlueRelativeTarget point1 = new BlueRelativeTarget(6.1, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(2);
-  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.4, 6.9, Rotation2d.fromDegrees(-45));
+      .withExitVelocity(3.5);
+  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.4, 6.0, Rotation2d.fromDegrees(-90));
   private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.55, 4.5, Rotation2d.fromDegrees(-90))
       .withMaxVelocity(1.5);
   private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(180))

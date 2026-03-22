@@ -118,17 +118,18 @@ public final class Constants {
 
     public static final double ON_BUMP_TILT = 9.5; // Degrees, how much off vertical axis is considered the bump
 
-    public static final double AUTO_MAX_SPEED = 2.5; // Not respected by autopilot
-    public static final double AUTO_MAX_ACCEL = 9.0;
-    public static final double AUTO_MAX_JERK = 8.0;
+    public static final double AUTO_MAX_SPEED = 3.5;
+    public static final double AUTO_MAX_ACCEL = 15.0;
+    public static final double AUTO_MAX_JERK = 7.0;
 
-    public static final double AUTO_SLEW_LIMIT = 10; // Ignore. Optionally make lower than AUTO_MAX_ACCEL to smooth
-                                                     // transitions in path
+    public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
+
     public static final double SOTM_SLEW_LIMIT = 3.5;
     public static final double SOTM_ANGLE_SLEW_LIMIT = 2;
 
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
+    public static final boolean DISABLE_PURE_PURSUIT = true;
 
     public static final boolean USE_FUEL_SIMULATION = false;
     public static final boolean USE_VISION_SIMULATION = true;

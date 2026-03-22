@@ -107,6 +107,7 @@ public class RobotState {
   private Pose2d latestPose = new Pose2d();
 
   private static final APConstraints autopilotConstraints = new APConstraints()
+      .withVelocity(CodeConstants.AUTO_MAX_SPEED)
       .withAcceleration(CodeConstants.AUTO_MAX_ACCEL)
       .withJerk(CodeConstants.AUTO_MAX_JERK);
   // Why doesn't APConstraints have getters?? Didn't bother subclassing to add
@@ -122,7 +123,7 @@ public class RobotState {
   private Autopilot autopilot = new Autopilot(autopilotProfile);
 
   public static void resetAutopilotConstraints() {
-    autopilotConstraints.withVelocity(Double.POSITIVE_INFINITY);
+    autopilotConstraints.withVelocity(CodeConstants.AUTO_MAX_SPEED);
     autopilotConstraints.withAcceleration(CodeConstants.AUTO_MAX_ACCEL);
     autopilotConstraints.withJerk(CodeConstants.AUTO_MAX_JERK);
   }
