@@ -15,7 +15,7 @@ import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class LeftSimple extends SequentialCommandGroup {
+public class LeftDepot extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(3.5);
@@ -27,7 +27,7 @@ public class LeftSimple extends SequentialCommandGroup {
       .withExitVelocity(0.7);
   private final BlueRelativeTarget end = new BlueRelativeTarget(0.60, 5.95, Rotation2d.fromDegrees(180));
 
-  public LeftSimple() {
+  public LeftDepot() {
     AutoPath collectBalls = new AutoPath(point2, point3, point4, end)
         .withPreciseFinish();
 

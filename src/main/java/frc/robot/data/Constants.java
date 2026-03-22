@@ -472,7 +472,7 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_DUTY_CYCLE = 0.8; // Was 28rps with velocity control
+    public static final double INTAKE_DUTY_CYCLE = 0.9; // Was 28rps with velocity control
     public static final double AGITATION_SPEED = 0.3; // Was 5 rps with velocity control
 
     // Motor configs

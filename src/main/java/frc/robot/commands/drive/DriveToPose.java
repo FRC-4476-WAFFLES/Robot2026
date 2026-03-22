@@ -31,6 +31,7 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class DriveToPose {
   protected Command cmd;
   private double prevTime = 0;
+  private double lastMaxAngularVelocityConstraint = 0;
 
   public DriveToPose(Supplier<BlueRelativeTarget> target, BooleanSupplier purePursuit,
       boolean selfEnd) {
@@ -66,7 +67,14 @@ public class DriveToPose {
       // Mutate constraints
       RobotState.setAutopilotMaxVelocity(blueTarget.getMaxVelocity());
 
-      // Technically ignores the rotation radus field of an APTarget since we just always go to setpoint. Would be easy to fix but unnecessary.
+      if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationVelocity()) {
+        angleController.setConstraints(
+            new TrapezoidProfile.Constraints(DriveCommands.ANGLE_MAX_VELOCITY, blueTarget.getMaxRotationVelocity()));
+        lastMaxAngularVelocityConstraint = blueTarget.getMaxRotationVelocity();
+      }
+
+      // Technically ignores the rotation radus field of an APTarget since we just
+      // always go to setpoint. Would be easy to fix but unnecessary.
       ChassisSpeeds fieldRelativeGoalSpeed;
       double omega = angleController.calculate(
           RobotContainer.state.getRotation().getRadians(), currentTarget.getReference().getRotation().getRadians());

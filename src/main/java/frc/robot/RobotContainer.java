@@ -27,10 +27,9 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotState.AutoWinnerOverride;
 import frc.robot.autos.Left;
-import frc.robot.autos.LeftSimple;
-import frc.robot.autos.NuclearOption;
+import frc.robot.autos.LeftDepot;
+import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
-import frc.robot.autos.Right;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -308,10 +307,9 @@ public class RobotContainer {
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
       autoChooser.addOption("Preload", new Preload());
+      autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
-      autoChooser.addOption("Left Simple", new LeftSimple());
-      autoChooser.addOption("Right", new Right());
-      autoChooser.addOption("Nuke", new NuclearOption());
+      autoChooser.addOption("Left Greedy", new LeftGreedy());
     }
 
     testChooser = new LoggedDashboardChooser<>("Test Chooser", buildTestChooser());

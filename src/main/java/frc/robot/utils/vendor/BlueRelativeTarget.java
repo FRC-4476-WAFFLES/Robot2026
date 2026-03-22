@@ -12,6 +12,7 @@ import com.therekrab.autopilot.APTarget;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Distance;
+import frc.robot.commands.drive.DriveCommands;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.lib.WafflesUtilities;
 import lombok.Getter;
@@ -19,12 +20,13 @@ import lombok.Getter;
 public class BlueRelativeTarget {
   protected Pose2d m_reference;
   protected Optional<Rotation2d> m_entryAngle;
-  @Getter
   protected double m_exitVelocity;
   protected Optional<Distance> m_rotationRadius;
 
   @Getter
   protected double maxVelocity;
+  @Getter
+  protected double maxRotationVelocity;
 
   private boolean isRedFlipped = false;
   private APTarget target;
@@ -39,6 +41,7 @@ public class BlueRelativeTarget {
     m_entryAngle = Optional.empty();
     m_rotationRadius = Optional.empty();
     maxVelocity = CodeConstants.AUTO_MAX_SPEED;
+    maxRotationVelocity = DriveCommands.ANGLE_MAX_VELOCITY;
   }
 
   public Pose2d getFieldRelativePose() {
@@ -105,6 +108,12 @@ public class BlueRelativeTarget {
   // Does not invalidate cached APTarget
   public BlueRelativeTarget withMaxVelocity(double maxVelocity) {
     this.maxVelocity = maxVelocity;
+    return this;
+  }
+
+  // Does not invalidate cached APTarget
+  public BlueRelativeTarget withMaxRotationRate(double maxVelocity) {
+    this.maxRotationVelocity = maxVelocity;
     return this;
   }
 }
