@@ -22,10 +22,10 @@ public class Flywheel extends SubsystemBase {
   @AutoLogOutput(key = "Flywheel/Flywheel Goal Velocity")
   private double flywheelGoalVelocity = 0;
 
-  private static final double RECOVERY_FF_PER_RPS = 10;
-  private static final double RECOVERY_ENTER_THRESHOLD = 3.0;
-  private static final double RECOVERY_EXIT_THRESHOLD = 2.0;
-  private boolean inRecovery = false;
+  // private static final double RECOVERY_FF_PER_RPS = 10;
+  // private static final double RECOVERY_ENTER_THRESHOLD = 3.0;
+  // private static final double RECOVERY_EXIT_THRESHOLD = 2.0;
+  // private boolean inRecovery = false;
 
   public Flywheel(FlywheelIO io) {
     this.io = io;
@@ -43,21 +43,21 @@ public class Flywheel extends SubsystemBase {
         return;
       }
 
-      double error = flywheelGoalVelocity - inputs.flywheelMotorData0.velocity();
-      boolean shooting = RobotContainer.state.shouldFire().getAsBoolean()
-          || RobotContainer.state.shouldFireManual().getAsBoolean();
+      // double error = flywheelGoalVelocity - inputs.flywheelMotorData0.velocity();
+      // boolean shooting = RobotContainer.state.shouldFire().getAsBoolean()
+      //     || RobotContainer.state.shouldFireManual().getAsBoolean();
 
-      if (shooting && error > RECOVERY_ENTER_THRESHOLD) {
-        inRecovery = true;
-      }
-      if (error < RECOVERY_EXIT_THRESHOLD || !shooting) {
-        inRecovery = false;
-      }
+      // if (shooting && error > RECOVERY_ENTER_THRESHOLD) {
+      //   inRecovery = true;
+      // }
+      // if (error < RECOVERY_EXIT_THRESHOLD || !shooting) {
+      //   inRecovery = false;
+      // }
 
-      double feedForward = inRecovery ? error * RECOVERY_FF_PER_RPS : 0;
+      // double feedForward = inRecovery ? error * RECOVERY_FF_PER_RPS : 0;
 
-      Logger.recordOutput("Flywheel/Recovery Boost", feedForward);
-      io.runFlywheelVelocity(flywheelGoalVelocity, feedForward);
+      // Logger.recordOutput("Flywheel/Recovery Boost", feedForward);
+      io.runFlywheelVelocity(flywheelGoalVelocity, 0);
     }
     EpochTimer.EndEpoch("Flywheel");
   }

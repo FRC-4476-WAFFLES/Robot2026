@@ -2,25 +2,34 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems.lights;
+package frc.robot.subsystems.lights.obsolete;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.ctre.phoenix.led.CANdle;
-import com.ctre.phoenix.led.CANdle.LEDStripType;
-import com.ctre.phoenix.led.CANdle.VBatOutputMode;
-import com.ctre.phoenix.led.CANdleConfiguration;
+import com.ctre.phoenix6.configs.CANdleConfiguration;
+import com.ctre.phoenix6.controls.EmptyAnimation;
+import com.ctre.phoenix6.controls.SolidColor;
+import com.ctre.phoenix6.hardware.CANdle;
+import com.ctre.phoenix6.signals.Enable5VRailValue;
+import com.ctre.phoenix6.signals.RGBWColor;
+import com.ctre.phoenix6.signals.StripTypeValue;
+import com.ctre.phoenix6.signals.VBatOutputModeValue;
 
 import frc.robot.data.Constants;
 import frc.robot.subsystems.lights.Lights.LedRange;
 
-public class LightStripIOCandle implements LightStripIO {
+public class LightStripIOCandle6 implements LightStripIO {
   private final int LED_COUNT;
   private final CANdle candle = new CANdle(Constants.CANIds.CANdle);
+  private final SolidColor solidColorRequest = new SolidColor(0, 0);
+
+  private Map<Integer, RGBWColor> colorMap = new HashMap<>(20);
 
   private int[] lastSentLEDs;
 
-  public LightStripIOCandle(int ledCount) {
+  public LightStripIOCandle6(int ledCount) {
     LED_COUNT = ledCount;
 
     lastSentLEDs = new int[LED_COUNT];
@@ -29,14 +38,14 @@ public class LightStripIOCandle implements LightStripIO {
     validateLedRanges();
 
     CANdleConfiguration config = new CANdleConfiguration();
-    config.stripType = LEDStripType.GRB;
-    config.brightnessScalar = 0.75;
-    config.vBatOutputMode = VBatOutputMode.On;
-    config.v5Enabled = true;
-    candle.configAllSettings(config, 1000);
+    config.LED.StripType = StripTypeValue.GRB;
+    config.CANdleFeatures.Enable5VRail = Enable5VRailValue.Enabled;
+    config.LED.BrightnessScalar = 0.75;
+    config.CANdleFeatures.VBatOutputMode = VBatOutputModeValue.On;
+
+    candle.getConfigurator().apply(config);
 
     clearHardwareAnimations();
-
   }
 
   /**
@@ -69,7 +78,7 @@ public class LightStripIOCandle implements LightStripIO {
   /**
    * Send a batch of LEDs to hardware efficiently
    */
-  private void sendBatch(int[] currentLEDs, int start, int end) {
+  private final void sendBatch(int[] currentLEDs, int start, int end) { // Marked final to make inlining easier for compiler (doesn't really matter)
     int maxChunkSize = 10;
 
     for (int chunkStart = start; chunkStart < end; chunkStart += maxChunkSize) {
@@ -86,20 +95,43 @@ public class LightStripIOCandle implements LightStripIO {
       }
 
       if (uniformColor && chunkSize > 1) {
-        int r = (firstColor >> 16) & 0xFF;
-        int g = (firstColor >> 8) & 0xFF;
-        int b = firstColor & 0xFF;
-        candle.setLEDs(r, g, b, 0, chunkStart, chunkSize);
+        // int r = (firstColor >> 16) & 0xFF;
+        // int g = (firstColor >> 8) & 0xFF;
+        // int b = firstColor & 0xFF;
+        // candle.setLEDs(r, g, b, 0, chunkStart, chunkSize);
+        setLEDs(firstColor, chunkStart, chunkSize);
+
       } else {
         for (int i = chunkStart; i < chunkEnd; i++) {
-          int color = currentLEDs[i];
-          int r = (color >> 16) & 0xFF;
-          int g = (color >> 8) & 0xFF;
-          int b = color & 0xFF;
-          candle.setLEDs(r, g, b, 0, i, 1);
+          // int r = (color >> 16) & 0xFF;
+          // int g = (color >> 8) & 0xFF;
+          // int b = color & 0xFF;
+          // candle.setLEDs(r, g, b, 0, i, 1);
+          setLEDs(currentLEDs[i], i, 1);
         }
       }
     }
+  }
+
+  private final RGBWColor getColor(int packed) {
+    var val = colorMap.get(packed);
+    if (val != null) {
+      return val;
+    }
+
+    // need to make new color object wth :((
+    int r = (packed >> 16) & 0xFF;
+    int g = (packed >> 8) & 0xFF;
+    int b = packed & 0xFF;
+
+    var color = new RGBWColor(r, g, b, 0);
+    colorMap.put(packed, color);
+    return color;
+  }
+
+  private final void setLEDs(int packedColor, int chunkStart, int chunkSize) {
+    candle.setControl(solidColorRequest.withLEDStartIndex(chunkStart).withLEDEndIndex(chunkSize + chunkStart)
+        .withColor(getColor(packedColor)));
   }
 
   /**
@@ -116,9 +148,8 @@ public class LightStripIOCandle implements LightStripIO {
   }
 
   private void clearHardwareAnimations() {
-    candle.animate(null);
-    for (int i = 0; i < candle.getMaxSimultaneousAnimationCount(); i++) {
-      candle.clearAnimation(i);
+    for (int i = 0; i < 8; ++i) {
+      candle.setControl(new EmptyAnimation(i));
     }
   }
 }

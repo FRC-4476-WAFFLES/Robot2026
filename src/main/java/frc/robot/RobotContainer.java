@@ -64,6 +64,7 @@ import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.subsystems.intake.IntakeIO;
 import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.intake.IntakeIOTalonFX;
+import frc.robot.subsystems.lights.LightIOCandle;
 import frc.robot.subsystems.lights.Lights;
 import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
@@ -232,11 +233,11 @@ public class RobotContainer {
         break;
     }
 
+    lightsSubsystem = new Lights(new LightIOCandle()); // Just always use real io
+
     // Subsystems with no IO
     telemetry = new Telemetry();
     mechanismPoses = new MechanismPoses();
-    // lightsSubsystem = new Lights();
-    lightsSubsystem = null;
     stateOrchestrator = new StateOrchestrator();
   }
 

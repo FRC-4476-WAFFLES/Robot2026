@@ -184,11 +184,11 @@ public class Vision extends VirtualSubsystem {
   }
 
   /**
-   * Checks if both limelights see a tag, used for pit debugging
-   * @return true if both limelights see a tag
+   * Checks if either of the limelights see a tag, used for pit debugging
+   * @return true if either of the limelights see a tag
    */
   public boolean limelightsSeeTag() {
-    return frameCamera.canSeeTag() && turretCamera.canSeeTag();
+    return frameCamera.canSeeTag() || turretCamera.canSeeTag();
   }
 
   // Calculates turret pose in robot space

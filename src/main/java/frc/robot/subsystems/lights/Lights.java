@@ -11,22 +11,11 @@ import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class Lights extends VirtualSubsystem {
-  private final LightStrip strip;
+  private final LightIO io;
 
-  public enum LedRange {
-    CANDLE(0, 8),
-    LEFT_SIDE_FULL(8, 67),
-    MIDDLE_FULL(67, 128),
-    RIGHT_SIDE_FULL(128, 186),
-    L1(8, 23),
-    L2(8, 38),
-    L3(8, 52),
-    R1(170, 186),
-    R2(155, 186),
-    R3(141, 186),
-    MIDDLE_LEFT(67, 87),
-    MIDDLE_MIDDLE(87, 107),
-    MIDDLE_RIGHT(107, 128);
+  public enum LedRange { // Ranges are inclusive
+    CANDLE(0, 7),
+    MAIN_BAR(8, 80);
 
     private final int start;
     private final int end;
@@ -83,14 +72,13 @@ public class Lights extends VirtualSubsystem {
     }
   }
 
-  public Lights() {
-    strip = new LightStrip(186);
+  public Lights(LightIO io) {
+    this.io = io;
   }
 
   @Override
   public void latePeriodic() {
     EpochTimer.BeginEpoch("LightSubsystem");
-    strip.initFrame();
 
     if (RobotContainer.state.robotEnabled()) {
       handleEnabledState();
@@ -98,60 +86,40 @@ public class Lights extends VirtualSubsystem {
       handleDisabledState();
     }
 
-    strip.writeFrameToHardware();
     EpochTimer.EndEpoch("LightSubsystem");
   }
 
   private void handleEnabledState() {
+    updateDiagnosticIndicators();
 
+    if (RobotContainer.state.isManualMode()) {
+      io.setLEDs(LightColours.GREEN, LedRange.MAIN_BAR);
+    } else {
+      if (RobotContainer.state.canFire().getAsBoolean()) {
+        io.setLEDs(LightColours.WHITE, LedRange.MAIN_BAR);
+      } else {
+        io.setLEDs(LightColours.RED, LedRange.MAIN_BAR);
+      }
+    }
   }
 
   private void handleDisabledState() {
     updateDiagnosticIndicators();
 
-    strip.setFlowAnimation(LedRange.LEFT_SIDE_FULL, true);
-    strip.setFlowAnimation(LedRange.MIDDLE_FULL, true);
-    strip.setFlowAnimation(LedRange.RIGHT_SIDE_FULL, true);
+    io.setDisabledAnimation(LedRange.MAIN_BAR);
   }
 
   /**
    * Indicators used to perform systems check
    */
   private void updateDiagnosticIndicators() {
-    // strip.setRange(0, 1,
-    // RobotContainer.intakeSubsystem.isAlgaeLoaded() ?
-    // LightColours.DARKGREEN.packed : LightColours.BLACK.packed);
-
-    // strip.setRange(1, 2,
-    // RobotContainer.intakeSubsystem.isCoralLoaded() ? LightColours.WHITE.packed :
-    // LightColours.BLACK.packed);
-
-    // double pivotPosition =
-    // RobotContainer.superstructure.pivot.getPivotPosition();
-    // strip.setRange(2, 3, Math.abs(pivotPosition) <= 2.0 ?
-    // LightColours.BLUE.packed : LightColours.BLACK.packed);
-
-    // double elevatorPosition =
-    // RobotContainer.superstructure.elevator.getElevatorPositionMeters();
-    // strip.setRange(3, 4, Math.abs(elevatorPosition) <= 0.02 ?
-    // LightColours.CYAN.packed : LightColours.BLACK.packed);
-
-    strip.setRange(4, 5,
-        RobotContainer.vision.limelightsSeeTag() ? LightColours.PINK.packed : LightColours.BLACK.packed);
+    io.setLED(RobotContainer.vision.limelightsSeeTag() ? LightColours.PINK : LightColours.BLACK, 0);
 
     var alliance = DriverStation.getAlliance();
     LightColours allianceColor = LightColours.BLUE;
     if (alliance.isPresent() && alliance.get() == Alliance.Red) {
       allianceColor = LightColours.RED;
     }
-    strip.setRange(6, 8, allianceColor.packed);
-  }
-
-  public void celebrationMode() {
-    strip.setRainbowAnimation(LedRange.MIDDLE_FULL, true);
-  }
-
-  public void clearCelebrationMode() {
-    strip.setRainbowAnimation(LedRange.MIDDLE_FULL, false);
+    io.setLEDs(allianceColor, 4, 2);
   }
 }
