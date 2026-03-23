@@ -24,7 +24,7 @@ public interface VisionIO {
                                                                          // guess if it sees more than 32 tags at
                                                                          // once.
     public int fiducialArrayLength;
-    public Pose3d rawPose3d;
+    public Pose3d rawPose3d = Pose3d.kZero;
     public double[] rawStandardDeviationArray = new double[12];
 
     public VisionIOInputs() {
