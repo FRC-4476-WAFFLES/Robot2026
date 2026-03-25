@@ -67,10 +67,10 @@ public class DriveToPose {
       // Mutate constraints
       RobotState.setAutopilotMaxVelocity(blueTarget.getMaxVelocity());
 
-      if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationVelocity()) {
+      if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationRate()) {
         angleController.setConstraints(
-            new TrapezoidProfile.Constraints(DriveCommands.ANGLE_MAX_VELOCITY, blueTarget.getMaxRotationVelocity()));
-        lastMaxAngularVelocityConstraint = blueTarget.getMaxRotationVelocity();
+            new TrapezoidProfile.Constraints(DriveCommands.ANGLE_MAX_VELOCITY, blueTarget.getMaxRotationRate()));
+        lastMaxAngularVelocityConstraint = blueTarget.getMaxRotationRate();
       }
 
       // Technically ignores the rotation radus field of an APTarget since we just

@@ -33,8 +33,8 @@ public class AutoPath {
   }
 
   public void mirror() {
-    for (BlueRelativeTarget blueRelativeTarget : targets) {
-      blueRelativeTarget.mirror();
+    for (int i = 0; i < targets.length; i++) {
+      targets[i] = targets[i].getMirrored();
     }
   }
 

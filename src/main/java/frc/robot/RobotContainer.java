@@ -30,6 +30,7 @@ import frc.robot.autos.Left;
 import frc.robot.autos.LeftDepot;
 import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
+import frc.robot.autos.adaptable.Adaptable;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -307,10 +308,12 @@ public class RobotContainer {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser", AutoBuilder.buildAutoChooser());
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
+      autoChooser.addDefaultOption("None", Commands.none());
       autoChooser.addOption("Preload", new Preload());
       autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
+      autoChooser.addOption("Adaptable", Adaptable.getAuto());
     }
 
     testChooser = new LoggedDashboardChooser<>("Test Chooser", buildTestChooser());
