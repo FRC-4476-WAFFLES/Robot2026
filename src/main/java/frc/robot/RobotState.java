@@ -289,10 +289,7 @@ public class RobotState {
   }
 
   public Trigger canFire() {
-    return new Trigger(() -> RobotContainer.flywheel.atSetpoint() &&
-        RobotContainer.hood.atSetpoint() && RobotContainer.turret.atGoal()
-    )
-        .and(shooterDisabled().negate())
+    return shooterDisabled().negate()
         .and(normalMode())
         .and(() -> robotEnabled())
         .and(() -> shooterState == ShooterState.TARGET_HUB ? hubEnabled() : true);

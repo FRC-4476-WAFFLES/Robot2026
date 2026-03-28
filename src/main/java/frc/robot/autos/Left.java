@@ -17,7 +17,7 @@ public class Left extends SequentialCommandGroup {
   private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(3.5);
-  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90));
+  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-30));
   private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
       .withMaxVelocity(1.7);
   private final BlueRelativeTarget point4 = new BlueRelativeTarget(6.8, 4.1, Rotation2d.fromDegrees(-180))

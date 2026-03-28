@@ -14,7 +14,7 @@ import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 public class StateOrchestrator extends VirtualSubsystem {
   // All coordinates are blue alliance relative
   private double shootingLineX = 4.6; // Allow shooting on bump
-  private double tagZoneLength = 2.5;
+  private double tagZoneLength = 3.5;
   private double bumpStartLineX = 4.0;
   private double bumpEndLineX = FieldConstants.LinesVertical.neutralZoneNear;
   private double passingLineX = bumpEndLineX + tagZoneLength;

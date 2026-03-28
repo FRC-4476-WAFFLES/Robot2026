@@ -141,14 +141,15 @@ public final class Constants {
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
 
     public static final NodePoint[] TimeofFlightMap = new NodePoint[] {
-        new NodePoint(1.8, 0.97),
-        new NodePoint(3.175, 1.34),
-        new NodePoint(4.778, 1.55)
+        new NodePoint(1.8, 0.7),
+        new NodePoint(3.175, 1.05),
+        new NodePoint(4.778, 1.4),
+        new NodePoint(10, 2)
     };
     public static final double MIN_TOF = 1;
     public static final double MAX_TOF = 3;
 
-    public static final boolean LIMIT_TO_HUB_SHIFTS = false;
+    public static final boolean LIMIT_TO_HUB_SHIFTS = true;
     public static final boolean MANUAL_SHOOTER_TUNING = false;
     public static final boolean SHOOT_ON_MOVE = true;
 
@@ -375,8 +376,8 @@ public final class Constants {
         new NodePoint(1.884, 41 + OFFSET),
         new NodePoint(2.33, 44.0 + OFFSET),
         new NodePoint(3.05, 49.0 + OFFSET),
-        new NodePoint(3.827, 54.5 + OFFSET),
-        new NodePoint(4.31, 57.5 + OFFSET),
+        new NodePoint(3.827, 56.5 + OFFSET),
+        new NodePoint(4.31, 60 + OFFSET),
         new NodePoint(5.28, 60.5 + OFFSET),
         new NodePoint(7.022, 63.0 + OFFSET),
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
@@ -472,7 +473,7 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_DUTY_CYCLE = 0.9; // Was 28rps with velocity control
+    public static final double INTAKE_DUTY_CYCLE = 1; // Was 28rps with velocity control
     public static final double AGITATION_SPEED = 0.3; // Was 5 rps with velocity control
 
     // Motor configs
