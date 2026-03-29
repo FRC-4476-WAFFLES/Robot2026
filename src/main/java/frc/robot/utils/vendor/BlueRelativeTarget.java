@@ -28,7 +28,7 @@ public class BlueRelativeTarget {
   @Getter
   protected double maxRotationRate;
 
-  private boolean isRedFlipped = false;
+  private boolean isRedCached = false;
   private APTarget target;
 
   public BlueRelativeTarget(double x, double y, Rotation2d rotation) {
@@ -49,7 +49,7 @@ public class BlueRelativeTarget {
   }
 
   public APTarget getFieldRelative() {
-    if (isRedFlipped == WafflesUtilities.IsRedAlliance() && target != null) {
+    if (isRedCached == WafflesUtilities.IsRedAlliance() && target != null) {
       return target;
     }
 
@@ -57,7 +57,7 @@ public class BlueRelativeTarget {
     if (m_entryAngle.isPresent()) {
       target = target.withEntryAngle(WafflesUtilities.FlipIfRedAlliance(m_entryAngle.get()));
     }
-    isRedFlipped = WafflesUtilities.IsRedAlliance();
+    isRedCached = WafflesUtilities.IsRedAlliance();
     return target;
   }
 

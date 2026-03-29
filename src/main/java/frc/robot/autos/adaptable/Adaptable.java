@@ -20,32 +20,33 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class Adaptable {
-  private Command cmd = Commands.none();
+  private static Command cmd = Commands.none();
 
-  private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
+  private static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
+  private static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(3.5);
-  private final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
+  private static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withExitVelocity(0.7);
-  private final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
+  private static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
-  private final BlueRelativeTarget readyForNextPass = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
+  private static final BlueRelativeTarget readyForNextPass = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
       .withMaxRotationRate(2);
 
   // NT 
-  private final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser("AdaptableAuto/First Attack Depth")
+  private static final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
+      "AdaptableAuto/First Attack Depth")
       .onChange(() -> GenerateAuto())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack());
-  private final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser("AdaptableAuto/First Sweep")
+  private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser("AdaptableAuto/First Sweep")
       .onChange(() -> GenerateAuto())
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep());
-  private final LoggedNetworkNumber preSweepDelay = new LoggedNetworkNumber("AdaptableAuto/First Sweep Delay");
+  private static final LoggedNetworkNumber preSweepDelay = new LoggedNetworkNumber("AdaptableAuto/First Sweep Delay");
 
-  private void GenerateAuto() {
+  public static void GenerateAuto() {
     ArrayList<BlueRelativeTarget> allTargets = new ArrayList<>();
 
     // First attack
@@ -82,8 +83,6 @@ public class Adaptable {
             IntakeCommands.intakeCommand()
         ),
 
-        Commands.waitSeconds(preSweepDelay.getAsDouble()),
-
         Commands.parallel(
             ShooterCommands.shootAutoCommand(4).withTimeout(9),
             DriveCommands.autoToTarget(readyForNextPass)
@@ -96,12 +95,17 @@ public class Adaptable {
     );
   }
 
-  private Command run() {
-    return Commands.defer(() -> this.cmd, Collections.emptySet());
-  }
+  public static Command run() {
+    return Commands.defer(() -> {
+      if (cmd == null) {
+        GenerateAuto();
+      }
 
-  public static Command getAuto() {
-    return new Adaptable().run();
+      Command cmdPin = cmd;
+      cmd = null;
+
+      return cmdPin;
+    }, Collections.emptySet());
   }
 
   // Attacks

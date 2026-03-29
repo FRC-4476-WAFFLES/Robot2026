@@ -313,7 +313,7 @@ public class RobotContainer {
       autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
-      autoChooser.addOption("Adaptable", Adaptable.getAuto());
+      autoChooser.addOption("Adaptable", Adaptable.run());
     }
 
     testChooser = new LoggedDashboardChooser<>("Test Chooser", buildTestChooser());
