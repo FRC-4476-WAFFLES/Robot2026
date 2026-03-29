@@ -292,6 +292,7 @@ public class RobotState {
     return shooterDisabled().negate()
         .and(normalMode())
         .and(() -> robotEnabled())
+        .and(() -> RobotContainer.turret.atGoal())
         .and(() -> shooterState == ShooterState.TARGET_HUB ? hubEnabled() : true);
   }
 

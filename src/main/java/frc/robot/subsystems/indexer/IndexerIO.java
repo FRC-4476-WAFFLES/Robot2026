@@ -7,9 +7,10 @@ import frc.robot.utils.hardware.TalonFXIO.TalonFXIOData;
 public interface IndexerIO {
   @AutoLog
   class IndexerIOInputs {
+    public TalonFXIOData indexerMotorData0 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
     public TalonFXIOData indexerMotorData1 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
-    public TalonFXIOData indexerMotorData2 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
-    public TalonFXIOData feederMotorData = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
+    public TalonFXIOData feederMotorData0 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
+    public TalonFXIOData feederMotorData1 = new TalonFXIOData(0, 0, 0, 0, 0, 0, 0, 0);
   }
 
   default void updateInputs(IndexerIOInputs inputs) {}

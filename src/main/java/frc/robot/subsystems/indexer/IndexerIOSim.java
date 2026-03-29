@@ -19,13 +19,15 @@ public class IndexerIOSim extends IndexerIOTalonFX {
 
   @Override
   public void updateInputs(IndexerIOInputs inputs) {
-    var indexerSim = indexer1.getSimState();
+    var indexerSim = indexer0.getSimState();
     var simResult0 = indexerSimState.Evaluate(setpointIndexer, CodeConstants.PERIODIC_LOOP_TIME);
     indexerSim.setRotorVelocity(simResult0.get(0) * PhysicalConstants.INDEXER_REDUCTION);
 
-    var feederSim = feeder.getSimState();
+    var feederSim0 = feeder0.getSimState();
+    var feederSim1 = feeder0.getSimState();
     var simResult1 = feederSimState.Evaluate(setpointFeeder, CodeConstants.PERIODIC_LOOP_TIME);
-    feederSim.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);
+    feederSim0.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);
+    feederSim1.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);
 
     super.updateInputs(inputs);
   }
