@@ -170,7 +170,7 @@ public class DriveToPose {
 
   // Helper to mutate chassisSpeeds objects (mutated because local variables
   // lambda enclosing scopes must be effectively final)
-  private static void copyChassisSpeeds(ChassisSpeeds target, ChassisSpeeds toCopy) {
+  public static void copyChassisSpeeds(ChassisSpeeds target, ChassisSpeeds toCopy) {
     target.vxMetersPerSecond = toCopy.vxMetersPerSecond;
     target.vyMetersPerSecond = toCopy.vyMetersPerSecond;
     target.omegaRadiansPerSecond = toCopy.omegaRadiansPerSecond;

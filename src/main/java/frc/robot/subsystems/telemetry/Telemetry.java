@@ -7,12 +7,10 @@ import com.ctre.phoenix6.CANBus.CANBusStatus;
 
 import edu.wpi.first.hal.can.CANJNI;
 import edu.wpi.first.hal.can.CANStatus;
-import edu.wpi.first.networktables.DoubleArrayPublisher;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Controls;
 import frc.robot.Robot;
@@ -83,15 +81,16 @@ public class Telemetry extends VirtualSubsystem {
       AlertType.kWarning);
 
   // Dashboard pose test
-  private final NetworkTable table = NetworkTableInstance.getDefault().getTable("DashboardPose");
-  private final DoubleArrayPublisher fieldPub = table.getDoubleArrayTopic("robotPose").publish();
-  private final StringPublisher fieldTypePub = table.getStringTopic(".type").publish();
+  public final Field2d dashboardField = new Field2d();
+  // public final NetworkTable dashboardPoseTable = NetworkTableInstance.getDefault().getTable("DashboardPose");
+  // private final DoubleArrayPublisher fieldPub = dashboardPoseTable.getDoubleArrayTopic("robotPose").publish();
+  // private final StringPublisher fieldTypePub = dashboardPoseTable.getStringTopic(".type").publish();
 
   /**
    * Construct a telemetry subsystem
    */
   public Telemetry() {
-
+    SmartDashboard.putData("Field", dashboardField);
   }
 
   @Override
@@ -118,12 +117,13 @@ public class Telemetry extends VirtualSubsystem {
       checkVisionFault();
 
       var pose = RobotContainer.state.getPose();
-      fieldTypePub.set("Field2d");
-      fieldPub.set(new double[] {
-          pose.getX(),
-          pose.getY(),
-          pose.getRotation().getDegrees()
-      });
+      dashboardField.setRobotPose(pose);
+      // fieldTypePub.set("Field2d");
+      // fieldPub.set(new double[] {
+      //     pose.getX(),
+      //     pose.getY(),
+      //     pose.getRotation().getDegrees()
+      // });
     }
     EpochTimer.EndEpoch("Telemetry");
   }

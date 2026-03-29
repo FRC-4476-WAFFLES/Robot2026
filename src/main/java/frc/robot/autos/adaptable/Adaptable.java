@@ -5,7 +5,6 @@
 package frc.robot.autos.adaptable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
@@ -37,38 +36,28 @@ public class Adaptable {
   // NT 
   private static final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
       "AdaptableAuto/First Attack Depth")
-      .onChange(() -> GenerateAuto())
       .addOption("Normal", new NormalAttack())
-      .addOption("Deep", new DeepAttack());
+      .addOption("Deep", new DeepAttack())
+      .onChange(() -> GenerateAuto());
   private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser("AdaptableAuto/First Sweep")
-      .onChange(() -> GenerateAuto())
       .addOption("Normal", new NormalSweep())
-      .addOption("Greedy", new GreedySweep());
+      .addOption("Greedy", new GreedySweep())
+      .addOption("No Sweep", new NoSweep())
+      .onChange(() -> GenerateAuto());
   private static final LoggedNetworkNumber preSweepDelay = new LoggedNetworkNumber("AdaptableAuto/First Sweep Delay");
 
   public static void GenerateAuto() {
     ArrayList<BlueRelativeTarget> allTargets = new ArrayList<>();
 
-    // First attack
-    ArrayList<BlueRelativeTarget> firstAttackTargets = new ArrayList<>();
-    var firstAttack = firstAttackDepthChooser.get();
-    if (firstAttack.isPresent()) {
-      firstAttackTargets = firstAttack.get().getTargets();
-    }
-
-    // Sweep
-    ArrayList<BlueRelativeTarget> sweepTargets = new ArrayList<>();
-    var sweep = firstSweepChooser.get();
-    if (sweep.isPresent()) {
-      sweepTargets = sweep.get().getTargets();
-    }
-
     // Make target list
     allTargets.add(crossToNeutral);
-    allTargets.addAll(firstAttackTargets);
-    allTargets.addAll(sweepTargets);
+    firstAttackDepthChooser.getTargets().ifPresent(allTargets::addAll);
+    firstSweepChooser.getTargets().ifPresent(allTargets::addAll);
     allTargets.add(crossToAlliance);
     allTargets.add(shooting);
+
+    // Visualize Path
+    AutoVisualizer.VisualizeAuto(start, allTargets);
 
     AutoPath collectBalls = new AutoPath(allTargets.toArray(new BlueRelativeTarget[0]))
         .withPreciseFinish();
@@ -96,7 +85,7 @@ public class Adaptable {
   }
 
   public static Command run() {
-    return Commands.defer(() -> {
+    return Commands.runOnce(() -> {
       if (cmd == null) {
         GenerateAuto();
       }
@@ -104,8 +93,8 @@ public class Adaptable {
       Command cmdPin = cmd;
       cmd = null;
 
-      return cmdPin;
-    }, Collections.emptySet());
+      cmdPin.schedule();
+    });
   }
 
   // Attacks
@@ -154,5 +143,9 @@ public class Adaptable {
               .withMaxVelocity(1.5)
       );
     }
+  }
+
+  public static class NoSweep extends AutoSegment {
+    public NoSweep() {}
   }
 }

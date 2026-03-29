@@ -4,9 +4,12 @@
 
 package frc.robot.autos.adaptable;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+
+import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class AutoSegmentChooser {
   private final LoggedDashboardChooser<Optional<AutoSegment>> chooser;
@@ -36,6 +39,14 @@ public class AutoSegmentChooser {
     var currentSegments = chooser.get();
     if (currentSegments != null) {
       return currentSegments;
+    }
+    return Optional.empty();
+  }
+
+  public Optional<List<BlueRelativeTarget>> getTargets() {
+    var segmentOptional = get();
+    if (segmentOptional.isPresent()) {
+      return Optional.of(segmentOptional.get().getTargets());
     }
     return Optional.empty();
   }

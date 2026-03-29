@@ -134,6 +134,8 @@ public final class Constants {
     public static final boolean USE_FUEL_SIMULATION = false;
     public static final boolean USE_VISION_SIMULATION = true;
 
+    public static final boolean COMPLEX_AUTO_PREVIEW = true;
+
     public static final Distance AUTO_POSITION_TOLERANCE_VAGUE = Meters.of(0.25);
     public static final Distance AUTO_POSITION_TOLERANCE_PRECISE = Centimeters.of(4);
     public static final Distance AUTO_MAX_TRACKING_ERROR = Meters.of(0.5);
