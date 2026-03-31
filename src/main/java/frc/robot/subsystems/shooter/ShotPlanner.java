@@ -50,6 +50,8 @@ public class ShotPlanner {
       FlippingUtil.fieldSizeY - passingTargetLeft.getY());
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
+  public static final double ACCEL_COMP_FACTOR = 0.1;
+
   private static Rotation2d lastTurretAngle;
 
   // private static final LoggedNetworkNumber hoodAngleTuner = new
@@ -101,13 +103,15 @@ public class ShotPlanner {
                 * (turretOffsetX * Math.cos(robotAngle) - turretOffsetY * Math.sin(robotAngle));
 
         Translation2d turretVel = new Translation2d(turretVelocityX, turretVelocityY);
+        Translation2d turretAccel = RobotContainer.state.getFieldAcceleration();
+        Translation2d integratedVelocity = turretVel.plus(turretAccel.times(ACCEL_COMP_FACTOR));
 
         double previousTimeOfFlight = Double.NaN;
         double currentDistance = distanceToTarget;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 6; i++) {
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
-          currentTarget = fieldTarget.minus(turretVel.times(timeOfFlight));
+          currentTarget = fieldTarget.minus(integratedVelocity.times(timeOfFlight));
 
           currentDistance = currentTarget.getDistance(turretPose.getTranslation());
 
@@ -117,7 +121,7 @@ public class ShotPlanner {
           previousTimeOfFlight = timeOfFlight;
         }
 
-        distanceToTarget = distanceToTarget + ((currentDistance - distanceToTarget));
+        distanceToTarget = currentDistance;
 
         // Logger.recordOutput("RobotState/Turret Vel", turretVel);
         Logger.recordOutput("Turret/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));

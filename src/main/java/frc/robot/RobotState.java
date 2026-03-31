@@ -14,8 +14,10 @@ import com.therekrab.autopilot.APConstraints;
 import com.therekrab.autopilot.APProfile;
 import com.therekrab.autopilot.Autopilot;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -105,6 +107,7 @@ public class RobotState {
   private ChassisSpeeds latestChassisSpeeds = new ChassisSpeeds();
   private ChassisSpeeds latestFieldSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
+  private Translation2d latestAcceleration = new Translation2d();
 
   private static final APConstraints autopilotConstraints = new APConstraints()
       .withVelocity(CodeConstants.AUTO_MAX_SPEED)
@@ -174,6 +177,10 @@ public class RobotState {
     return latestFieldSpeeds;
   }
 
+  public Translation2d getFieldAcceleration() {
+    return latestAcceleration;
+  }
+
   /**
    * Returns the current odometry pose. Private to standardize all access through
    * RobotState
@@ -209,7 +216,18 @@ public class RobotState {
     poseHistoryBuffer.addSample(timestamp, pose);
     yawVelocityHistoryBuffer.addSample(timestamp, chassisSpeeds.omegaRadiansPerSecond);
     latestChassisSpeeds = chassisSpeeds;
-    latestFieldSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(latestChassisSpeeds, getRotation());
+
+    var newSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(latestChassisSpeeds, getRotation());
+
+    latestAcceleration = new Translation2d(
+        MathUtil.clamp(
+            (newSpeeds.vxMetersPerSecond - latestFieldSpeeds.vxMetersPerSecond) / CodeConstants.PERIODIC_LOOP_TIME, -6,
+            6),
+        MathUtil.clamp(
+            (newSpeeds.vyMetersPerSecond - latestFieldSpeeds.vyMetersPerSecond) / CodeConstants.PERIODIC_LOOP_TIME, -6,
+            6)
+    );
+    latestFieldSpeeds = newSpeeds;
     latestPose = pose;
   }
 
