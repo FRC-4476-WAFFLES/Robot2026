@@ -13,12 +13,14 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.vendor.BlueRelativeTarget;
+import lombok.Getter;
 
 public class AutoPath {
   private int targetIndex = 0;
   private boolean onFinalTarget = false;
   private boolean preciseFinish = false;
   private Pose2d startingPose = Pose2d.kZero;
+  @Getter
   private final BlueRelativeTarget[] targets;
   private final Command cmd;
 
@@ -36,6 +38,13 @@ public class AutoPath {
     for (int i = 0; i < targets.length; i++) {
       targets[i] = targets[i].getMirrored();
     }
+  }
+
+  public AutoPath withMirroring(boolean right) {
+    if (right) {
+      mirror();
+    }
+    return this;
   }
 
   public Command follow() {

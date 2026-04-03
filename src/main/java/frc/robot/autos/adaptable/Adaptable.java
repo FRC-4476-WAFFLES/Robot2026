@@ -5,13 +5,19 @@
 package frc.robot.autos.adaptable;
 
 import java.util.ArrayList;
-
-import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
+import java.util.Arrays;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotState;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.RobotContainer;
 import frc.robot.autos.AutoUtils;
+import frc.robot.autos.adaptable.choosers.AutoDropdownChooser;
+import frc.robot.autos.adaptable.choosers.AutoNetworkNumber;
+import frc.robot.autos.adaptable.choosers.AutoSegmentChooser;
 import frc.robot.commands.drive.AutoPath;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
@@ -34,47 +40,130 @@ public class Adaptable {
       .withMaxRotationRate(2);
 
   // NT 
+  private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
+      .onChange(() -> InvalidateCache());
+
+  private static final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
+      "AdaptableAuto/Side")
+      .addOption("Left", false)
+      .addOption("Right", true)
+      .onChange(() -> InvalidateCache());
+
   private static final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
       "AdaptableAuto/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .onChange(() -> GenerateAuto());
-  private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser("AdaptableAuto/First Sweep")
+      .onChange(() -> InvalidateCache());
+
+  private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
+      .onChange(() -> InvalidateCache());
+
+  private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser(
+      "AdaptableAuto/First Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
-      .onChange(() -> GenerateAuto());
-  private static final LoggedNetworkNumber preSweepDelay = new LoggedNetworkNumber("AdaptableAuto/First Sweep Delay");
+      .onChange(() -> InvalidateCache());
 
-  public static void GenerateAuto() {
-    ArrayList<BlueRelativeTarget> allTargets = new ArrayList<>();
+  private static final AutoNetworkNumber shootTime = new AutoNetworkNumber("AdaptableAuto/Shoot Timeout", 9)
+      .onChange(() -> InvalidateCache());
 
-    // Make target list
-    allTargets.add(crossToNeutral);
-    firstAttackDepthChooser.getTargets().ifPresent(allTargets::addAll);
-    firstSweepChooser.getTargets().ifPresent(allTargets::addAll);
-    allTargets.add(crossToAlliance);
-    allTargets.add(shooting);
+  private static final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
+      "AdaptableAuto/Second Attack Depth")
+      .addOption("Normal", new NormalAttack())
+      .addOption("Deep", new DeepAttack())
+      .onChange(() -> InvalidateCache());
+  private static final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
+      "AdaptableAuto/Second Sweep")
+      .addOption("Normal", new NormalSweep())
+      .addOption("Greedy", new GreedySweep())
+      .addOption("No Sweep", new NoSweep())
+      .onChange(() -> InvalidateCache());
 
-    // Visualize Path
-    AutoVisualizer.VisualizeAuto(start, allTargets);
+  public static void periodic() {
+    if (!RobotState.isEnabled() && DriverStation.isDSAttached()
+        && RobotContainer.autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Make sure robot doesn't get lagged out while running 
+      if (cmd == null) {
+        GenerateAuto(false);
+      }
+    }
+  }
 
-    AutoPath collectBalls = new AutoPath(allTargets.toArray(new BlueRelativeTarget[0]))
+  public static void InvalidateCache() {
+    cmd = null;
+    SmartDashboard.putBoolean("AdaptableAuto/Cached", false);
+  }
+
+  private static void GenerateAuto(boolean immediate) {
+    Boolean pathMirrored = autoMirroring.get();
+    if (pathMirrored == null) {
+      return;
+    }
+
+    // First pass
+    ArrayList<BlueRelativeTarget> firstAttackTargets = new ArrayList<>();
+    ArrayList<BlueRelativeTarget> firstReturnTargets = new ArrayList<>();
+
+    firstAttackTargets.add(crossToNeutral);
+    firstAttackDepthChooser.getTargets().ifPresent(firstAttackTargets::addAll);
+
+    firstSweepChooser.getTargets().ifPresent(firstReturnTargets::addAll);
+    firstReturnTargets.add(crossToAlliance);
+    firstReturnTargets.add(shooting);
+
+    ArrayList<BlueRelativeTarget> allFirstPassTargets = new ArrayList<>();
+    allFirstPassTargets.addAll(firstAttackTargets);
+    allFirstPassTargets.addAll(firstReturnTargets);
+
+    Command collectBalls;
+
+    AutoPath firstPass = new AutoPath(allFirstPassTargets.toArray(new BlueRelativeTarget[0]))
+        .withMirroring(pathMirrored)
         .withPreciseFinish();
-    AutoPath secondPass = new AutoPath(allTargets.toArray(new BlueRelativeTarget[0]))
+
+    if (preSweepDelay.getAsDouble() > 1e-9) {
+      // split up path to add a wait
+      AutoPath attackPath = new AutoPath(firstAttackTargets.toArray(new BlueRelativeTarget[0]))
+          .withMirroring(pathMirrored);
+      AutoPath returnPath = new AutoPath(firstReturnTargets.toArray(new BlueRelativeTarget[0]))
+          .withMirroring(pathMirrored)
+          .withPreciseFinish();
+
+      collectBalls = Commands.sequence(
+          attackPath.follow(),
+          Commands.waitSeconds(preSweepDelay.getAsDouble()),
+          returnPath.follow()
+      );
+    } else {
+      collectBalls = firstPass.follow();
+    }
+
+    // Second pass
+    ArrayList<BlueRelativeTarget> allSecondPassTargets = new ArrayList<>();
+
+    allSecondPassTargets.add(crossToNeutral);
+    secondAttackDepthChooser.getTargets().ifPresent(allSecondPassTargets::addAll);
+    secondSweepChooser.getTargets().ifPresent(allSecondPassTargets::addAll);
+    allSecondPassTargets.add(crossToAlliance);
+    allSecondPassTargets.add(shooting);
+
+    AutoPath secondPass = new AutoPath(allSecondPassTargets.toArray(new BlueRelativeTarget[0]))
+        .withMirroring(pathMirrored)
         .withPreciseFinish();
 
+    // Auto definition
     cmd = Commands.sequence(
-        AutoUtils.resetOdometry(start),
+        AutoUtils.resetOdometry(start.withMirroring(pathMirrored)),
+        Commands.waitSeconds(autoDelay.getAsDouble()),
 
         Commands.deadline(
-            collectBalls.follow(),
+            collectBalls,
             IntakeCommands.intakeCommand()
         ),
 
         Commands.parallel(
-            ShooterCommands.shootAutoCommand(4).withTimeout(9),
-            DriveCommands.autoToTarget(readyForNextPass)
+            ShooterCommands.shootAutoCommand(4).withTimeout(shootTime.getAsDouble()),
+            DriveCommands.autoToTarget(readyForNextPass.withMirroring(pathMirrored))
         ),
 
         Commands.deadline(
@@ -82,18 +171,23 @@ public class Adaptable {
             IntakeCommands.intakeCommand()
         )
     );
+
+    if (!immediate) {
+      // Visualize Path
+      AutoVisualizer.VisualizeAuto(start.withMirroring(pathMirrored), Arrays.asList(firstPass.getTargets()));
+    }
+
+    SmartDashboard.putBoolean("AdaptableAuto/Cached", true);
   }
 
   public static Command run() {
     return Commands.runOnce(() -> {
       if (cmd == null) {
-        GenerateAuto();
+        GenerateAuto(true);
       }
 
-      Command cmdPin = cmd;
-      cmd = null;
-
-      cmdPin.schedule();
+      cmd.schedule();
+      InvalidateCache();
     });
   }
 

@@ -118,6 +118,10 @@ public class BlueRelativeTarget {
     return clone;
   }
 
+  public BlueRelativeTarget withMirroring(boolean shouldMirror) {
+    return shouldMirror ? this.getMirrored() : this;
+  }
+
   public BlueRelativeTarget clone() {
     var target = new BlueRelativeTarget(m_reference);
     if (m_entryAngle.isPresent()) {

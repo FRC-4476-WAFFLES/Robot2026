@@ -2,39 +2,26 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.autos.adaptable;
+package frc.robot.autos.adaptable.choosers;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
-
+import frc.robot.autos.adaptable.AutoSegment;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class AutoSegmentChooser {
-  private final LoggedDashboardChooser<Optional<AutoSegment>> chooser;
-  private int options = 0;
-
+public class AutoSegmentChooser extends GenericAutoDropdownChooser<Optional<AutoSegment>, AutoSegmentChooser> {
   public AutoSegmentChooser(String name) {
-    chooser = new LoggedDashboardChooser<>(name);
+    super(name);
     chooser.addDefaultOption("None", Optional.empty());
   }
 
   public AutoSegmentChooser addOption(String key, AutoSegment segment) {
-    if (options == 0) {
-      chooser.addDefaultOption(key, Optional.of(segment)); // Overwrite the first default once actually added
-    } else {
-      chooser.addOption(key, Optional.of(segment));
-    }
-    options++;
+    addOption(key, Optional.of(segment));
     return this;
   }
 
-  public AutoSegmentChooser onChange(Runnable callback) {
-    chooser.onChange(var -> callback.run());
-    return this;
-  }
-
+  @Override
   public Optional<AutoSegment> get() {
     var currentSegments = chooser.get();
     if (currentSegments != null) {

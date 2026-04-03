@@ -102,8 +102,8 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
 
   /* Global Robot State */
-  private LoggedDashboardChooser<Command> autoChooser;
-  private LoggedDashboardChooser<Command> testChooser;
+  public static LoggedDashboardChooser<Command> autoChooser;
+  public static LoggedDashboardChooser<Command> testChooser;
 
   public static RobotState state = new RobotState();
   public static SimState simState = (Constants.getMode() == Mode.SIM) ? new SimState() : null;
@@ -317,7 +317,7 @@ public class RobotContainer {
       autoChooser.addOption("Adaptable", Adaptable.run());
       autoChooser.onChange(cmd -> {
         if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay compatible
-          Adaptable.GenerateAuto();
+          Adaptable.InvalidateCache();
         } else {
           AutoVisualizer.ClearVisualizer();
         }
