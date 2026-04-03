@@ -139,7 +139,8 @@ public class IntakeIOTalonFX implements IntakeIO {
     feedforward = MathUtil.clamp(feedforward, 0, 1);
     double kG = -0.2;
 
-    expander.setControl(expanderRequest.withPosition(setpointRotations).withFeedForward(feedforward * kG));
+    expander.setControl(expanderRequest.withPosition(setpointRotations).withFeedForward(feedforward
+        * kG));
   }
 
   @Override

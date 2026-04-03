@@ -152,7 +152,7 @@ public final class Constants {
     public static final double MIN_TOF = 1;
     public static final double MAX_TOF = 3;
 
-    public static final boolean LIMIT_TO_HUB_SHIFTS = true;
+    public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = false;
     public static final boolean SHOOT_ON_MOVE = true;
 
@@ -280,7 +280,7 @@ public final class Constants {
     public static final double INDEXER_REDUCTION = 5.33333;
     public static final double INTAKE_REDUCTION = 3;
     public static final double HOOD_REDUCTION = 73.3333;
-    public static final double FEEDER_REDUCTION = 3;
+    public static final double FEEDER_REDUCTION = 1.11111111;
     public static final double CLIMBER_REDUCTION = 2;
 
     public static final double TURRET_GEAR_TEETH = 160.0;
@@ -309,8 +309,8 @@ public final class Constants {
 
     // Pitch & height are applied megatag side
     public static final Transform3d ROBOT_TO_FRAME_CAMERA = new Transform3d(
-        new Translation3d(-0.17570000, 0.39606565, 0.26416456),
-        new Rotation3d(0, Units.degreesToRadians(-35), Units.degreesToRadians(90))
+        new Translation3d(-0.1757, 0.40083964, 0.26252020),
+        new Rotation3d(0, Units.degreesToRadians(-25), Units.degreesToRadians(90))
     );
 
     // Should technically not include height on real robot but for sim it's easier
@@ -343,7 +343,7 @@ public final class Constants {
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 55;
+    public static final double MOTOR_kP = 40;
     public static final double MOTOR_kD = 3;
     public static final double MOTOR_kS = 0.42;
     public static final double MOTOR_kV = 5;
@@ -408,7 +408,7 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(12, 30),
+      RUN(15, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -493,7 +493,7 @@ public final class Constants {
 
   public static class HoodConstants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(22.3);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(20);
 
     public static final double MAX_VELOCITY = 2;
     public static final double MAX_ACCELERATION = 30;

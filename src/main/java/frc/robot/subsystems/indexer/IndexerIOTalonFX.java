@@ -9,6 +9,7 @@ import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -30,7 +31,7 @@ public class IndexerIOTalonFX implements IndexerIO {
   // Control Objects
   private final VelocityVoltage indexerVelocityRequest1 = new VelocityVoltage(0);
   private final Follower indexerFollowerRequest;
-  private final VelocityVoltage feederVelocityRequest = new VelocityVoltage(0);
+  private final VelocityTorqueCurrentFOC feederVelocityRequest = new VelocityTorqueCurrentFOC(0);
   private final Follower feederFollowerRequest;
 
   public IndexerIOTalonFX() {
@@ -42,10 +43,10 @@ public class IndexerIOTalonFX implements IndexerIO {
     feeder0 = new TalonFXIO(Constants.CANIds.feederMotor0);
     feeder1 = new TalonFXIO(Constants.CANIds.feederMotor1);
 
-    feederFollowerRequest = new Follower(feeder0.getDeviceID(), MotorAlignmentValue.Opposed);
+    feederFollowerRequest = new Follower(feeder0.getDeviceID(), MotorAlignmentValue.Aligned);
 
     // Configure hardware
-    configureFeederMotor();
+    configureFeederMotors();
     configureIndexerMotors();
   }
 
@@ -66,7 +67,7 @@ public class IndexerIOTalonFX implements IndexerIO {
   @Override
   public void runIndexerVelocity(double spindexerVelocity, double feederVelocity) {
     indexer0.setControl(indexerVelocityRequest1.withVelocity(spindexerVelocity));
-    // indexer2.setControl(indexerFollowerRequest);
+    indexer1.setControl(indexerFollowerRequest);
 
     feeder0.setControl(feederVelocityRequest.withVelocity(feederVelocity));
     feeder1.setControl(feederFollowerRequest);
@@ -105,19 +106,19 @@ public class IndexerIOTalonFX implements IndexerIO {
     PhoenixHelpers.tryConfig(() -> indexer1.getConfigurator().apply(indexerConfigs));
   }
 
-  private void configureFeederMotor() {
+  private void configureFeederMotors() {
     TalonFXConfiguration feederConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs feederCurrentLimit = new CurrentLimitsConfigs()
-        .withStatorCurrentLimit(80)
+        .withStatorCurrentLimit(120)
         .withStatorCurrentLimitEnable(true);
 
     feederConfigs.CurrentLimits = feederCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 0.6;
-    slot0Configs.kS = 0.7;
+    slot0Configs.kP = 4;
+    slot0Configs.kS = 11;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 0.30;
+    slot0Configs.kV = 0.19;
     slot0Configs.kG = 0.0;
     feederConfigs.Slot0 = slot0Configs;
 
