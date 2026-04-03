@@ -67,10 +67,10 @@ public class DriveToPose {
       // Mutate constraints
       RobotState.setAutopilotMaxVelocity(blueTarget.getMaxVelocity());
 
-      if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationVelocity()) {
+      if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationRate()) {
         angleController.setConstraints(
-            new TrapezoidProfile.Constraints(DriveCommands.ANGLE_MAX_VELOCITY, blueTarget.getMaxRotationVelocity()));
-        lastMaxAngularVelocityConstraint = blueTarget.getMaxRotationVelocity();
+            new TrapezoidProfile.Constraints(DriveCommands.ANGLE_MAX_VELOCITY, blueTarget.getMaxRotationRate()));
+        lastMaxAngularVelocityConstraint = blueTarget.getMaxRotationRate();
       }
 
       // Technically ignores the rotation radus field of an APTarget since we just
@@ -170,7 +170,7 @@ public class DriveToPose {
 
   // Helper to mutate chassisSpeeds objects (mutated because local variables
   // lambda enclosing scopes must be effectively final)
-  private static void copyChassisSpeeds(ChassisSpeeds target, ChassisSpeeds toCopy) {
+  public static void copyChassisSpeeds(ChassisSpeeds target, ChassisSpeeds toCopy) {
     target.vxMetersPerSecond = toCopy.vxMetersPerSecond;
     target.vyMetersPerSecond = toCopy.vyMetersPerSecond;
     target.omegaRadiansPerSecond = toCopy.omegaRadiansPerSecond;

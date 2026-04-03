@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.autos.adaptable.Adaptable;
 import frc.robot.data.BuildConstants;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
@@ -189,7 +190,7 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void disabledPeriodic() {
-
+    Adaptable.periodic();
   }
 
   /**

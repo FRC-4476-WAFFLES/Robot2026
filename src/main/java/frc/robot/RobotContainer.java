@@ -30,6 +30,8 @@ import frc.robot.autos.Left;
 import frc.robot.autos.LeftDepot;
 import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
+import frc.robot.autos.adaptable.Adaptable;
+import frc.robot.autos.adaptable.AutoVisualizer;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -99,8 +101,8 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
 
   /* Global Robot State */
-  private LoggedDashboardChooser<Command> autoChooser;
-  private LoggedDashboardChooser<Command> testChooser;
+  public static LoggedDashboardChooser<Command> autoChooser;
+  public static LoggedDashboardChooser<Command> testChooser;
 
   public static RobotState state = new RobotState();
   public static SimState simState = (Constants.getMode() == Mode.SIM) ? new SimState() : null;
@@ -306,10 +308,19 @@ public class RobotContainer {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser", AutoBuilder.buildAutoChooser());
     } else {
       autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
+      autoChooser.addDefaultOption("None", Commands.none());
       autoChooser.addOption("Preload", new Preload());
       autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
+      autoChooser.addOption("Adaptable", Adaptable.run());
+      autoChooser.onChange(cmd -> {
+        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay compatible
+          Adaptable.InvalidateCache();
+        } else {
+          AutoVisualizer.ClearVisualizer();
+        }
+      });
     }
 
     testChooser = new LoggedDashboardChooser<>("Test Chooser", buildTestChooser());

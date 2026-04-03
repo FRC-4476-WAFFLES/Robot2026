@@ -20,8 +20,7 @@ public class LeftGreedy extends SequentialCommandGroup {
   private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90));
   private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
       .withMaxVelocity(1.7);
-  private final BlueRelativeTarget point4 = new BlueRelativeTarget(6.8, 4.0, Rotation2d.fromDegrees(-160)) // Mid swing
-                                                                                                           // point
+  private final BlueRelativeTarget point4 = new BlueRelativeTarget(6.8, 4.0, Rotation2d.fromDegrees(-160))
       .withEntryAngle(Rotation2d.fromDegrees(-160))
       .withMaxVelocity(1.5);
   private final BlueRelativeTarget point5 = new BlueRelativeTarget(6.0, 3.7, Rotation2d.fromDegrees(90))

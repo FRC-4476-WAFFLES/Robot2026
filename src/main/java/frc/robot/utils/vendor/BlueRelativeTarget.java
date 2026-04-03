@@ -19,16 +19,16 @@ import lombok.Getter;
 
 public class BlueRelativeTarget {
   protected Pose2d m_reference;
-  protected Optional<Rotation2d> m_entryAngle;
   protected double m_exitVelocity;
+  protected Optional<Rotation2d> m_entryAngle;
   protected Optional<Distance> m_rotationRadius;
 
   @Getter
   protected double maxVelocity;
   @Getter
-  protected double maxRotationVelocity;
+  protected double maxRotationRate;
 
-  private boolean isRedFlipped = false;
+  private boolean isRedCached = false;
   private APTarget target;
 
   public BlueRelativeTarget(double x, double y, Rotation2d rotation) {
@@ -41,7 +41,7 @@ public class BlueRelativeTarget {
     m_entryAngle = Optional.empty();
     m_rotationRadius = Optional.empty();
     maxVelocity = CodeConstants.AUTO_MAX_SPEED;
-    maxRotationVelocity = DriveCommands.ANGLE_MAX_VELOCITY;
+    maxRotationRate = DriveCommands.ANGLE_MAX_VELOCITY;
   }
 
   public Pose2d getFieldRelativePose() {
@@ -49,7 +49,7 @@ public class BlueRelativeTarget {
   }
 
   public APTarget getFieldRelative() {
-    if (isRedFlipped == WafflesUtilities.IsRedAlliance() && target != null) {
+    if (isRedCached == WafflesUtilities.IsRedAlliance() && target != null) {
       return target;
     }
 
@@ -57,21 +57,8 @@ public class BlueRelativeTarget {
     if (m_entryAngle.isPresent()) {
       target = target.withEntryAngle(WafflesUtilities.FlipIfRedAlliance(m_entryAngle.get()));
     }
-    isRedFlipped = WafflesUtilities.IsRedAlliance();
+    isRedCached = WafflesUtilities.IsRedAlliance();
     return target;
-  }
-
-  /**
-   * Mirrors pose left/right . Does not flip alliance.
-   */
-  public BlueRelativeTarget mirror() {
-    m_reference = new Pose2d(m_reference.getX(), FlippingUtil.fieldSizeY - m_reference.getY(),
-        m_reference.getRotation().unaryMinus());
-    if (m_entryAngle.isPresent()) {
-      m_entryAngle = Optional.of(m_entryAngle.get().unaryMinus());
-    }
-    target = null;
-    return this;
   }
 
   public boolean hasEntryAngle() {
@@ -113,7 +100,39 @@ public class BlueRelativeTarget {
 
   // Does not invalidate cached APTarget
   public BlueRelativeTarget withMaxRotationRate(double maxVelocity) {
-    this.maxRotationVelocity = maxVelocity;
+    this.maxRotationRate = maxVelocity;
     return this;
+  }
+
+  /**
+  * Mirrors pose left/right . Does not flip alliance.
+  */
+  public BlueRelativeTarget getMirrored() {
+    var clone = clone();
+    clone.withTarget(new Pose2d(m_reference.getX(), FlippingUtil.fieldSizeY - m_reference.getY(),
+        m_reference.getRotation().unaryMinus()));
+    if (m_entryAngle.isPresent()) {
+      clone.withEntryAngle(m_entryAngle.get().unaryMinus());
+    }
+
+    return clone;
+  }
+
+  public BlueRelativeTarget withMirroring(boolean shouldMirror) {
+    return shouldMirror ? this.getMirrored() : this;
+  }
+
+  public BlueRelativeTarget clone() {
+    var target = new BlueRelativeTarget(m_reference);
+    if (m_entryAngle.isPresent()) {
+      target.withEntryAngle(m_entryAngle.get());
+    }
+    if (m_rotationRadius.isPresent()) {
+      target.withRotationRadius(m_rotationRadius.get());
+    }
+    target.withExitVelocity(m_exitVelocity);
+    target.withMaxVelocity(maxVelocity);
+    target.withMaxRotationRate(maxRotationRate);
+    return target;
   }
 }
