@@ -177,6 +177,7 @@ public class RobotState {
     return latestFieldSpeeds;
   }
 
+  @AutoLogOutput(key = "RobotState/FieldAccel")
   public Translation2d getFieldAcceleration() {
     return latestAcceleration;
   }

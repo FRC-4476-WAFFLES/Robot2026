@@ -84,11 +84,11 @@ public class ShotPlanner {
       Logger.recordOutput("RobotState/Turret Position", turretPose);
       Logger.recordOutput("Turret/Distance To Target", distanceToTarget);
 
-      Translation2d currentTarget = fieldTarget;
+      Translation2d adjustedPose = turretPose.getTranslation();
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
           && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
-                                                                          // (so turret sees tags)
+                                                                                                                                          // (so turret sees tags)
       ) {
 
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
@@ -108,12 +108,12 @@ public class ShotPlanner {
 
         double previousTimeOfFlight = Double.NaN;
         double currentDistance = distanceToTarget;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 1; i++) {
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
-          currentTarget = fieldTarget.minus(integratedVelocity.times(timeOfFlight));
+          adjustedPose = turretPose.getTranslation().plus(integratedVelocity.times(timeOfFlight));
 
-          currentDistance = currentTarget.getDistance(turretPose.getTranslation());
+          currentDistance = adjustedPose.getDistance(fieldTarget);
 
           if (previousTimeOfFlight != Double.NaN && Math.abs(timeOfFlight - previousTimeOfFlight) < 0.02) {
             break;
@@ -123,12 +123,11 @@ public class ShotPlanner {
 
         distanceToTarget = currentDistance;
 
-        // Logger.recordOutput("RobotState/Turret Vel", turretVel);
-        Logger.recordOutput("Turret/Adjusted Target Position", new Pose2d(currentTarget, Rotation2d.kZero));
+        Logger.recordOutput("Turret/Adjusted Robot Position", new Pose2d(adjustedPose, Rotation2d.kZero));
         Logger.recordOutput("Turret/Adjusted Distance To Target", distanceToTarget);
       }
 
-      Rotation2d turretAngle = currentTarget.minus(turretPose.getTranslation()).getAngle();
+      Rotation2d turretAngle = fieldTarget.minus(adjustedPose).getAngle();
 
       double turretVelocity = 0;
       if (CodeConstants.SHOOT_ON_MOVE) {
@@ -146,6 +145,9 @@ public class ShotPlanner {
           hoodAngle.interpolate(distanceToTarget),
           flywheelSpeeds.interpolate(distanceToTarget)
       );
+
+      // Logger.recordOutput("Turret/DEBUG ANGLE", turretAngle);
+      // Logger.recordOutput("Turret/DEBUG VEL", turretVelocity);
     }
     EpochTimer.EndEpoch("Aiming");
 
