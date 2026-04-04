@@ -20,6 +20,7 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -96,15 +97,17 @@ public class TurretIOTalonFX implements TurretIO {
     slot0Configs.kS = TurretConstants.MOTOR_kS;
     slot0Configs.kV = TurretConstants.MOTOR_kV;
     slot0Configs.kA = TurretConstants.MOTOR_kA;
+    slot0Configs.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
     turretConfigs.Slot0 = slot0Configs;
 
     Slot1Configs slot1Configs = new Slot1Configs();
-    slot0Configs.kP = 80;
-    slot0Configs.kD = 0;
-    slot0Configs.kI = 0;
-    slot0Configs.kS = 0;
-    slot0Configs.kV = 0;
-    slot0Configs.kA = 0;
+    slot1Configs.kP = 120;
+    slot1Configs.kD = 0;
+    slot1Configs.kI = 0;
+    slot1Configs.kS = 0;
+    slot1Configs.kV = 0;
+    slot1Configs.kA = 0;
+    slot1Configs.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
     turretConfigs.Slot1 = slot1Configs;
 
     turretConfigs.MotionMagic.MotionMagicCruiseVelocity = TurretConstants.MAX_VELOCITY;
@@ -240,10 +243,12 @@ public class TurretIOTalonFX implements TurretIO {
     // Logger.recordOutput("Turret/Feedforward", feedforward);
     // turret.setControl(
     // setpointRequest.withPosition(setpointRotations).awithVelocity(velocity).withFeedForward(feedforward));
-    if (Math.abs(relativePosition - position) < Units.degreesToRotations(5)) {
-      turret.setControl(setpointRequest.withPosition(setpointRotations).withVelocity(velocity));
+    if (velocity < 0.04 || (Math.abs(relativePosition - position) > Units.degreesToRotations(30))) {
+      turret.setControl(motionMagicRequest.withPosition(setpointRotations).withSlot(1).withFeedForward(velocity * 9));
+      Logger.recordOutput("Turret/ControlScheme", "MM");
     } else {
-      turret.setControl(motionMagicRequest.withPosition(setpointRotations).withFeedForward(velocity * 3));
+      turret.setControl(setpointRequest.withPosition(setpointRotations).withSlot(0).withVelocity(velocity));
+      Logger.recordOutput("Turret/ControlScheme", "PV");
     }
   }
 

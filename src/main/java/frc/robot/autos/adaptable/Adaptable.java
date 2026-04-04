@@ -39,7 +39,7 @@ public class Adaptable {
   private static final BlueRelativeTarget readyForNextPass = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
       .withMaxRotationRate(2);
 
-  // NT 
+  // NT
   private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
       .onChange(() -> InvalidateCache());
 
@@ -63,6 +63,7 @@ public class Adaptable {
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
+      .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
   private static final AutoNetworkNumber shootTime = new AutoNetworkNumber("AdaptableAuto/Shoot Timeout", 9)
@@ -78,11 +79,14 @@ public class Adaptable {
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
+      .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
   public static void periodic() {
     if (!RobotState.isEnabled() && DriverStation.isDSAttached()
-        && RobotContainer.autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Make sure robot doesn't get lagged out while running 
+        && RobotContainer.autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Make sure robot doesn't
+                                                                                           // get lagged out while
+                                                                                           // running
       if (cmd == null) {
         GenerateAuto(false);
       }
@@ -221,6 +225,22 @@ public class Adaptable {
               .withMaxVelocity(1.5), // Mid swing point
           new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5)
+      );
+    }
+  }
+
+  public static class LoopbackSweep extends AutoSegment {
+    public LoopbackSweep() {
+      add(
+          new BlueRelativeTarget(9.5, 3.959, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(1.5), // Mid swing point
+          new BlueRelativeTarget(10.5, 4.9, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5),
+          new BlueRelativeTarget(9.365, 5.4, Rotation2d.fromDegrees(180))
+              .withEntryAngle(Rotation2d.fromDegrees(-180))
               .withMaxVelocity(1.5)
       );
     }

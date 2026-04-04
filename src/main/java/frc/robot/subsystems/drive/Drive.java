@@ -325,7 +325,9 @@ public class Drive extends ExpandedSubsystem {
   /** Returns the measured chassis speeds of the robot. */
   @AutoLogOutput(key = "RobotState/SwerveChassisSpeeds/Measured")
   private ChassisSpeeds getChassisSpeeds() {
-    return kinematics.toChassisSpeeds(getModuleStates());
+    var speeds = kinematics.toChassisSpeeds(getModuleStates());
+    speeds.omegaRadiansPerSecond = gyroInputs.yawVelocityRadPerSec;
+    return speeds;
   }
 
   /** Returns the position of each module in radians. */

@@ -147,7 +147,7 @@ public class Turret extends ExpandedSubsystem {
   // Public API
   public void setTargetSetpoint(Rotation2d heading, double velocity) {
     goalHeading = heading;
-    goalVelocity = velocity;
+    goalVelocity = 0;
   }
 
   public TurretState getState() {

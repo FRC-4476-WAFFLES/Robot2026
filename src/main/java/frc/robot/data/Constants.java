@@ -343,10 +343,10 @@ public final class Constants {
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 40;
-    public static final double MOTOR_kD = 3;
-    public static final double MOTOR_kS = 0.7;
-    public static final double MOTOR_kV = 3;
+    public static final double MOTOR_kP = 60;
+    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kS = 0;
+    public static final double MOTOR_kV = 10;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;
@@ -372,7 +372,7 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
-    public static final double OFFSET = 5;
+    public static final double OFFSET = 6.5;
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
         new NodePoint(1.5, 40 + OFFSET),
