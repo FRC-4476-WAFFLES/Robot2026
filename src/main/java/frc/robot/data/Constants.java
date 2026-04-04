@@ -331,12 +331,12 @@ public final class Constants {
 
     public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-45); // Facing diagonally back into robot
 
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-200); // Can be up to +/- 360 deg
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-225); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(200);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(225);
 
-    public static final double MAX_VELOCITY = 10;
-    public static final double MAX_ACCELERATION = 8;
+    public static final double MAX_VELOCITY = 2;
+    public static final double MAX_ACCELERATION = 10;
 
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(12);
 
@@ -345,8 +345,8 @@ public final class Constants {
 
     public static final double MOTOR_kP = 40;
     public static final double MOTOR_kD = 3;
-    public static final double MOTOR_kS = 0.42;
-    public static final double MOTOR_kV = 5;
+    public static final double MOTOR_kS = 0.7;
+    public static final double MOTOR_kV = 3;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;

@@ -12,7 +12,9 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.Slot1Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -36,6 +38,7 @@ public class TurretIOTalonFX implements TurretIO {
   protected final CANcoderIO cancoder1;
 
   private final PositionVoltage setpointRequest = new PositionVoltage(0);
+  private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0);
   private double lastPosition = 0;
 
   // protected final StatusSignal<Angle> absolutePosition0;
@@ -93,6 +96,18 @@ public class TurretIOTalonFX implements TurretIO {
     slot0Configs.kV = TurretConstants.MOTOR_kV;
     slot0Configs.kA = TurretConstants.MOTOR_kA;
     turretConfigs.Slot0 = slot0Configs;
+
+    Slot1Configs slot1Configs = new Slot1Configs();
+    slot0Configs.kP = 80;
+    slot0Configs.kD = 0;
+    slot0Configs.kI = 0;
+    slot0Configs.kS = 0;
+    slot0Configs.kV = 0;
+    slot0Configs.kA = 0;
+    turretConfigs.Slot1 = slot1Configs;
+
+    turretConfigs.MotionMagic.MotionMagicCruiseVelocity = TurretConstants.MAX_VELOCITY;
+    turretConfigs.MotionMagic.MotionMagicAcceleration = TurretConstants.MAX_ACCELERATION;
 
     turretConfigs.MotorOutput.DutyCycleNeutralDeadband = TurretConstants.MOTOR_DEADBAND;
     turretConfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
@@ -212,18 +227,19 @@ public class TurretIOTalonFX implements TurretIO {
         position, Constants.TurretConstants.MIN_POSITION_ROTATIONS,
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
-    double feedforward = 0;
-    double deadband = 0.02;
-    double springFF = 0;
-    if (lastPosition > deadband) {
-      feedforward = springFF;
-    } else if (lastPosition < deadband) {
-      feedforward = -springFF;
-    }
+    // double feedforward = 0;
+    // double deadband = 0.02;
+    // double springFF = 0;
+    // if (lastPosition > deadband) {
+    // feedforward = springFF;
+    // } else if (lastPosition < deadband) {
+    // feedforward = -springFF;
+    // }
 
-    Logger.recordOutput("Turret/Feedforward", feedforward);
-    turret.setControl(
-        setpointRequest.withPosition(setpointRotations).withVelocity(velocity).withFeedForward(feedforward));
+    // Logger.recordOutput("Turret/Feedforward", feedforward);
+    // turret.setControl(
+    // setpointRequest.withPosition(setpointRotations).awithVelocity(velocity).withFeedForward(feedforward));
+    turret.setControl(motionMagicRequest.withPosition(setpointRotations).withFeedForward(velocity * 3));
   }
 
   @Override
