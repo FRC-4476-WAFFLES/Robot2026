@@ -23,6 +23,7 @@ import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.CANIds;
 import frc.robot.data.Constants.Mode;
@@ -39,7 +40,7 @@ public class TurretIOTalonFX implements TurretIO {
 
   private final PositionVoltage setpointRequest = new PositionVoltage(0);
   private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0);
-  private double lastPosition = 0;
+  private double relativePosition = 0;
 
   // protected final StatusSignal<Angle> absolutePosition0;
   // protected final StatusSignal<AngularVelocity> velocity0;
@@ -213,7 +214,7 @@ public class TurretIOTalonFX implements TurretIO {
     inputs.absolutePosition = Rotation2d.fromRotations(inputs.relativePosition).plus(TurretConstants.PHYSICAL_ZERO);
     inputs.velocity = turret.getRawSignals().velocity().getValueAsDouble();
 
-    lastPosition = inputs.relativePosition;
+    relativePosition = inputs.relativePosition;
   }
 
   @Override
@@ -239,7 +240,11 @@ public class TurretIOTalonFX implements TurretIO {
     // Logger.recordOutput("Turret/Feedforward", feedforward);
     // turret.setControl(
     // setpointRequest.withPosition(setpointRotations).awithVelocity(velocity).withFeedForward(feedforward));
-    turret.setControl(motionMagicRequest.withPosition(setpointRotations).withFeedForward(velocity * 3));
+    if (Math.abs(relativePosition - position) < Units.degreesToRotations(5)) {
+      turret.setControl(setpointRequest.withPosition(setpointRotations).withVelocity(velocity));
+    } else {
+      turret.setControl(motionMagicRequest.withPosition(setpointRotations).withFeedForward(velocity * 3));
+    }
   }
 
   @Override
