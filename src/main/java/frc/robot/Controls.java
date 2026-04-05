@@ -35,7 +35,8 @@ public class Controls {
    * When triggers are referenced in multiple places, they are defined here to
    * have a single source of truth
    */
-  public static final Trigger shootButton = Controls.rightJoystick.button(1);
+  public static final Trigger shootButton = rightJoystick.button(1);
+  public static final Trigger beachButton = operatorController.rightTrigger();
 
   public static class DriverConstants {
     // public static final int kDriverControllerPort = 0;
@@ -78,10 +79,14 @@ public class Controls {
 
   // Smooths deadzone over range
   public static double applyDeadzone(double input) {
-    return Math.abs(input) > JOYSTICK_DEADZONE_OUTER ? input
-        : (Math.abs(input) < JOYSTICK_DEADZONE_INNER ? 0
+    return applyDeadzone(input, JOYSTICK_DEADZONE_OUTER, JOYSTICK_DEADZONE_INNER);
+  }
+
+  public static double applyDeadzone(double input, double OuterDeadzone, double InnerDeadzone) {
+    return Math.abs(input) > OuterDeadzone ? input
+        : (Math.abs(input) < InnerDeadzone ? 0
             : (WafflesUtilities.Lerp(0, input,
-                WafflesUtilities.InvLerp(JOYSTICK_DEADZONE_INNER, JOYSTICK_DEADZONE_OUTER, input))
+                WafflesUtilities.InvLerp(InnerDeadzone, OuterDeadzone, input))
                 * Math.signum(input)));
   }
 

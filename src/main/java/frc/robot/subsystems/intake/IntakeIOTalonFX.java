@@ -65,6 +65,8 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     intakeConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.INTAKE_REDUCTION;
 
+    intakeConfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+
     intakeConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     intakeConfigs.MotorOutput.DutyCycleNeutralDeadband = IntakeConstants.MOTOR_DEADBAND;
 

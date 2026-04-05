@@ -56,6 +56,10 @@ public class StateOrchestrator extends VirtualSubsystem {
       }
     }
 
+    if (Controls.beachButton.getAsBoolean()) {
+      state = ShooterState.HANDLE_BEACHED;
+    }
+
     RobotContainer.state.setShooterState(state);
   }
 }

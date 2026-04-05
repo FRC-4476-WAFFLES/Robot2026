@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.Meters;
 
 import java.util.Optional;
 
+import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -21,6 +22,7 @@ import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -77,6 +79,7 @@ import frc.robot.subsystems.shooter.hood.HoodIO;
 import frc.robot.subsystems.shooter.hood.HoodIOSim;
 import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
 import frc.robot.subsystems.shooter.turret.Turret;
+import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.subsystems.shooter.turret.TurretIO;
 import frc.robot.subsystems.shooter.turret.TurretIOSim;
 import frc.robot.subsystems.shooter.turret.TurretIOTalonFX;
@@ -269,6 +272,8 @@ public class RobotContainer {
           return Optional.empty();
         });
 
+    SmartDashboard.putBoolean("Manual", false);
+
     // Force static initialization
     ShotPlanner.aimManual();
     // Warmup pathplanner to reduce delay when dynamic pathing
@@ -315,7 +320,8 @@ public class RobotContainer {
       autoChooser.addOption("Left Greedy", new LeftGreedy());
       autoChooser.addOption("Adaptable", Adaptable.run());
       autoChooser.onChange(cmd -> {
-        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay compatible
+        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay
+                                                                             // compatible
           Adaptable.InvalidateCache();
         } else {
           AutoVisualizer.ClearVisualizer();
@@ -344,6 +350,9 @@ public class RobotContainer {
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed
     Controls.leftJoystick.button(1).whileTrue(IntakeCommands.intakeCommand());
+
+    Controls.operatorController.leftBumper()
+        .whileTrue(Commands.startEnd(() -> state.setOuttakeDesired(true), () -> state.setOuttakeDesired(false)));
 
     // Intake
     state.expanderStowed().whileTrue(Commands.run(
@@ -380,7 +389,7 @@ public class RobotContainer {
               } else {
                 state.setExpanderState(ExpanderState.AGITATING);
               }
-              intake.setIntakeDutyCycle(IntakeConstants.AGITATION_SPEED);
+              intake.setIntakeDutyCycle(IntakeConstants.AGITATION_DUTY_CYCLE);
             },
             () -> {
               intake.setIntakeDutyCycle(0);
@@ -399,19 +408,36 @@ public class RobotContainer {
         }, intake
     ));
 
+    state.shouldOuttake()
+        .whileTrue(
+            Commands.runEnd(
+                () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
+                () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
+                intake).withName("Outtake"));
+
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimToPass();
       turret.runSetpoint(parms.turretSetpoint(), true);
-      flywheel.runSetpoint(parms.flywheelSpeed());
+      flywheel.runSetpoint(Controls.shootButton.getAsBoolean() ? parms.flywheelSpeed() : 0);
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Pass"));
 
     // Hub mode
     state.shooterTargetsHub().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimToHub();
-      turret.runSetpoint(parms.turretSetpoint(), true);
-      flywheel.runSetpoint(parms.flywheelSpeed());
+
+      var turretSetpoint = parms.turretSetpoint();
+      if (state.onBump) {
+        var chosenAngle = turretSetpoint.heading().plus(ShotPlanner.getTurretBumpOffset());
+        Logger.recordOutput("Turret/Bump Offset", chosenAngle);
+        turret.runSetpoint(new TurretSetpoint(chosenAngle,
+            turretSetpoint.velocity()), true);
+        flywheel.runSetpoint(parms.flywheelSpeed() + 2);
+      } else {
+        turret.runSetpoint(parms.turretSetpoint(), true);
+        flywheel.runSetpoint(parms.flywheelSpeed());
+      }
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Hub"));
 
@@ -419,9 +445,17 @@ public class RobotContainer {
     state.shooterTargetTag().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimToTag();
       turret.runSetpoint(parms.turretSetpoint(), true);
-      flywheel.runSetpoint(parms.flywheelSpeed());
+      flywheel.runSetpoint(Controls.shootButton.getAsBoolean() ? parms.flywheelSpeed() : 0);
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Tag"));
+
+    state.shooterHandleBeached().whileTrue(Commands.run(() -> {
+      var parms = ShotPlanner.aimBeached();
+      turret.runSetpoint(parms.turretSetpoint(), false);
+      flywheel.runSetpoint(parms.flywheelSpeed());
+      hood.runSetpoint(parms.hoodAngle());
+    }).withName("Shooter Handle Beached"));
+
     state.shouldFire().whileTrue(ShooterCommands.shootCommand()).onFalse(
         ShooterCommands.backoffIndexer()
     );

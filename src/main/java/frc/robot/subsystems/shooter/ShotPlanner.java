@@ -45,6 +45,8 @@ public class ShotPlanner {
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
+  private static final SplineMonotone1D tiltOffsetMap = new SplineMonotone1D(CodeConstants.TiltOffsetMap);
+
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1.5);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
       FlippingUtil.fieldSizeY - passingTargetLeft.getY());
@@ -198,8 +200,27 @@ public class ShotPlanner {
     return parameters;
   }
 
+  public static ShootingParameters aimBeached() {
+    parameters = new ShootingParameters(new TurretSetpoint(Rotation2d.kZero, 0), 0, 0);
+    return parameters;
+  }
+
   public static ShootingParameters getLatestParameters() {
     return parameters;
+  }
+
+  public static Rotation2d getTurretBumpOffset() {
+    double angle = RobotContainer.state.getLatestTilt();
+    if (!RobotContainer.state.onBump) {
+      return Rotation2d.kZero;
+    }
+
+    double offset = tiltOffsetMap.interpolate(angle);
+    if (WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose()).getY() > 4) {
+      // turn left?
+      return Rotation2d.fromDegrees(offset);
+    }
+    return Rotation2d.fromDegrees(-offset);
   }
 
   public static Supplier<TurretSetpoint> turretSetpoint() {

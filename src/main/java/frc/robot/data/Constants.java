@@ -66,8 +66,8 @@ public final class Constants {
 
     // RIO bus
     public static final int expanderMotor = 14;
-    public static final int intakeMotor0 = 15;
-    public static final int intakeMotor1 = 16;
+    public static final int intakeMotor0 = 16;
+    public static final int intakeMotor1 = 15;
     public static final int climberMotor = 17;
     public static final int indexerMotor1 = 18;
     public static final int indexerMotor2 = 19;
@@ -151,6 +151,11 @@ public final class Constants {
     };
     public static final double MIN_TOF = 1;
     public static final double MAX_TOF = 3;
+
+    public static final NodePoint[] TiltOffsetMap = new NodePoint[] {
+        new NodePoint(9, 5),
+        new NodePoint(13, 30)
+    };
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = false;
@@ -331,9 +336,9 @@ public final class Constants {
 
     public static final Rotation2d PHYSICAL_ZERO = Rotation2d.fromDegrees(-45); // Facing diagonally back into robot
 
-    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-225); // Can be up to +/- 360 deg
+    public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(-190); // Can be up to +/- 360 deg
                                                                                         // without breaking logic
-    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(225);
+    public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(190);
 
     public static final double MAX_VELOCITY = 2;
     public static final double MAX_ACCELERATION = 10;
@@ -343,10 +348,10 @@ public final class Constants {
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
-    public static final double MOTOR_kP = 60;
-    public static final double MOTOR_kD = 0;
+    public static final double MOTOR_kP = 70;
+    public static final double MOTOR_kD = 4;
     public static final double MOTOR_kS = 0;
-    public static final double MOTOR_kV = 10;
+    public static final double MOTOR_kV = 4;
     public static final double MOTOR_kA = 0;
 
     public static final double MOTOR_DEADBAND = 0;
@@ -386,7 +391,7 @@ public final class Constants {
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };
 
-    public static final double RPM_RANGE = 450;
+    public static final double RPM_RANGE = 900; // Range before indexer will start
   }
 
   public static class SpindexerConstants {
@@ -408,8 +413,8 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(25, 40),
-      RUNSLOW(25, 40),
+      RUN(15, 40),
+      RUNSLOW(15, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -478,7 +483,8 @@ public final class Constants {
 
   public static class IntakeConstants {
     public static final double INTAKE_DUTY_CYCLE = 0.9; // Was 28rps with velocity control
-    public static final double AGITATION_SPEED = 0.3; // Was 5 rps with velocity control
+    public static final double AGITATION_DUTY_CYCLE = 0.3; // Was 5 rps with velocity control
+    public static final double OUTTAKE_DUTY_CYCLE = -0.5;
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;

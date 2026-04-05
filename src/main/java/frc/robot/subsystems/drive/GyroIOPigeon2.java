@@ -61,7 +61,8 @@ public class GyroIOPigeon2 implements GyroIO {
     yawTimestampQueue.clear();
     yawPositionQueue.clear();
 
-    inputs.levelOnGround = !isOnBumpGravity();
+    inputs.tipAngle = getTiltMagnitude();
+    inputs.levelOnGround = !isOnBumpGravity(inputs.tipAngle);
   }
 
   public double getTiltMagnitude() {
@@ -75,7 +76,7 @@ public class GyroIOPigeon2 implements GyroIO {
     return tiltDeg;
   }
 
-  public boolean isOnBumpGravity() {
-    return getTiltMagnitude() > Constants.CodeConstants.ON_BUMP_TILT;
+  public static boolean isOnBumpGravity(double tilt) {
+    return tilt > Constants.CodeConstants.ON_BUMP_TILT;
   }
 }

@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.utils.lib.EpochTimer;
 
 public class Flywheel extends SubsystemBase {
@@ -45,13 +46,13 @@ public class Flywheel extends SubsystemBase {
 
       // double error = flywheelGoalVelocity - inputs.flywheelMotorData0.velocity();
       // boolean shooting = RobotContainer.state.shouldFire().getAsBoolean()
-      //     || RobotContainer.state.shouldFireManual().getAsBoolean();
+      // || RobotContainer.state.shouldFireManual().getAsBoolean();
 
       // if (shooting && error > RECOVERY_ENTER_THRESHOLD) {
-      //   inRecovery = true;
+      // inRecovery = true;
       // }
       // if (error < RECOVERY_EXIT_THRESHOLD || !shooting) {
-      //   inRecovery = false;
+      // inRecovery = false;
       // }
 
       // double feedForward = inRecovery ? error * RECOVERY_FF_PER_RPS : 0;
@@ -68,9 +69,8 @@ public class Flywheel extends SubsystemBase {
 
   @AutoLogOutput(key = "Flywheel/At Setpoint")
   public boolean atSetpoint() {
-    return true;
-    // return Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity)
-    // < (FlywheelConstants.RPM_RANGE / 60.0);
+    // return true;
+    return Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {

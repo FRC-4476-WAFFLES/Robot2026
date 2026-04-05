@@ -21,6 +21,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
@@ -34,6 +35,7 @@ public class RobotState {
     TARGET_PASS,
     TARGET_HUB,
     TARGET_TAG, // Look at tag after crossing bump
+    HANDLE_BEACHED,
     DISABLED
   }
 
@@ -86,6 +88,11 @@ public class RobotState {
 
   @Getter
   @Setter
+  @AutoLogOutput(key = "RobotState/Outtake Desired")
+  private boolean outtakeDesired = false;
+
+  @Getter
+  @Setter
   @AutoLogOutput(key = "RobotState/Force Intake In")
   private boolean forceIntakeIn = false;
 
@@ -108,6 +115,9 @@ public class RobotState {
   private ChassisSpeeds latestFieldSpeeds = new ChassisSpeeds();
   private Pose2d latestPose = new Pose2d();
   private Translation2d latestAcceleration = new Translation2d();
+
+  @Getter
+  private double latestTilt = 0;
 
   private static final APConstraints autopilotConstraints = new APConstraints()
       .withVelocity(CodeConstants.AUTO_MAX_SPEED)
@@ -212,7 +222,7 @@ public class RobotState {
   }
 
   // Called once in earlyPeriodic to update odometry state
-  public void updateOdometry(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds) {
+  public void updateOdometry(double timestamp, Pose2d pose, ChassisSpeeds chassisSpeeds, double tilt) {
     // Less accurate than high hz odometry thread but probably good enough?
     poseHistoryBuffer.addSample(timestamp, pose);
     yawVelocityHistoryBuffer.addSample(timestamp, chassisSpeeds.omegaRadiansPerSecond);
@@ -230,6 +240,8 @@ public class RobotState {
     );
     latestFieldSpeeds = newSpeeds;
     latestPose = pose;
+
+    latestTilt = tilt;
   }
 
   public void updateTurret(double timestamp, Rotation2d position, double velocity) {
@@ -257,6 +269,7 @@ public class RobotState {
 
   public void toggleManualMode() {
     manualMode = !manualMode;
+    SmartDashboard.putBoolean("Manual", manualMode);
   }
 
   public boolean isManualMode() {
@@ -307,11 +320,16 @@ public class RobotState {
     return new Trigger(() -> shooterState == ShooterState.TARGET_HUB).and(normalMode());
   }
 
+  public Trigger shooterHandleBeached() {
+    return new Trigger(() -> shooterState == ShooterState.HANDLE_BEACHED).and(normalMode());
+  }
+
   public Trigger canFire() {
     return shooterDisabled().negate()
         .and(normalMode())
         .and(() -> robotEnabled())
         .and(() -> RobotContainer.turret.atGoal())
+        .and(() -> shooterState == ShooterState.TARGET_HUB ? true : (RobotContainer.flywheel.atSetpoint()))
         .and(() -> shooterState == ShooterState.TARGET_HUB ? hubEnabled() : true);
   }
 
@@ -329,6 +347,10 @@ public class RobotState {
 
   public Trigger shouldIntake() {
     return new Trigger(() -> isIntaking);
+  }
+
+  public Trigger shouldOuttake() {
+    return new Trigger(() -> !isIntaking && !isShooting && outtakeDesired);
   }
 
   public Trigger shouldStabilize() {

@@ -33,6 +33,7 @@ import frc.robot.data.Constants.TurretConstants;
 import frc.robot.utils.hardware.CANcoderIO;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
+import frc.robot.utils.lib.WafflesUtilities;
 
 public class TurretIOTalonFX implements TurretIO {
   protected final TalonFXIO turret;
@@ -101,7 +102,7 @@ public class TurretIOTalonFX implements TurretIO {
     turretConfigs.Slot0 = slot0Configs;
 
     Slot1Configs slot1Configs = new Slot1Configs();
-    slot1Configs.kP = 120;
+    slot1Configs.kP = 50;
     slot1Configs.kD = 0;
     slot1Configs.kI = 0;
     slot1Configs.kS = 0;
@@ -231,23 +232,29 @@ public class TurretIOTalonFX implements TurretIO {
         position, Constants.TurretConstants.MIN_POSITION_ROTATIONS,
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
-    // double feedforward = 0;
-    // double deadband = 0.02;
+    double feedforward = 0.9;
+    double deadband = 0.1;
+    double deadbandOuter = 0.2;
     // double springFF = 0;
-    // if (lastPosition > deadband) {
+    // if (relativePosition > deadband) {
     // feedforward = springFF;
-    // } else if (lastPosition < deadband) {
+    // } else if (relativePosition < deadband) {
     // feedforward = -springFF;
     // }
 
-    // Logger.recordOutput("Turret/Feedforward", feedforward);
+    double ff = feedforward *
+        MathUtil.clamp(WafflesUtilities.InvLerp(deadband, deadbandOuter, Math.abs(relativePosition)), 0, 1)
+        * Math.signum(relativePosition);
+
+    Logger.recordOutput("Turret/Feedforward", ff);
     // turret.setControl(
     // setpointRequest.withPosition(setpointRotations).awithVelocity(velocity).withFeedForward(feedforward));
-    if (velocity < 0.04 || (Math.abs(relativePosition - position) > Units.degreesToRotations(30))) {
-      turret.setControl(motionMagicRequest.withPosition(setpointRotations).withSlot(1).withFeedForward(velocity * 9));
+    if ((Math.abs(relativePosition - position) > Units.degreesToRotations(30))) {
+      turret.setControl(motionMagicRequest.withPosition(setpointRotations).withSlot(1));
       Logger.recordOutput("Turret/ControlScheme", "MM");
     } else {
-      turret.setControl(setpointRequest.withPosition(setpointRotations).withSlot(0).withVelocity(velocity));
+      turret.setControl(
+          setpointRequest.withPosition(setpointRotations).withSlot(0).withVelocity(velocity).withFeedForward(ff));
       Logger.recordOutput("Turret/ControlScheme", "PV");
     }
   }

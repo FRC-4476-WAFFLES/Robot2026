@@ -39,4 +39,10 @@ public class FlywheelIOSim extends FlywheelIOTalonFX {
     setpointVel = velocity;
     super.runFlywheelVelocity(velocity);
   }
+
+  @Override
+  public void runFlywheelVelocity(double velocity, double feedforward) {
+    setpointVel = velocity;
+    super.runFlywheelVelocity(velocity, feedforward);
+  }
 }
