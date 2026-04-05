@@ -51,6 +51,11 @@ public class LimelightIO implements VisionIO {
     // Process MegaTag1
     var result = LimelightHelpers.getBotPoseEstimate_wpiBlue(limelightName);
 
+    if (result == null) {
+      inputs.canSeeTag = false;
+      return;
+    }
+
     inputs.megatagResult = new PoseEstimateRecord(
         result.pose, result.timestampSeconds,
         result.latency,

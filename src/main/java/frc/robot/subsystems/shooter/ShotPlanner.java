@@ -50,7 +50,8 @@ public class ShotPlanner {
       FlippingUtil.fieldSizeY - passingTargetLeft.getY());
   public static final double latencyCompensationStep = CodeConstants.PERIODIC_LOOP_TIME;
 
-  public static final double ACCEL_COMP_FACTOR = 0.1;
+  public static final double ACCEL_COMP_FACTOR = 0.0;
+  public static final double SOTM_LOOKAHEAD = 1;
 
   private static Rotation2d lastTurretAngle;
 
@@ -88,7 +89,7 @@ public class ShotPlanner {
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
           && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
-                                                                                                                                          // (so turret sees tags)
+                                                                          // (so turret sees tags)
       ) {
 
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
@@ -111,7 +112,7 @@ public class ShotPlanner {
         for (int i = 0; i < 1; i++) {
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
-          adjustedPose = turretPose.getTranslation().plus(integratedVelocity.times(timeOfFlight));
+          adjustedPose = turretPose.getTranslation().plus(integratedVelocity.times(timeOfFlight * SOTM_LOOKAHEAD));
 
           currentDistance = adjustedPose.getDistance(fieldTarget);
 

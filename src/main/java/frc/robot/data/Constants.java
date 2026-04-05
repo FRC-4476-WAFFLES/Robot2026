@@ -144,9 +144,9 @@ public final class Constants {
     public static final Angle AUTO_ANGLE_TOLERANCE_PRECISE = Degrees.of(1);
 
     public static final NodePoint[] TimeofFlightMap = new NodePoint[] {
-        new NodePoint(1.8, 0.7),
-        new NodePoint(3.175, 1.05),
-        new NodePoint(4.778, 1.4),
+        new NodePoint(1.8, 0.9),
+        new NodePoint(3.175, 1.15),
+        new NodePoint(4.778, 1.25),
         new NodePoint(10, 2)
     };
     public static final double MIN_TOF = 1;
@@ -376,12 +376,12 @@ public final class Constants {
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
         new NodePoint(1.5, 40 + OFFSET),
-        new NodePoint(1.884, 41 + OFFSET),
+        new NodePoint(1.884, 40.5 + OFFSET),
         new NodePoint(2.33, 44.0 + OFFSET),
         new NodePoint(3.05, 49.0 + OFFSET),
-        new NodePoint(3.827, 56.5 + OFFSET),
-        new NodePoint(4.31, 60 + OFFSET),
-        new NodePoint(5.28, 60.5 + OFFSET),
+        new NodePoint(3.827, 54 + OFFSET),
+        new NodePoint(4.31, 55.5 + OFFSET),
+        new NodePoint(5.28, 54 + OFFSET),
         new NodePoint(7.022, 63.0 + OFFSET),
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };
@@ -409,6 +409,7 @@ public final class Constants {
 
     public enum IndexerState {
       RUN(15, 40),
+      RUNSLOW(7, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -476,7 +477,7 @@ public final class Constants {
   }
 
   public static class IntakeConstants {
-    public static final double INTAKE_DUTY_CYCLE = 1; // Was 28rps with velocity control
+    public static final double INTAKE_DUTY_CYCLE = 0.9; // Was 28rps with velocity control
     public static final double AGITATION_SPEED = 0.3; // Was 5 rps with velocity control
 
     // Motor configs
@@ -517,7 +518,7 @@ public final class Constants {
         new NodePoint(2.33, 6.09),
         new NodePoint(3.05, 6.13),
         new NodePoint(3.827, 5.17),
-        new NodePoint(5.28, 13.86),
+        new NodePoint(5.28, 18.86),
         new NodePoint(15.5, 21) // Super long passing
     };
 

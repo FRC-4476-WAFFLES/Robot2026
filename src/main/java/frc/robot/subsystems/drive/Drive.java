@@ -326,7 +326,9 @@ public class Drive extends ExpandedSubsystem {
   @AutoLogOutput(key = "RobotState/SwerveChassisSpeeds/Measured")
   private ChassisSpeeds getChassisSpeeds() {
     var speeds = kinematics.toChassisSpeeds(getModuleStates());
-    speeds.omegaRadiansPerSecond = gyroInputs.yawVelocityRadPerSec;
+    if (Constants.getMode() == Mode.REAL) {
+      speeds.omegaRadiansPerSecond = gyroInputs.yawVelocityRadPerSec;
+    }
     return speeds;
   }
 

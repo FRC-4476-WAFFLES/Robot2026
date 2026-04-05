@@ -53,7 +53,7 @@ public class TurretIOSim extends TurretIOTalonFX {
   @Override
   public void runSetpoint(double position, double velocity) {
     currentOutput = (position - sim.getAngularPositionRotations()) * 40
-        + (velocity) * 1.8;
+        + (velocity) * 1.0;
 
     super.runSetpoint(position, velocity);
   }

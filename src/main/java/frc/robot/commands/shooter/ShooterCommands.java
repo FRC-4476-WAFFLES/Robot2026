@@ -12,16 +12,28 @@ import frc.robot.commands.drive.DriveCommands;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 
 public class ShooterCommands {
+  private static final double AGITATION_CYCLE_TIME = 2;
+
   public static Command shootCommand() {
+    Timer agitationTimer = new Timer();
+
     return Commands.parallel(
         Commands.sequence(
             Commands.waitUntil(() -> RobotContainer.state.joysticksFree() && !RobotContainer.state.autonomousEnabled()),
             DriveCommands.stopWithX(RobotContainer.drive).until(() -> !RobotContainer.state.joysticksFree())
                 .withName("Lock Wheels").asProxy()
         ).repeatedly(),
-        RobotContainer.indexer.runIndexerCommand(IndexerState.RUN)
+        Commands.run(() -> {
+          if (agitationTimer.get() % AGITATION_CYCLE_TIME < 1.2) {
+            RobotContainer.indexer.runIndexer(IndexerState.RUN);
+          } else {
+            RobotContainer.indexer.runIndexer(IndexerState.RUNSLOW);
+          }
+
+        })
     )
         .beforeStarting(() -> RobotContainer.state.setShooting(true))
+        .beforeStarting(() -> agitationTimer.restart())
         .finallyDo(() -> RobotContainer.state.setShooting(false))
         .withName("Fire shot");
   }

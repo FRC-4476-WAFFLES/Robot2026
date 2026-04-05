@@ -190,7 +190,7 @@ public class Adaptable {
         GenerateAuto(true);
       }
 
-      cmd.schedule();
+      cmd.onlyWhile(() -> RobotContainer.state.autonomousEnabled()).schedule();
       InvalidateCache();
     });
   }
