@@ -36,7 +36,10 @@ public class Adaptable {
       .withExitVelocity(0.7);
   private static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
-  private static final BlueRelativeTarget readyForNextPass = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
+  private static final BlueRelativeTarget readyForNextPass0 = new BlueRelativeTarget(3, 5.4,
+      Rotation2d.fromDegrees(-90))
+      .withMaxRotationRate(2);
+  private static final BlueRelativeTarget readyForNextPass1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
       .withMaxRotationRate(2);
 
   // NT
@@ -165,9 +168,12 @@ public class Adaptable {
             IntakeCommands.intakeCommand()
         ),
 
-        Commands.parallel(
+        Commands.deadline(
             ShooterCommands.shootAutoCommand(4).withTimeout(shootTime.getAsDouble()),
-            DriveCommands.autoToTarget(readyForNextPass.withMirroring(pathMirrored))
+            Commands.sequence(
+                DriveCommands.autoToTarget(readyForNextPass0.withMirroring(pathMirrored)),
+                DriveCommands.autoToTarget(readyForNextPass1.withMirroring(pathMirrored))
+            )
         ),
 
         Commands.deadline(
@@ -249,11 +255,11 @@ public class Adaptable {
   public static class GreedySweep extends AutoSegment {
     public GreedySweep() {
       add(
-          new BlueRelativeTarget(6.8, 4.0, Rotation2d.fromDegrees(-160))
-              .withEntryAngle(Rotation2d.fromDegrees(-160))
+          new BlueRelativeTarget(7.2, 3.7, Rotation2d.fromDegrees(-160))
+              .withEntryAngle(Rotation2d.fromDegrees(-140))
               .withMaxVelocity(1.5),
           new BlueRelativeTarget(6.0, 3.7, Rotation2d.fromDegrees(90))
-              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(100))
               .withMaxVelocity(1.5)
       );
     }
