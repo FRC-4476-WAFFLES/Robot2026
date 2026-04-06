@@ -46,6 +46,7 @@ public class ShotPlanner {
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
   private static final SplineMonotone1D bumpFlywheelOffsetMap = new SplineMonotone1D(CodeConstants.BumpFlywheelOffsetMap);
+  private static final SplineMonotone1D tiltOffsetMap = new SplineMonotone1D(CodeConstants.TiltOffsetMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1.5);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
@@ -244,9 +245,21 @@ public class ShotPlanner {
     Rotation2d nominalAngle = hubTarget.minus(nominalTurretPos).getAngle();
     Rotation2d correctedAngle = hubTarget.minus(actualTurretPos).getAngle();
 
-    Rotation2d offset = correctedAngle.minus(nominalAngle);
-    Logger.recordOutput("Turret/Bump Position Offset", offset.getDegrees());
-    return offset;
+    Rotation2d positionOffset = correctedAngle.minus(nominalAngle);
+
+    // Empirical offset for launch angle effect — ball exits at a tilted angle
+    // causing lateral drift that the position shift alone doesn't capture.
+    // Sign is derived from the physics offset since both effects are caused by
+    // the same tilt in the same direction.
+    double tilt = RobotContainer.state.getLatestTilt();
+    double empiricalOffsetDeg = Math.copySign(tiltOffsetMap.interpolate(tilt), positionOffset.getDegrees());
+    Rotation2d empiricalOffset = Rotation2d.fromDegrees(empiricalOffsetDeg);
+
+    Logger.recordOutput("Turret/Bump Nominal Turret Pos", new Pose2d(nominalTurretPos, nominalAngle));
+    Logger.recordOutput("Turret/Bump Actual Turret Pos", new Pose2d(actualTurretPos, correctedAngle));
+    Logger.recordOutput("Turret/Bump Position Offset", positionOffset.getDegrees());
+    Logger.recordOutput("Turret/Bump Empirical Offset", empiricalOffsetDeg);
+    return positionOffset.plus(empiricalOffset);
   }
 
   public static double getBumpFlywheelOffset() {
