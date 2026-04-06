@@ -128,6 +128,9 @@ public final class Constants {
     public static final double SOTM_SLEW_LIMIT = 3.5;
     public static final double SOTM_ANGLE_SLEW_LIMIT = 2;
 
+    public static final double INTAKE_SHOOT_SLEW_LIMIT = 8.0;
+    public static final double INTAKE_SHOOT_ANGLE_SLEW_LIMIT = 4.0;
+
     public static final boolean USE_PATHPLANNER_AUTOS = false;
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
     public static final boolean DISABLE_PURE_PURSUIT = true;

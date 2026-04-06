@@ -89,6 +89,21 @@ public class DriveCommands {
             limiter.slewInitialized = false;
           }
 
+          boolean limitIntakeShootSlew = RobotContainer.state.shouldLimitDriveAccel().getAsBoolean();
+          if (limitIntakeShootSlew) {
+            if (!limiter.intakeShootSlewInitialized) {
+              limiter.intakeShootXLimiter.reset(speeds.vxMetersPerSecond);
+              limiter.intakeShootYLimiter.reset(speeds.vyMetersPerSecond);
+              limiter.intakeShootOmegaLimiter.reset(speeds.omegaRadiansPerSecond);
+              limiter.intakeShootSlewInitialized = true;
+            }
+            speeds.vxMetersPerSecond = limiter.intakeShootXLimiter.calculate(speeds.vxMetersPerSecond);
+            speeds.vyMetersPerSecond = limiter.intakeShootYLimiter.calculate(speeds.vyMetersPerSecond);
+            speeds.omegaRadiansPerSecond = limiter.intakeShootOmegaLimiter.calculate(speeds.omegaRadiansPerSecond);
+          } else {
+            limiter.intakeShootSlewInitialized = false;
+          }
+
           boolean isFlipped = DriverStation.getAlliance().isPresent()
               && DriverStation.getAlliance().get() == Alliance.Red;
 
@@ -110,8 +125,13 @@ public class DriveCommands {
     SlewRateLimiter xLimiter = new SlewRateLimiter(CodeConstants.SOTM_SLEW_LIMIT);
     SlewRateLimiter yLimiter = new SlewRateLimiter(CodeConstants.SOTM_SLEW_LIMIT);
     SlewRateLimiter omegaLimiter = new SlewRateLimiter(CodeConstants.SOTM_ANGLE_SLEW_LIMIT);
-
     Boolean slewInitialized = false;
+
+    // For acceleration limiting while intaking and shooting simultaneously
+    SlewRateLimiter intakeShootXLimiter = new SlewRateLimiter(CodeConstants.INTAKE_SHOOT_SLEW_LIMIT);
+    SlewRateLimiter intakeShootYLimiter = new SlewRateLimiter(CodeConstants.INTAKE_SHOOT_SLEW_LIMIT);
+    SlewRateLimiter intakeShootOmegaLimiter = new SlewRateLimiter(CodeConstants.INTAKE_SHOOT_ANGLE_SLEW_LIMIT);
+    Boolean intakeShootSlewInitialized = false;
   }
 
   public static Command testDrive(
