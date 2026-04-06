@@ -67,7 +67,7 @@ public class Vision extends VirtualSubsystem {
       var turretEstimate = turretCamera.update(true);
 
       if ((RobotContainer.state.isManualMode()) && RobotContainer.state.robotEnabled()) {
-        // Ignore vision when on bump or manual mode
+        // Ignore vision in manual mode
         frameEstimate = Optional.empty();
         turretEstimate = Optional.empty();
         Logger.recordOutput("Vision/Vision Enabled", false);

@@ -157,6 +157,12 @@ public final class Constants {
         new NodePoint(13, 40)
     };
 
+    public static final NodePoint[] BumpFlywheelOffsetMap = new NodePoint[] {
+        new NodePoint(0, 0),
+        new NodePoint(9, 1),
+        new NodePoint(13, 2)
+    };
+
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
     public static final boolean MANUAL_SHOOTER_TUNING = false;
     public static final boolean SHOOT_ON_MOVE = true;

@@ -21,6 +21,8 @@ public interface GyroIO {
     public Rotation2d[] odometryYawPositions = new Rotation2d[] {};
     public boolean levelOnGround = true;
     public double tipAngle = 0.0;
+    public double gravityVectorX = 0.0;
+    public double gravityVectorY = 0.0;
   }
 
   public default void updateInputs(GyroIOInputs inputs) {}

@@ -237,6 +237,7 @@ public class Drive extends ExpandedSubsystem {
 
       // Update pose history buffers
       RobotContainer.state.updateOdometry(Timer.getTimestamp(), getPose(), getChassisSpeeds(), gyroInputs.tipAngle);
+      RobotContainer.state.updateGravity(gyroInputs.gravityVectorX, gyroInputs.gravityVectorY);
 
     }
     EpochTimer.EndEpoch("Drive");

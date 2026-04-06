@@ -433,7 +433,7 @@ public class RobotContainer {
         Logger.recordOutput("Turret/Bump Offset", chosenOffset);
         turret.runSetpoint(new TurretSetpoint(turretSetpoint.heading().plus(chosenOffset),
             turretSetpoint.velocity()), true);
-        flywheel.runSetpoint(parms.flywheelSpeed() + 2);
+        flywheel.runSetpoint(parms.flywheelSpeed() + ShotPlanner.getBumpFlywheelOffset());
       } else {
         turret.runSetpoint(parms.turretSetpoint(), true);
         flywheel.runSetpoint(parms.flywheelSpeed());

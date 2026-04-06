@@ -119,6 +119,12 @@ public class RobotState {
   @Getter
   private double latestTilt = 0;
 
+  @Getter
+  private double latestGravityX = 0;
+
+  @Getter
+  private double latestGravityY = 0;
+
   private static final APConstraints autopilotConstraints = new APConstraints()
       .withVelocity(CodeConstants.AUTO_MAX_SPEED)
       .withAcceleration(CodeConstants.AUTO_MAX_ACCEL)
@@ -242,6 +248,11 @@ public class RobotState {
     latestPose = pose;
 
     latestTilt = tilt;
+  }
+
+  public void updateGravity(double gx, double gy) {
+    latestGravityX = gx;
+    latestGravityY = gy;
   }
 
   public void updateTurret(double timestamp, Rotation2d position, double velocity) {

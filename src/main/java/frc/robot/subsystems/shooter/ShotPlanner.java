@@ -45,7 +45,7 @@ public class ShotPlanner {
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
 
-  private static final SplineMonotone1D tiltOffsetMap = new SplineMonotone1D(CodeConstants.TiltOffsetMap);
+  private static final SplineMonotone1D bumpFlywheelOffsetMap = new SplineMonotone1D(CodeConstants.BumpFlywheelOffsetMap);
 
   public static final Translation2d passingTargetLeft = new Translation2d(1.5, 1.5);
   public static final Translation2d passingTargetRight = new Translation2d(passingTargetLeft.getX(),
@@ -210,17 +210,47 @@ public class ShotPlanner {
   }
 
   public static Rotation2d getTurretBumpOffset() {
-    double angle = RobotContainer.state.getLatestTilt();
     if (!RobotContainer.state.onBump) {
       return Rotation2d.kZero;
     }
 
-    double offset = tiltOffsetMap.interpolate(angle);
-    if (WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose()).getY() > 4) {
-      // turn left?
-      return Rotation2d.fromDegrees(offset);
-    }
-    return Rotation2d.fromDegrees(-offset);
+    double gx = RobotContainer.state.getLatestGravityX();
+    double gy = RobotContainer.state.getLatestGravityY();
+    double turretHeight = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getZ(); // 0.491m
+
+    Pose2d robotPose = RobotContainer.state.getPose();
+    double heading = robotPose.getRotation().getRadians();
+
+    // Turret position shift in robot frame due to tilt (flagpole effect)
+    double shiftRobotX = turretHeight * gx;
+    double shiftRobotY = turretHeight * gy;
+
+    // Rotate shift to field frame
+    double shiftFieldX = shiftRobotX * Math.cos(heading) - shiftRobotY * Math.sin(heading);
+    double shiftFieldY = shiftRobotX * Math.sin(heading) + shiftRobotY * Math.cos(heading);
+
+    // Nominal turret position in field frame
+    Translation2d nominalTurretPos = robotPose.transformBy(
+        new Transform2d(PhysicalConstants.ROBOT_TO_TURRET_CENTER.getTranslation().toTranslation2d(), Rotation2d.kZero)
+    ).getTranslation();
+
+    // Actual turret position accounting for tilt
+    Translation2d actualTurretPos = nominalTurretPos.plus(new Translation2d(shiftFieldX, shiftFieldY));
+
+    // Hub target (same as aimToHub)
+    Translation2d hubTarget = WafflesUtilities.FlipIfRedAlliance(FieldConstants.Hub.topCenterPoint.toTranslation2d());
+
+    // Angles from nominal and actual positions to hub
+    Rotation2d nominalAngle = hubTarget.minus(nominalTurretPos).getAngle();
+    Rotation2d correctedAngle = hubTarget.minus(actualTurretPos).getAngle();
+
+    Rotation2d offset = correctedAngle.minus(nominalAngle);
+    Logger.recordOutput("Turret/Bump Position Offset", offset.getDegrees());
+    return offset;
+  }
+
+  public static double getBumpFlywheelOffset() {
+    return bumpFlywheelOffsetMap.interpolate(RobotContainer.state.getLatestTilt());
   }
 
   public static Supplier<TurretSetpoint> turretSetpoint() {

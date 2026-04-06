@@ -32,6 +32,9 @@ public class GyroIOPigeon2 implements GyroIO {
   private final Queue<Double> yawPositionQueue;
   private final Queue<Double> yawTimestampQueue;
   private final StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
+  private final StatusSignal<Double> gravityVectorX = pigeon.getGravityVectorX();
+  private final StatusSignal<Double> gravityVectorY = pigeon.getGravityVectorY();
+  private final StatusSignal<Double> gravityVectorZ = pigeon.getGravityVectorZ();
 
   public GyroIOPigeon2() {
     if (TunerConstants.DrivetrainConstants.Pigeon2Configs != null) {
@@ -43,6 +46,9 @@ public class GyroIOPigeon2 implements GyroIO {
     pigeon.getConfigurator().setYaw(0.0);
     yaw.setUpdateFrequency(Drive.ODOMETRY_FREQUENCY);
     yawVelocity.setUpdateFrequency(50.0);
+    gravityVectorX.setUpdateFrequency(50.0);
+    gravityVectorY.setUpdateFrequency(50.0);
+    gravityVectorZ.setUpdateFrequency(50.0);
     pigeon.optimizeBusUtilization();
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(yaw.clone());
@@ -50,7 +56,7 @@ public class GyroIOPigeon2 implements GyroIO {
 
   @Override
   public void updateInputs(GyroIOInputs inputs) {
-    inputs.connected = BaseStatusSignal.refreshAll(yaw, yawVelocity).equals(StatusCode.OK);
+    inputs.connected = BaseStatusSignal.refreshAll(yaw, yawVelocity, gravityVectorX, gravityVectorY, gravityVectorZ).equals(StatusCode.OK);
     inputs.yawPosition = Rotation2d.fromDegrees(yaw.getValueAsDouble());
     inputs.yawVelocityRadPerSec = Units.degreesToRadians(yawVelocity.getValueAsDouble());
 
@@ -63,13 +69,14 @@ public class GyroIOPigeon2 implements GyroIO {
 
     inputs.tipAngle = getTiltMagnitude();
     inputs.levelOnGround = !isOnBumpGravity(inputs.tipAngle);
+    inputs.gravityVectorX = gravityVectorX.getValueAsDouble();
+    inputs.gravityVectorY = gravityVectorY.getValueAsDouble();
   }
 
   public double getTiltMagnitude() {
     // The gravity vector as [X, Y, Z]
     // On a flat surface, X and Y are near 0, and Z is near 1
-    // Except we are upside down
-    double gz = pigeon.getGravityVectorZ().getValueAsDouble();
+    double gz = gravityVectorZ.getValueAsDouble();
     double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
     double tiltDeg = Math.toDegrees(tiltRad);
     Logger.recordOutput("TiltDeg", tiltDeg);
