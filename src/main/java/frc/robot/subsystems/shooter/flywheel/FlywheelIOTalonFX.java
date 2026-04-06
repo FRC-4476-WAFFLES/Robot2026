@@ -65,7 +65,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private void configureFlywheelMotor() {
     TalonFXConfiguration flywheelConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs flywheelCurrentLimit = new CurrentLimitsConfigs()
-        .withStatorCurrentLimit(120)
+        .withStatorCurrentLimit(Constants.FlywheelConstants.MOTOR_STATOR_CURRENT_LIMIT)
         .withStatorCurrentLimitEnable(true);
 
     flywheelConfigs.CurrentLimits = flywheelCurrentLimit;

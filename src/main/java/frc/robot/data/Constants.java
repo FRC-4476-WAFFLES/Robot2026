@@ -346,7 +346,7 @@ public final class Constants {
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(12);
 
     // Motor configs
-    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 40;
 
     public static final double MOTOR_kP = 70;
     public static final double MOTOR_kD = 4;
@@ -506,7 +506,7 @@ public final class Constants {
     public static final double MAX_ACCELERATION = 30;
 
     // Motor configs
-    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 25;
 
     public static final double MOTOR_kP = 400;
     public static final double MOTOR_kD = 0;
