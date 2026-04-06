@@ -154,7 +154,7 @@ public final class Constants {
 
     public static final NodePoint[] TiltOffsetMap = new NodePoint[] {
         new NodePoint(9, 5),
-        new NodePoint(13, 30)
+        new NodePoint(13, 40)
     };
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;

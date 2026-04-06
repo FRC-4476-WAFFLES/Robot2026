@@ -412,7 +412,7 @@ public class RobotContainer {
         .whileTrue(
             Commands.runEnd(
                 () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
-                () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
+                () -> intake.setIntakeDutyCycle(0),
                 intake).withName("Outtake"));
 
     // Passing mode
@@ -429,9 +429,9 @@ public class RobotContainer {
 
       var turretSetpoint = parms.turretSetpoint();
       if (state.onBump) {
-        var chosenAngle = turretSetpoint.heading().plus(ShotPlanner.getTurretBumpOffset());
-        Logger.recordOutput("Turret/Bump Offset", chosenAngle);
-        turret.runSetpoint(new TurretSetpoint(chosenAngle,
+        var chosenOffset = ShotPlanner.getTurretBumpOffset();
+        Logger.recordOutput("Turret/Bump Offset", chosenOffset);
+        turret.runSetpoint(new TurretSetpoint(turretSetpoint.heading().plus(chosenOffset),
             turretSetpoint.velocity()), true);
         flywheel.runSetpoint(parms.flywheelSpeed() + 2);
       } else {
