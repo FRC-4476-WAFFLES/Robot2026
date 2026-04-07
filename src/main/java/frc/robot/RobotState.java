@@ -356,10 +356,6 @@ public class RobotState {
   public Trigger shouldStabilize() {
     return Controls.shootButton;
   }
-
-  public Trigger shouldLimitDriveAccel() {
-    return new Trigger(() -> isShooting && isIntaking);
-  }
   // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
   // if (expanderState == ExpanderState.EXTENDED) {
   // expanderSetpoint = ExpanderPosition.EXTENDED.getDegrees();
