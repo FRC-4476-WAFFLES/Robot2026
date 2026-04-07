@@ -22,7 +22,8 @@ public class Intake extends SubsystemBase {
     EXTENDED,
     INTAKING,
     AGITATING,
-    FULLY_AGITATING
+    FULLY_AGITATING,
+    SMART_AGITATING
   }
 
   private final IntakeIO io;
@@ -93,6 +94,10 @@ public class Intake extends SubsystemBase {
 
   public double getExpanderPosition() {
     return inputs.expanderMotor.position();
+  }
+
+  public double getExpanderVelocity() {
+    return inputs.expanderMotor.velocity();
   }
 
   public Command extend() {

@@ -465,6 +465,12 @@ public final class Constants {
 
     public static final double AGITATION_CYCLE_TIME = 1;
 
+    public static final double SMART_AGITATION_REBOUND_DEGREES = 20;
+    public static final double SMART_AGITATION_DONE_THRESHOLD_DEG = 10;
+    public static final double SMART_AGITATION_STOPPED_VELOCITY = 0.02; // output shaft rot/sec
+    public static final double SMART_AGITATION_EXTEND_TIME = 0.4; // seconds in extend phase
+    public static final double SMART_AGITATION_MIN_RETRACT_TIME = 0.3; // min time after motion starts before checking velocity
+
     // Configured positions
     public enum ExpanderPosition {
       STOWED(0.0),

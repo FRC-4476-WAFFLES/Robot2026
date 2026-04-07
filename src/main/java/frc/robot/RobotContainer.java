@@ -365,11 +365,53 @@ public class RobotContainer {
         () -> intake.setExpanderSetpoint(ExpanderPosition.INTAKING)
     ).withName("IntakeIntaking"));
     Timer agitationTimer = new Timer();
+    Timer smartExtendTimer = new Timer();
+    Timer smartRetractMotionTimer = new Timer();
+    double[] smartFurthestIn = { 0.0 }; // output shaft rotations
+    boolean[] smartRetracting = { true };
+    boolean[] smartStartedMoving = { false };
+    int[] smartDoneCount = { 0 };
     state.expanderAgitating().whileTrue(Commands.run(
         () -> {
           if (state.getExpanderState() == ExpanderState.FULLY_AGITATING ||
               (state.isForceIntakeIn() && state.autonomousEnabled())) {
             intake.setExpanderSetpoint(ExpanderPosition.STOWED);
+          } else if (state.getExpanderState() == ExpanderState.SMART_AGITATING) {
+            double currentPos = intake.getExpanderPosition();
+            double currentVel = intake.getExpanderVelocity();
+
+            if (smartRetracting[0]) {
+              intake.setExpanderSetpoint(ExpanderPosition.STOWED);
+              if (currentPos < smartFurthestIn[0]) {
+                smartFurthestIn[0] = currentPos;
+              }
+              if (!smartStartedMoving[0] && currentVel < -0.01) {
+                smartStartedMoving[0] = true;
+                smartRetractMotionTimer.restart();
+              }
+              if (smartStartedMoving[0]
+                  && smartRetractMotionTimer.get() > ExpanderConstants.SMART_AGITATION_MIN_RETRACT_TIME
+                  && Math.abs(currentVel) < ExpanderConstants.SMART_AGITATION_STOPPED_VELOCITY) {
+                if (smartFurthestIn[0] * 360 < ExpanderConstants.SMART_AGITATION_DONE_THRESHOLD_DEG) {
+                  smartDoneCount[0]++;
+                  if (smartDoneCount[0] >= 2) {
+                    state.setProbablyDoneShooting(true);
+                  }
+                } else {
+                  smartDoneCount[0] = 0;
+                }
+                smartRetracting[0] = false;
+                smartExtendTimer.restart();
+              }
+            } else {
+              double extendTargetDeg = smartFurthestIn[0] * 360 + ExpanderConstants.SMART_AGITATION_REBOUND_DEGREES;
+              intake.setExpanderSetpoint(extendTargetDeg);
+              if (smartExtendTimer.get() > ExpanderConstants.SMART_AGITATION_EXTEND_TIME) {
+                smartRetracting[0] = true;
+                smartStartedMoving[0] = false;
+                smartFurthestIn[0] = currentPos;
+              }
+            }
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX);
@@ -378,7 +420,13 @@ public class RobotContainer {
             }
           }
         }
-    ).beforeStarting(() -> agitationTimer.restart()).withName("IntakeAgitation"));
+    ).beforeStarting(() -> {
+      agitationTimer.restart();
+      smartRetracting[0] = true;
+      smartStartedMoving[0] = false;
+      smartFurthestIn[0] = intake.getExpanderPosition();
+      smartDoneCount[0] = 0;
+    }).withName("IntakeAgitation"));
 
     var fullMotionAgitation = Controls.operatorController.leftTrigger();
     state.shouldAgitate()
@@ -387,13 +435,14 @@ public class RobotContainer {
               if (fullMotionAgitation.getAsBoolean()) {
                 state.setExpanderState(ExpanderState.FULLY_AGITATING);
               } else {
-                state.setExpanderState(ExpanderState.AGITATING);
+                state.setExpanderState(ExpanderState.SMART_AGITATING);
               }
               intake.setIntakeDutyCycle(IntakeConstants.AGITATION_DUTY_CYCLE);
             },
             () -> {
               intake.setIntakeDutyCycle(0);
               state.setExpanderState(ExpanderState.EXTENDED);
+              state.setProbablyDoneShooting(false);
             }
         ));
 
