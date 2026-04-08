@@ -288,7 +288,7 @@ public final class Constants {
     public static final double INDEXER_REDUCTION = 5.33333;
     public static final double INTAKE_REDUCTION = 3;
     public static final double HOOD_REDUCTION = 73.3333;
-    public static final double FEEDER_REDUCTION = 1.11111111;
+    public static final double FEEDER_REDUCTION = 1.5333333;
     public static final double CLIMBER_REDUCTION = 2;
 
     public static final double TURRET_GEAR_TEETH = 160.0;
@@ -349,7 +349,7 @@ public final class Constants {
     public static final Rotation2d POSITION_TOLERANCE = Rotation2d.fromDegrees(12);
 
     // Motor configs
-    public static final double MOTOR_STATOR_CURRENT_LIMIT = 40;
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
     public static final double MOTOR_kP = 70;
     public static final double MOTOR_kD = 4;
@@ -469,7 +469,8 @@ public final class Constants {
     public static final double SMART_AGITATION_DONE_THRESHOLD_DEG = 10;
     public static final double SMART_AGITATION_STOPPED_VELOCITY = 0.02; // output shaft rot/sec
     public static final double SMART_AGITATION_EXTEND_TIME = 0.4; // seconds in extend phase
-    public static final double SMART_AGITATION_MIN_RETRACT_TIME = 0.3; // min time after motion starts before checking velocity
+    public static final double SMART_AGITATION_MIN_RETRACT_TIME = 0.3; // min time after motion starts before checking
+                                                                       // velocity
 
     // Configured positions
     public enum ExpanderPosition {
@@ -515,7 +516,7 @@ public final class Constants {
     public static final double MAX_ACCELERATION = 30;
 
     // Motor configs
-    public static final double MOTOR_STATOR_CURRENT_LIMIT = 25;
+    public static final double MOTOR_STATOR_CURRENT_LIMIT = 40;
 
     public static final double MOTOR_kP = 400;
     public static final double MOTOR_kD = 0;

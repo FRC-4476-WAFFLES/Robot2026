@@ -115,10 +115,10 @@ public class IndexerIOTalonFX implements IndexerIO {
     feederConfigs.CurrentLimits = feederCurrentLimit;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 6;
-    slot0Configs.kS = 11;
+    slot0Configs.kP = 3.5;
+    slot0Configs.kS = 8.2001953125;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 0.19;
+    slot0Configs.kV = 0.2199999988079071;
     slot0Configs.kG = 0.0;
     feederConfigs.Slot0 = slot0Configs;
 
