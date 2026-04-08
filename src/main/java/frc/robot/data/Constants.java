@@ -150,6 +150,7 @@ public final class Constants {
         new NodePoint(1.8, 0.9),
         new NodePoint(3.175, 1.15),
         new NodePoint(4.778, 1.25),
+        new NodePoint(5.4, 1.4),
         new NodePoint(10, 2)
     };
     public static final double MIN_TOF = 1;
@@ -157,11 +158,11 @@ public final class Constants {
 
     public static final NodePoint[] TiltOffsetMap = new NodePoint[] {
         new NodePoint(9, 5),
-        new NodePoint(13, 40)
+        new NodePoint(13, 23)
     };
 
     public static final boolean LIMIT_TO_HUB_SHIFTS = false;
-    public static final boolean MANUAL_SHOOTER_TUNING = false;
+    public static final boolean MANUAL_SHOOTER_TUNING = true;
     public static final boolean SHOOT_ON_MOVE = true;
 
     public enum ManualOverrideTarget {
@@ -389,7 +390,8 @@ public final class Constants {
         new NodePoint(3.05, 49.0 + OFFSET),
         new NodePoint(3.827, 54 + OFFSET),
         new NodePoint(4.31, 55.5 + OFFSET),
-        new NodePoint(5.28, 54 + OFFSET),
+        new NodePoint(5.28, 56 + OFFSET),
+        new NodePoint(5.6, 57 + OFFSET),
         new NodePoint(7.022, 63.0 + OFFSET),
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };

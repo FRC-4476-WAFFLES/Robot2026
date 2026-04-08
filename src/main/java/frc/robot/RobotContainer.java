@@ -435,7 +435,7 @@ public class RobotContainer {
               if (fullMotionAgitation.getAsBoolean()) {
                 state.setExpanderState(ExpanderState.FULLY_AGITATING);
               } else {
-                state.setExpanderState(ExpanderState.SMART_AGITATING);
+                state.setExpanderState(ExpanderState.AGITATING);
               }
               intake.setIntakeDutyCycle(IntakeConstants.AGITATION_DUTY_CYCLE);
             },
@@ -482,12 +482,15 @@ public class RobotContainer {
         Logger.recordOutput("Turret/Bump Offset", chosenOffset);
         turret.runSetpoint(new TurretSetpoint(turretSetpoint.heading().plus(chosenOffset),
             turretSetpoint.velocity()), true);
-        flywheel.runSetpoint(parms.flywheelSpeed() + 2);
+        flywheel.runSetpoint(parms.flywheelSpeed() - 1); // fudge but it works great
+        hood.runSetpoint(parms.hoodAngle() + (state.getLatestTilt() - 6)); // ""
+
       } else {
         turret.runSetpoint(parms.turretSetpoint(), true);
         flywheel.runSetpoint(parms.flywheelSpeed());
+        hood.runSetpoint(parms.hoodAngle());
+
       }
-      hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Hub"));
 
     // Aim at tag after crossing bump
