@@ -23,7 +23,8 @@ public class Intake extends SubsystemBase {
     INTAKING,
     AGITATING,
     FULLY_AGITATING,
-    SMART_AGITATING
+    SMART_AGITATING,
+    OUTTAKE_AGITATING
   }
 
   private final IntakeIO io;

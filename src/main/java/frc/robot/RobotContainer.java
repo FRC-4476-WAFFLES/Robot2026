@@ -368,6 +368,7 @@ public class RobotContainer {
     Timer smartExtendTimer = new Timer();
     Timer smartRetractMotionTimer = new Timer();
     double[] smartFurthestIn = { 0.0 }; // output shaft rotations
+    double[] smartPeakVelocity = { 0.0 }; // peak |velocity| seen this retract cycle
     boolean[] smartRetracting = { true };
     boolean[] smartStartedMoving = { false };
     int[] smartDoneCount = { 0 };
@@ -389,9 +390,12 @@ public class RobotContainer {
                 smartStartedMoving[0] = true;
                 smartRetractMotionTimer.restart();
               }
+              if (smartStartedMoving[0] && Math.abs(currentVel) > smartPeakVelocity[0]) {
+                smartPeakVelocity[0] = Math.abs(currentVel);
+              }
               if (smartStartedMoving[0]
                   && smartRetractMotionTimer.get() > ExpanderConstants.SMART_AGITATION_MIN_RETRACT_TIME
-                  && Math.abs(currentVel) < ExpanderConstants.SMART_AGITATION_STOPPED_VELOCITY) {
+                  && Math.abs(currentVel) < smartPeakVelocity[0] * ExpanderConstants.SMART_AGITATION_VELOCITY_PEAK_PERCENTAGE) {
                 if (smartFurthestIn[0] * 360 < ExpanderConstants.SMART_AGITATION_DONE_THRESHOLD_DEG) {
                   smartDoneCount[0]++;
                   if (smartDoneCount[0] >= 2) {
@@ -409,8 +413,15 @@ public class RobotContainer {
               if (smartExtendTimer.get() > ExpanderConstants.SMART_AGITATION_EXTEND_TIME) {
                 smartRetracting[0] = true;
                 smartStartedMoving[0] = false;
+                smartPeakVelocity[0] = 0.0;
                 smartFurthestIn[0] = currentPos;
               }
+            }
+          } else if (state.getExpanderState() == ExpanderState.OUTTAKE_AGITATING) {
+            if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
+              intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX.getDegrees() / 2);
+            } else {
+              intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
             }
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
@@ -424,6 +435,7 @@ public class RobotContainer {
       agitationTimer.restart();
       smartRetracting[0] = true;
       smartStartedMoving[0] = false;
+      smartPeakVelocity[0] = 0.0;
       smartFurthestIn[0] = intake.getExpanderPosition();
       smartDoneCount[0] = 0;
     }).withName("IntakeAgitation"));
@@ -435,7 +447,7 @@ public class RobotContainer {
               if (fullMotionAgitation.getAsBoolean()) {
                 state.setExpanderState(ExpanderState.FULLY_AGITATING);
               } else {
-                state.setExpanderState(ExpanderState.AGITATING);
+                state.setExpanderState(ExpanderState.SMART_AGITATING);
               }
               intake.setIntakeDutyCycle(IntakeConstants.AGITATION_DUTY_CYCLE);
             },
@@ -460,8 +472,14 @@ public class RobotContainer {
     state.shouldOuttake()
         .whileTrue(
             Commands.runEnd(
-                () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
-                () -> intake.setIntakeDutyCycle(0),
+                () -> {
+                  intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE);
+                  state.setExpanderState(ExpanderState.OUTTAKE_AGITATING);
+                },
+                () -> {
+                  intake.setIntakeDutyCycle(0);
+                  state.setExpanderState(ExpanderState.EXTENDED);
+                },
                 intake).withName("Outtake"));
 
     // Passing mode
