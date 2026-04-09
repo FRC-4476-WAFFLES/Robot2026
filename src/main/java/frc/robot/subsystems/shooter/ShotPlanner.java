@@ -216,11 +216,11 @@ public class ShotPlanner {
     }
 
     double offset = tiltOffsetMap.interpolate(angle);
+    boolean isRed = WafflesUtilities.IsRedAlliance();
     if (WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose()).getY() > 4) {
-      // turn left?
-      return Rotation2d.fromDegrees(offset);
+      return Rotation2d.fromDegrees(isRed ? offset : -offset);
     }
-    return Rotation2d.fromDegrees(-offset);
+    return Rotation2d.fromDegrees(isRed ? -offset : offset);
   }
 
   public static Supplier<TurretSetpoint> turretSetpoint() {
