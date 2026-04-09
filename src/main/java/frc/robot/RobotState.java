@@ -23,8 +23,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.data.Constants;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
+import frc.robot.data.Constants.Mode;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.utils.vendor.HubShiftUtil;
 import lombok.Getter;
@@ -247,6 +249,11 @@ public class RobotState {
     latestPose = pose;
 
     latestTilt = tilt;
+    if (Constants.getMode() == Mode.SIM) {
+      if (onBump) {
+        latestTilt = 16;
+      }
+    }
   }
 
   public void updateTurret(double timestamp, Rotation2d position, double velocity) {

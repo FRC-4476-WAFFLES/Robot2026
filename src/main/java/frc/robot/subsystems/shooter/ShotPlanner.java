@@ -91,7 +91,7 @@ public class ShotPlanner {
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
           && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
-                                                                          // (so turret sees tags)
+                                                                                                                                          // (so turret sees tags)
       ) {
 
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
@@ -216,11 +216,11 @@ public class ShotPlanner {
     }
 
     double offset = tiltOffsetMap.interpolate(angle);
-    boolean isRed = WafflesUtilities.IsRedAlliance();
     if (WafflesUtilities.FlipIfRedAlliance(RobotContainer.state.getPose()).getY() > 4) {
-      return Rotation2d.fromDegrees(isRed ? offset : -offset);
+      // turn left?
+      return Rotation2d.fromDegrees(offset);
     }
-    return Rotation2d.fromDegrees(isRed ? -offset : offset);
+    return Rotation2d.fromDegrees(-offset);
   }
 
   public static Supplier<TurretSetpoint> turretSetpoint() {

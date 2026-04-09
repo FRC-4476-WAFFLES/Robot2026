@@ -479,6 +479,7 @@ public final class Constants {
       STOWED(0.0),
       EXTENDED(97.0),
       INTAKING(97.0),
+      AGITATION_MID(75),
       AGITATION_MAX(35);
 
       private final double degrees;
