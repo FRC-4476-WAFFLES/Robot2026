@@ -365,7 +365,6 @@ public class RobotContainer {
         () -> intake.setExpanderSetpoint(ExpanderPosition.INTAKING)
     ).withName("IntakeIntaking"));
     Timer agitationTimer = new Timer();
-    Timer outtakeAgitationTimer = new Timer();
     Timer smartExtendTimer = new Timer();
     Timer smartRetractMotionTimer = new Timer();
     double[] smartFurthestIn = { 0.0 }; // output shaft rotations
@@ -467,22 +466,9 @@ public class RobotContainer {
     state.shouldOuttake()
         .whileTrue(
             Commands.runEnd(
-                () -> {
-                  intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE);
-                  state.setExpanderState(ExpanderState.OUTTAKE_AGITATING);
-                  if (outtakeAgitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
-                    intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX.getDegrees() / 2);
-                  } else {
-                    intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
-                  }
-                },
-                () -> {
-                  intake.setIntakeDutyCycle(0);
-                  state.setExpanderState(ExpanderState.EXTENDED);
-                },
-                intake)
-            .beforeStarting(outtakeAgitationTimer::restart)
-            .withName("Outtake"));
+                () -> intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE),
+                () -> intake.setIntakeDutyCycle(0),
+                intake).withName("Outtake"));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {
