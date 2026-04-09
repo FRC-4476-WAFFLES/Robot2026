@@ -365,6 +365,7 @@ public class RobotContainer {
         () -> intake.setExpanderSetpoint(ExpanderPosition.INTAKING)
     ).withName("IntakeIntaking"));
     Timer agitationTimer = new Timer();
+    Timer outtakeAgitationTimer = new Timer();
     Timer smartExtendTimer = new Timer();
     Timer smartRetractMotionTimer = new Timer();
     double[] smartFurthestIn = { 0.0 }; // output shaft rotations
@@ -416,12 +417,6 @@ public class RobotContainer {
                 smartPeakVelocity[0] = 0.0;
                 smartFurthestIn[0] = currentPos;
               }
-            }
-          } else if (state.getExpanderState() == ExpanderState.OUTTAKE_AGITATING) {
-            if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
-              intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX.getDegrees() / 2);
-            } else {
-              intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
             }
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
@@ -475,12 +470,19 @@ public class RobotContainer {
                 () -> {
                   intake.setIntakeDutyCycle(IntakeConstants.OUTTAKE_DUTY_CYCLE);
                   state.setExpanderState(ExpanderState.OUTTAKE_AGITATING);
+                  if (outtakeAgitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
+                    intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX.getDegrees() / 2);
+                  } else {
+                    intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+                  }
                 },
                 () -> {
                   intake.setIntakeDutyCycle(0);
                   state.setExpanderState(ExpanderState.EXTENDED);
                 },
-                intake).withName("Outtake"));
+                intake)
+            .beforeStarting(outtakeAgitationTimer::restart)
+            .withName("Outtake"));
 
     // Passing mode
     state.shooterTargetPassing().whileTrue(Commands.run(() -> {

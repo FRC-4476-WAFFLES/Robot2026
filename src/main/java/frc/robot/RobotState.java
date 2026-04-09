@@ -382,7 +382,6 @@ public class RobotState {
     return new Trigger(
         () -> (expanderState == ExpanderState.FULLY_AGITATING
             || expanderState == ExpanderState.AGITATING
-            || expanderState == ExpanderState.SMART_AGITATING
-            || expanderState == ExpanderState.OUTTAKE_AGITATING));
+            || expanderState == ExpanderState.SMART_AGITATING));
   }
 }
