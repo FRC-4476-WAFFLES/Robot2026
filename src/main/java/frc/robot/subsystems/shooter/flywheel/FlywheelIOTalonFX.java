@@ -54,8 +54,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void runFlywheelVelocity(double velocity, double feedForward) {
-    flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity));
-    // flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity).withFeedForward(feedForward));
+    flywheel0.setControl(flywheelVelocityRequest.withVelocity(velocity).withFeedForward(feedForward));
     flywheel1.setControl(followerRequest);
   }
 
