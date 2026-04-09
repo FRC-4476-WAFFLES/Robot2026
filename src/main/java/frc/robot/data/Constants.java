@@ -391,8 +391,8 @@ public final class Constants {
         new NodePoint(3.827, 54 + OFFSET),
         new NodePoint(4.31, 55.5 + OFFSET),
         new NodePoint(5.28, 56 + OFFSET),
-        new NodePoint(5.6, 57 + OFFSET),
-        new NodePoint(7.022, 63.0 + OFFSET),
+        new NodePoint(5.6, 57.5 + OFFSET),
+        new NodePoint(7.022, 63.5 + OFFSET),
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };
 
@@ -535,7 +535,7 @@ public final class Constants {
         new NodePoint(1.884, 3.09),
         new NodePoint(2.33, 6.09),
         new NodePoint(3.05, 6.13),
-        new NodePoint(3.827, 5.17),
+        new NodePoint(3.827, 5.5),
         new NodePoint(5.28, 18.86),
         new NodePoint(15.5, 21) // Super long passing
     };
