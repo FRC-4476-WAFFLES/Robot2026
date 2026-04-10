@@ -132,6 +132,7 @@ public class DriveToPose {
       Logger.recordOutput("RobotState/Autopilot/Target", currentTarget.getReference());
       Logger.recordOutput("RobotState/Autopilot/Field Relative Goal Speeds", fieldRelativeGoalSpeed);
       Logger.recordOutput("RobotState/Autopilot/Velocity Limit", RobotState.getAutopilotVelocityConstraint());
+      Logger.recordOutput("RobotState/Autopilot/Accel Limit", RobotState.getAutopilotAccelerationConstraint());
 
       var trackingError = actualSpeeds.minus(robotRelativeGoalSpeed);
       if (Math.hypot(trackingError.vxMetersPerSecond,

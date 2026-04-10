@@ -134,6 +134,8 @@ public class RobotState {
   // them.
   @Getter
   private static double autopilotVelocityConstraint = Double.MAX_VALUE;
+  @Getter
+  private static double autopilotAccelerationConstraint = Double.MAX_VALUE;
 
   private static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
       .withErrorXY(CodeConstants.AUTO_POSITION_TOLERANCE_PRECISE)
@@ -155,6 +157,7 @@ public class RobotState {
 
   public static void setAutopilotMaxAcceleration(double acceleration) {
     autopilotConstraints.withAcceleration(acceleration);
+    autopilotAccelerationConstraint = acceleration;
   }
 
   public Autopilot autopilot() {
@@ -358,7 +361,7 @@ public class RobotState {
   }
 
   public Trigger shouldAgitate() {
-    return new Trigger(() -> isShooting && !isIntaking);
+    return new Trigger(() -> (isShooting && !isIntaking) || outtakeDesired);
   }
 
   public Trigger shouldIntake() {
