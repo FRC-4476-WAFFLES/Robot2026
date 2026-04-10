@@ -381,21 +381,21 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
-    public static final double OFFSET = 6.5;
+    public static final double OFFSET = 0;
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(1.5, 40 + OFFSET),
-        new NodePoint(1.884, 40.5 + OFFSET),
-        new NodePoint(2.33, 44.0 + OFFSET),
-        new NodePoint(3.05, 49.0 + OFFSET),
-        new NodePoint(3.827, 54 + OFFSET),
-        new NodePoint(4.31, 55.5 + OFFSET),
-        new NodePoint(5.28, 56 + OFFSET),
-        new NodePoint(5.6, 57.5 + OFFSET),
-        new NodePoint(5.912, 59.2 + OFFSET),
-        new NodePoint(7.022, 63.5 + OFFSET),
-        new NodePoint(7.308, 65.4 + OFFSET), // taegen memes
-        new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
+        new NodePoint(1.5, 46.5 + OFFSET),
+        new NodePoint(1.884, 47.0 + OFFSET),
+        new NodePoint(2.33, 50.5 + OFFSET),
+        new NodePoint(3.05, 55.5 + OFFSET),
+        new NodePoint(3.827, 60.5 + OFFSET),
+        new NodePoint(4.31, 62.0 + OFFSET),
+        new NodePoint(5.28, 62.5 + OFFSET),
+        new NodePoint(5.6, 64.0 + OFFSET),
+        new NodePoint(5.912, 65.7 + OFFSET),
+        new NodePoint(7.022, 70.0 + OFFSET),
+        new NodePoint(7.308, 71.9 + OFFSET), // taegen memes
+        new NodePoint(12.5, 100.5 + OFFSET) // Super long passing
     };
 
     public static final double RPM_RANGE = 900; // Range before indexer will start
