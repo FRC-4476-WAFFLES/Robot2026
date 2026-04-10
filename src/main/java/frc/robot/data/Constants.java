@@ -121,6 +121,7 @@ public final class Constants {
 
     public static final double AUTO_MAX_SPEED = 3.5;
     public static final double AUTO_MAX_ACCEL = 15.0;
+    public static final double AUTO_MAX_ACCEL_BUMP = 7.0;
     public static final double AUTO_MAX_JERK = 15.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments

@@ -153,6 +153,10 @@ public class RobotState {
     autopilotVelocityConstraint = velocity;
   }
 
+  public static void setAutopilotMaxAcceleration(double acceleration) {
+    autopilotConstraints.withAcceleration(acceleration);
+  }
+
   public Autopilot autopilot() {
     return autopilot;
   }
