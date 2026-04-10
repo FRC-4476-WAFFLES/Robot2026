@@ -392,7 +392,9 @@ public final class Constants {
         new NodePoint(4.31, 55.5 + OFFSET),
         new NodePoint(5.28, 56 + OFFSET),
         new NodePoint(5.6, 57.5 + OFFSET),
+        new NodePoint(5.912, 59.2 + OFFSET),
         new NodePoint(7.022, 63.5 + OFFSET),
+        new NodePoint(7.308, 65.4 + OFFSET), // taegen memes
         new NodePoint(12.5, 94.0 + OFFSET) // Super long passing
     };
 
