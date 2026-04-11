@@ -27,6 +27,8 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class Adaptable {
   private static Command cmd = Commands.none();
 
+  private static double PICKUP_VELOCITY = 1.8;
+
   private static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   private static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(3.5);
@@ -221,7 +223,7 @@ public class Adaptable {
       add(
           new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90)),
           new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(1.7)
+              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
@@ -231,7 +233,7 @@ public class Adaptable {
       add(
           new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(-90)),
           new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(1.7)
+              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
@@ -265,10 +267,10 @@ public class Adaptable {
       add(
           new BlueRelativeTarget(6.8, 4.1, Rotation2d.fromDegrees(-180))
               .withEntryAngle(Rotation2d.fromDegrees(-180))
-              .withMaxVelocity(1.5), // Mid swing point
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
           new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(90))
-              .withMaxVelocity(1.5)
+              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
@@ -278,7 +280,7 @@ public class Adaptable {
       add(
           new BlueRelativeTarget(9.5, 3.959, Rotation2d.fromDegrees(0))
               .withEntryAngle(Rotation2d.fromDegrees(0))
-              .withMaxVelocity(1.5), // Mid swing point
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
           new BlueRelativeTarget(10.5, 4.9, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(90))
               .withMaxVelocity(1.5),
@@ -294,10 +296,10 @@ public class Adaptable {
       add(
           new BlueRelativeTarget(7.2, 3.7, Rotation2d.fromDegrees(-160))
               .withEntryAngle(Rotation2d.fromDegrees(-140))
-              .withMaxVelocity(1.5),
+              .withMaxVelocity(PICKUP_VELOCITY),
           new BlueRelativeTarget(6.0, 3.7, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(100))
-              .withMaxVelocity(1.5)
+              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
