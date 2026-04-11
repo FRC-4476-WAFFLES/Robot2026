@@ -67,6 +67,10 @@ public class Hood extends SubsystemBase {
     return Math.abs(getPosition() - setpoint) < HoodConstants.ANGLE_RANGE;
   }
 
+  public void zero() {
+    hoodZeroed = false;
+  }
+
   public Command runSetpointCommand(DoubleSupplier angle) {
     return Commands.run(() -> {
       runSetpoint(angle.getAsDouble());

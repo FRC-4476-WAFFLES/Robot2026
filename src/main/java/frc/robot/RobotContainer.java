@@ -378,41 +378,45 @@ public class RobotContainer {
               (state.isForceIntakeIn() && state.autonomousEnabled())) {
             intake.setExpanderSetpoint(ExpanderPosition.STOWED);
             // } else if (state.getExpanderState() == ExpanderState.SMART_AGITATING) {
-            //   double currentPos = intake.getExpanderPosition();
-            //   double currentVel = intake.getExpanderVelocity();
+            // double currentPos = intake.getExpanderPosition();
+            // double currentVel = intake.getExpanderVelocity();
 
-            //   if (smartRetracting[0]) {
-            //     intake.setExpanderSetpoint(ExpanderPosition.STOWED);
-            //     if (currentPos < smartFurthestIn[0]) {
-            //       smartFurthestIn[0] = currentPos;
-            //     }
-            //     if (!smartStartedMoving[0] && currentVel < -0.01) {
-            //       smartStartedMoving[0] = true;
-            //       smartRetractMotionTimer.restart();
-            //     }
-            //     if (smartStartedMoving[0]
-            //         && smartRetractMotionTimer.get() > ExpanderConstants.SMART_AGITATION_MIN_RETRACT_TIME
-            //         && Math.abs(currentVel) < ExpanderConstants.SMART_AGITATION_STOPPED_VELOCITY) {
-            //       if (smartFurthestIn[0] * 360 < ExpanderConstants.SMART_AGITATION_DONE_THRESHOLD_DEG) {
-            //         smartDoneCount[0]++;
-            //         if (smartDoneCount[0] >= 2) {
-            //           state.setProbablyDoneShooting(true);
-            //         }
-            //       } else {
-            //         smartDoneCount[0] = 0;
-            //       }
-            //       smartRetracting[0] = false;
-            //       smartExtendTimer.restart();
-            //     }
-            //   } else {
-            //     double extendTargetDeg = smartFurthestIn[0] * 360 + ExpanderConstants.SMART_AGITATION_REBOUND_DEGREES;
-            //     intake.setExpanderSetpoint(extendTargetDeg);
-            //     if (smartExtendTimer.get() > ExpanderConstants.SMART_AGITATION_EXTEND_TIME) {
-            //       smartRetracting[0] = true;
-            //       smartStartedMoving[0] = false;
-            //       smartFurthestIn[0] = currentPos;
-            //     }
-            //   }
+            // if (smartRetracting[0]) {
+            // intake.setExpanderSetpoint(ExpanderPosition.STOWED);
+            // if (currentPos < smartFurthestIn[0]) {
+            // smartFurthestIn[0] = currentPos;
+            // }
+            // if (!smartStartedMoving[0] && currentVel < -0.01) {
+            // smartStartedMoving[0] = true;
+            // smartRetractMotionTimer.restart();
+            // }
+            // if (smartStartedMoving[0]
+            // && smartRetractMotionTimer.get() >
+            // ExpanderConstants.SMART_AGITATION_MIN_RETRACT_TIME
+            // && Math.abs(currentVel) < ExpanderConstants.SMART_AGITATION_STOPPED_VELOCITY)
+            // {
+            // if (smartFurthestIn[0] * 360 <
+            // ExpanderConstants.SMART_AGITATION_DONE_THRESHOLD_DEG) {
+            // smartDoneCount[0]++;
+            // if (smartDoneCount[0] >= 2) {
+            // state.setProbablyDoneShooting(true);
+            // }
+            // } else {
+            // smartDoneCount[0] = 0;
+            // }
+            // smartRetracting[0] = false;
+            // smartExtendTimer.restart();
+            // }
+            // } else {
+            // double extendTargetDeg = smartFurthestIn[0] * 360 +
+            // ExpanderConstants.SMART_AGITATION_REBOUND_DEGREES;
+            // intake.setExpanderSetpoint(extendTargetDeg);
+            // if (smartExtendTimer.get() > ExpanderConstants.SMART_AGITATION_EXTEND_TIME) {
+            // smartRetracting[0] = true;
+            // smartStartedMoving[0] = false;
+            // smartFurthestIn[0] = currentPos;
+            // }
+            // }
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               if (state.isOuttakeDesired()) {
@@ -530,6 +534,8 @@ public class RobotContainer {
     state.shouldFireManual().whileTrue(ShooterCommands.shootCommand()).onFalse(
         ShooterCommands.backoffIndexer()
     );
+
+    Controls.operatorController.start().onTrue(Commands.runOnce(() -> hood.zero()));
 
     // Auto winner override
     RobotModeTriggers.teleop().onTrue(Commands.runOnce(HubShiftUtil::initialize));
