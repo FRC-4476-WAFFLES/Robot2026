@@ -46,7 +46,7 @@ public class HubShiftUtil {
   private static final double maxFuelCountDelay = 2.0;
   private static final double shiftEndFuelCountExtension = 3.0;
   private static final double minTimeOfFlight = CodeConstants.MIN_TOF;
-  private static final double maxTimeOfFlight = CodeConstants.MAX_TOF;
+  private static final double maxTimeOfFlight = 0;
   private static final double approachingActiveFudge = -1 * (minTimeOfFlight + minFuelCountDelay);
   private static final double endingActiveFudge = shiftEndFuelCountExtension
       + -1 * (maxTimeOfFlight + maxFuelCountDelay);

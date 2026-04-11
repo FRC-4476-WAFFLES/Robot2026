@@ -27,7 +27,7 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class Adaptable {
   private static Command cmd = Commands.none();
 
-  private static double PICKUP_VELOCITY = 1.8;
+  private static double PICKUP_VELOCITY = 2.3;
 
   private static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   private static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
@@ -64,6 +64,7 @@ public class Adaptable {
       "AdaptableAuto/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
+      .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
 
@@ -85,6 +86,7 @@ public class Adaptable {
       "AdaptableAuto/Second Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
+      .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
   private static final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
@@ -135,16 +137,14 @@ public class Adaptable {
     Command collectBalls;
 
     AutoPath firstPass = new AutoPath(allFirstPassTargets.toArray(new BlueRelativeTarget[0]))
-        .withMirroring(pathMirrored)
-        .withPreciseFinish();
+        .withMirroring(pathMirrored);
 
     if (preSweepDelay.getAsDouble() > 1e-9) {
       // split up path to add a wait
       AutoPath attackPath = new AutoPath(firstAttackTargets.toArray(new BlueRelativeTarget[0]))
           .withMirroring(pathMirrored);
       AutoPath returnPath = new AutoPath(firstReturnTargets.toArray(new BlueRelativeTarget[0]))
-          .withMirroring(pathMirrored)
-          .withPreciseFinish();
+          .withMirroring(pathMirrored);
 
       collectBalls = Commands.sequence(
           attackPath.follow(),
@@ -238,6 +238,16 @@ public class Adaptable {
     }
   }
 
+  public static class SuperDeepAttack extends AutoSegment {
+    public SuperDeepAttack() {
+      add(
+          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
   public static class Spatula extends AutoSegment {
     public Spatula() {
       add(
@@ -305,6 +315,11 @@ public class Adaptable {
   }
 
   public static class NoSweep extends AutoSegment {
-    public NoSweep() {}
+    public NoSweep() {
+      add(
+          new BlueRelativeTarget(7.54, 4.8, Rotation2d.fromDegrees(180))
+              .withMaxVelocity(1)
+      );
+    }
   }
 }

@@ -122,7 +122,7 @@ public final class Constants {
     public static final double AUTO_MAX_SPEED = 3.5;
     public static final double AUTO_MAX_ACCEL = 15.0;
     public static final double AUTO_MAX_ACCEL_BUMP = 7.0;
-    public static final double AUTO_MAX_JERK = 15.0;
+    public static final double AUTO_MAX_JERK = 20.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
 
@@ -154,8 +154,8 @@ public final class Constants {
         new NodePoint(5.4, 1.4),
         new NodePoint(10, 2)
     };
-    public static final double MIN_TOF = 1;
-    public static final double MAX_TOF = 3;
+    public static final double MIN_TOF = 0.6;
+    // public static final double MAX_TOF = 0;
 
     public static final NodePoint[] TiltOffsetMap = new NodePoint[] {
         new NodePoint(9, 5),
