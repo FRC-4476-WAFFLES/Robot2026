@@ -241,10 +241,10 @@ public class Adaptable {
   public static class Spatula extends AutoSegment {
     public Spatula() {
       add(
-          new BlueRelativeTarget(7.0, 4.45, Rotation2d.fromDegrees(-20)),
-          new BlueRelativeTarget(10.6, 3.5, Rotation2d.fromDegrees(-20))
+          new BlueRelativeTarget(7.0, 3.8, Rotation2d.fromDegrees(-20)),
+          new BlueRelativeTarget(10.6, 3.5, Rotation2d.fromDegrees(20))
               .withMaxVelocity(3)
-              .withEntryAngle(Rotation2d.fromDegrees(-20)),
+              .withEntryAngle(Rotation2d.fromDegrees(20)),
           new BlueRelativeTarget(10.6, 4.5, Rotation2d.fromDegrees(80)) // Rotation releif point
               .withMaxVelocity(1.0)
               .withEntryAngle(Rotation2d.fromDegrees(90)),
