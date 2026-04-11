@@ -37,7 +37,7 @@ public class Adaptable {
   private static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
   private static final BlueRelativeTarget readyForNextPass0 = new BlueRelativeTarget(3, 5.4,
-      Rotation2d.fromDegrees(-90))
+      Rotation2d.fromDegrees(5))
       .withMaxRotationRate(2);
   private static final BlueRelativeTarget readyForNextPass1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
       .withMaxRotationRate(2);
@@ -56,6 +56,7 @@ public class Adaptable {
       "AdaptableAuto/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
+      .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
 
   private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
@@ -76,6 +77,7 @@ public class Adaptable {
       "AdaptableAuto/Second Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
+      .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
   private static final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
       "AdaptableAuto/Second Sweep")
@@ -218,6 +220,29 @@ public class Adaptable {
           new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(-90)),
           new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(1.7)
+      );
+    }
+  }
+
+  public static class Spatula extends AutoSegment {
+    public Spatula() {
+      add(
+          new BlueRelativeTarget(7.0, 4.45, Rotation2d.fromDegrees(-20)),
+          new BlueRelativeTarget(10.6, 3.5, Rotation2d.fromDegrees(-20))
+              .withMaxVelocity(3)
+              .withEntryAngle(Rotation2d.fromDegrees(-20)),
+          new BlueRelativeTarget(10.6, 4.5, Rotation2d.fromDegrees(80)) // Rotation releif point
+              .withMaxVelocity(1.0)
+              .withEntryAngle(Rotation2d.fromDegrees(90)),
+          new BlueRelativeTarget(10.208, 6.64, Rotation2d.fromDegrees(90))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(110)),
+          new BlueRelativeTarget(9.6, 6.9, Rotation2d.fromDegrees(-160)) // also a rotation releif point
+              .withMaxVelocity(1.2)
+              .withEntryAngle(Rotation2d.fromDegrees(180)),
+          new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(-170))
+              .withMaxVelocity(2.5)
+              .withEntryAngle(Rotation2d.fromDegrees(-160))
       );
     }
   }
