@@ -374,8 +374,7 @@ public class RobotContainer {
     // int[] smartDoneCount = { 0 };
     state.expanderAgitating().whileTrue(Commands.run(
         () -> {
-          if (state.getExpanderState() == ExpanderState.FULLY_AGITATING ||
-              (state.isForceIntakeIn() && state.autonomousEnabled())) {
+          if (state.getExpanderState() == ExpanderState.FULLY_AGITATING) {
             intake.setExpanderSetpoint(ExpanderPosition.STOWED);
             // } else if (state.getExpanderState() == ExpanderState.SMART_AGITATING) {
             // double currentPos = intake.getExpanderPosition();
@@ -421,11 +420,17 @@ public class RobotContainer {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               if (state.isOuttakeDesired()) {
                 intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MID); // only raise half way when outtaking
+              } else if (state.isForceIntakeIn() && state.autonomousEnabled()) {
+                intake.setExpanderSetpoint(ExpanderPosition.STOWED); // only raise half way when outtaking
               } else {
                 intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MAX);
               }
             } else {
-              intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+              if (state.isForceIntakeIn() && state.autonomousEnabled()) {
+                intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MID);
+              } else {
+                intake.setExpanderSetpoint(ExpanderPosition.EXTENDED);
+              }
             }
           }
         }

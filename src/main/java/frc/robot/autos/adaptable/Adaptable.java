@@ -36,11 +36,17 @@ public class Adaptable {
       .withExitVelocity(0.7);
   private static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
-  private static final BlueRelativeTarget readyForNextPass0 = new BlueRelativeTarget(3, 5.4,
+  private static final BlueRelativeTarget turnShootLeft0 = new BlueRelativeTarget(3, 5.4,
+      Rotation2d.fromDegrees(-5))
+      .withMaxRotationRate(3);
+  private static final BlueRelativeTarget turnShootLeft1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
+      .withMaxRotationRate(3);
+
+  private static final BlueRelativeTarget turnShootRight0 = new BlueRelativeTarget(3, 5.4,
       Rotation2d.fromDegrees(5))
-      .withMaxRotationRate(2);
-  private static final BlueRelativeTarget readyForNextPass1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
-      .withMaxRotationRate(2);
+      .withMaxRotationRate(3);
+  private static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
+      .withMaxRotationRate(3);
 
   // NT
   private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
@@ -160,6 +166,15 @@ public class Adaptable {
         .withMirroring(pathMirrored)
         .withPreciseFinish();
 
+    Command rotateForSecondPass = pathMirrored ? Commands.sequence( // Left side turn
+        DriveCommands.autoToTarget(turnShootLeft0.withMirroring(pathMirrored)),
+        DriveCommands.autoToTarget(turnShootLeft1.withMirroring(pathMirrored))
+    )
+        : Commands.sequence( // Right side turn
+            DriveCommands.autoToTarget(turnShootRight0.withMirroring(pathMirrored)),
+            DriveCommands.autoToTarget(turnShootRight1.withMirroring(pathMirrored))
+        );
+
     // Auto definition
     cmd = Commands.sequence(
         AutoUtils.resetOdometry(start.withMirroring(pathMirrored)),
@@ -171,11 +186,8 @@ public class Adaptable {
         ),
 
         Commands.deadline(
-            ShooterCommands.shootAutoCommand(4).withTimeout(shootTime.getAsDouble()),
-            Commands.sequence(
-                DriveCommands.autoToTarget(readyForNextPass0.withMirroring(pathMirrored)),
-                DriveCommands.autoToTarget(readyForNextPass1.withMirroring(pathMirrored))
-            )
+            ShooterCommands.shootAutoCommand(shootTime.getAsDouble() - 2).withTimeout(shootTime.getAsDouble()),
+            rotateForSecondPass
         ),
 
         Commands.deadline(

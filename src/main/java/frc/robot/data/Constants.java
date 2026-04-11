@@ -162,7 +162,7 @@ public final class Constants {
         new NodePoint(13, 23)
     };
 
-    public static final boolean LIMIT_TO_HUB_SHIFTS = false;
+    public static final boolean LIMIT_TO_HUB_SHIFTS = true;
     public static final boolean MANUAL_SHOOTER_TUNING = true;
     public static final boolean SHOOT_ON_MOVE = true;
 
@@ -385,11 +385,11 @@ public final class Constants {
     public static final double OFFSET = 0;
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
-        new NodePoint(1.5, 46.5 + OFFSET),
-        new NodePoint(1.884, 47.0 + OFFSET),
-        new NodePoint(2.33, 50.5 + OFFSET),
-        new NodePoint(3.05, 55.5 + OFFSET),
-        new NodePoint(3.827, 60.5 + OFFSET),
+        new NodePoint(1.5, 45.5 + OFFSET),
+        new NodePoint(1.884, 45.8 + OFFSET),
+        new NodePoint(2.33, 49.0 + OFFSET),
+        new NodePoint(3.05, 55.0 + OFFSET),
+        new NodePoint(3.827, 59.5 + OFFSET),
         new NodePoint(4.31, 62.0 + OFFSET),
         new NodePoint(5.28, 62.5 + OFFSET),
         new NodePoint(5.6, 64.0 + OFFSET),

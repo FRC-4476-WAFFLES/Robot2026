@@ -232,8 +232,8 @@ public class TurretIOTalonFX implements TurretIO {
         position, Constants.TurretConstants.MIN_POSITION_ROTATIONS,
         Constants.TurretConstants.MAX_POSITION_ROTATIONS);
 
-    double feedforward = 0.9;
-    double deadband = 0.1;
+    double feedforward = 1.0;
+    double deadband = 0.09;
     double deadbandOuter = 0.2;
     // double springFF = 0;
     // if (relativePosition > deadband) {
