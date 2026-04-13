@@ -76,7 +76,7 @@ public class IndexerIOTalonFX implements IndexerIO {
   private void configureIndexerMotors() {
     TalonFXConfiguration indexerConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs indexerCurrentLimit = new CurrentLimitsConfigs()
-        .withStatorCurrentLimit(40)
+        .withStatorCurrentLimit(150)
         .withStatorCurrentLimitEnable(true);
 
     indexerConfigs.CurrentLimits = indexerCurrentLimit;

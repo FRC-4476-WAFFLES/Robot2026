@@ -372,6 +372,7 @@ public final class Constants {
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
+    public static final double MOTOR_SUPPLY_CURRENT_LIMIT = 40;
 
     public static final double MOTOR_kP = 0;
     public static final double MOTOR_kD = 0;
