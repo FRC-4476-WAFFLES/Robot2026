@@ -108,7 +108,7 @@ public class ModuleIOTalonFX implements ModuleIO {
                 PhoenixHelpers.tryConfig(5, () -> driveTalon.setPosition(0.0, 0.25));
 
                 // Configure turn motor
-                var turnConfig = new TalonFXConfiguration();
+                var turnConfig = constants.SteerMotorInitialConfigs;
                 turnConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
                 turnConfig.Slot0 = constants.SteerMotorGains;
                 turnConfig.Feedback.FeedbackRemoteSensorID = constants.EncoderId;
