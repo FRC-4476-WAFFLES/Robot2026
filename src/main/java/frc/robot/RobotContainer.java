@@ -6,6 +6,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import java.util.Optional;
 
@@ -466,7 +467,13 @@ public class RobotContainer {
 
     state.shouldIntake().whileTrue(Commands.runEnd(
         () -> {
-          intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE);
+          var speeds = state.getRobotVelocity();
+          double speedFraction = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+              / TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+          double scale = IntakeConstants.INTAKE_MIN_DUTY_SCALE
+              + (1.0 - IntakeConstants.INTAKE_MIN_DUTY_SCALE)
+              * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
+          intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE * scale);
           state.setExpanderState(ExpanderState.INTAKING);
         },
         () -> {

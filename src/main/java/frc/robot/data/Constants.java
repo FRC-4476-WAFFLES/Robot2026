@@ -503,6 +503,10 @@ public final class Constants {
     public static final double AGITATION_DUTY_CYCLE = 0.3; // Was 5 rps with velocity control
     public static final double OUTTAKE_DUTY_CYCLE = -1;
 
+    // Speed-scaled intake: ramps from MIN_DUTY_SCALE at rest to 1.0 at FULL_SPEED_THRESHOLD
+    public static final double INTAKE_MIN_DUTY_SCALE = 0.5; // Fraction of INTAKE_DUTY_CYCLE when stationary
+    public static final double INTAKE_FULL_SPEED_THRESHOLD = 0.6; // Fraction of max drive speed for full intake power
+
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;
 
