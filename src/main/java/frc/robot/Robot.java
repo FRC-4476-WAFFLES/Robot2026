@@ -13,6 +13,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -104,6 +105,12 @@ public class Robot extends LoggedRobot {
     // Use realtime thread priority. This is dangerous and may have consequences for
     // other threads ie. networktables
     // Threads.setCurrentThreadPriority(true, 10);
+
+    // Lower brownout threshold from default (6.75V) to give more headroom before
+    // outputs cut out. Only applies on real hardware — RIO 1 ignores this call.
+    if (Constants.getMode() == Mode.REAL) {
+      RobotController.setBrownoutVoltage(6.5);
+    }
 
     // Instantiate our RobotContainer.
     m_robotContainer = new RobotContainer();
