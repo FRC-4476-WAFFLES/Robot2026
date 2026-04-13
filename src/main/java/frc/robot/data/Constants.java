@@ -469,7 +469,7 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
-    public static final double AGITATION_CYCLE_TIME = 1;
+    public static final double AGITATION_CYCLE_TIME = 1.5;
 
     public static final double SMART_AGITATION_REBOUND_DEGREES = 20;
     public static final double SMART_AGITATION_DONE_THRESHOLD_DEG = 10;

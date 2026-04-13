@@ -27,28 +27,25 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class Adaptable {
   private static Command cmd = Commands.none();
 
-  private static double PICKUP_VELOCITY = 2.3;
+  public static double PICKUP_VELOCITY = 2.0;
 
-  private static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
+  public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
+  public static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
       .withExitVelocity(3.5);
-  private static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
+  public static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
       .withExitVelocity(0.7);
-  private static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
+  public static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
-  private static final BlueRelativeTarget turnShootLeft0 = new BlueRelativeTarget(3, 5.4,
-      Rotation2d.fromDegrees(-5))
-      .withMaxRotationRate(3);
-  private static final BlueRelativeTarget turnShootLeft1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
-      .withMaxRotationRate(3);
+  public static final BlueRelativeTarget turnShootLeft0 = new BlueRelativeTarget(3, 5.4,
+      Rotation2d.fromDegrees(-5));
+  // .withMaxRotationRate(3)
+  public static final BlueRelativeTarget turnShootLeft1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
 
-  private static final BlueRelativeTarget turnShootRight0 = new BlueRelativeTarget(3, 5.4,
-      Rotation2d.fromDegrees(5))
-      .withMaxRotationRate(3);
-  private static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0))
-      .withMaxRotationRate(3);
+  public static final BlueRelativeTarget turnShootRight0 = new BlueRelativeTarget(3, 5.4,
+      Rotation2d.fromDegrees(5));
+  public static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
 
   // NT
   private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
@@ -66,6 +63,7 @@ public class Adaptable {
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
+      .addOption("WeakSpatula", new WeakSpatula())
       .onChange(() -> InvalidateCache());
 
   private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
@@ -84,6 +82,7 @@ public class Adaptable {
 
   private static final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
       "AdaptableAuto/Second Attack Depth")
+      .addOption("BLOCKER", new Blocker())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
@@ -139,7 +138,25 @@ public class Adaptable {
     AutoPath firstPass = new AutoPath(allFirstPassTargets.toArray(new BlueRelativeTarget[0]))
         .withMirroring(pathMirrored);
 
-    if (preSweepDelay.getAsDouble() > 1e-9) {
+    boolean blockerAuto = secondAttackDepthChooser.getName() == "BLOCKER";
+
+    if (blockerAuto) {
+      firstSweepChooser.getTargets().ifPresent(firstAttackTargets::addAll);
+      AutoPath blockPath = new AutoPath(firstAttackTargets.toArray(new BlueRelativeTarget[0]))
+          .withMirroring(pathMirrored);
+
+      allFirstPassTargets = firstAttackTargets;
+
+      // Make permanent blocker auto
+      collectBalls = Commands.sequence(
+          blockPath.follow(),
+          DriveCommands.autoToTarget(new Blocker().targets.get(0)),
+          Commands.parallel(
+              DriveCommands.autoToTarget(new Blocker().targets.get(1)).repeatedly() // never end
+          )
+      );
+
+    } else if (preSweepDelay.getAsDouble() > 1e-9) {
       // split up path to add a wait
       AutoPath attackPath = new AutoPath(firstAttackTargets.toArray(new BlueRelativeTarget[0]))
           .withMirroring(pathMirrored);
@@ -151,6 +168,7 @@ public class Adaptable {
           Commands.waitSeconds(preSweepDelay.getAsDouble()),
           returnPath.follow()
       );
+
     } else {
       collectBalls = firstPass.follow();
     }
@@ -199,8 +217,13 @@ public class Adaptable {
     );
 
     if (!immediate) {
+      var fullPath = new ArrayList<>(Arrays.asList(firstPass.getTargets()));
+      if (!blockerAuto) {
+        fullPath.addAll(Arrays.asList(secondPass.getTargets()));
+      }
+
       // Visualize Path
-      AutoVisualizer.VisualizeAuto(start.withMirroring(pathMirrored), Arrays.asList(firstPass.getTargets()));
+      AutoVisualizer.VisualizeAuto(start.withMirroring(pathMirrored), fullPath);
     }
 
     SmartDashboard.putBoolean("AdaptableAuto/Cached", true);
@@ -224,6 +247,16 @@ public class Adaptable {
           new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90)),
           new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class Blocker extends AutoSegment {
+    public Blocker() {
+      add(
+          new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(-45))
+              .withEntryAngle(Rotation2d.fromDegrees(-45)).withMaxVelocity(2),
+          new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(90))
       );
     }
   }
@@ -263,6 +296,35 @@ public class Adaptable {
               .withEntryAngle(Rotation2d.fromDegrees(110)),
           new BlueRelativeTarget(9.6, 6.9, Rotation2d.fromDegrees(-160)) // also a rotation releif point
               .withMaxVelocity(1.2)
+              .withEntryAngle(Rotation2d.fromDegrees(180)),
+          new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(-170))
+              .withMaxVelocity(2.5)
+              .withEntryAngle(Rotation2d.fromDegrees(-160))
+      );
+    }
+  }
+
+  public static class WeakSpatula extends AutoSegment {
+    public WeakSpatula() {
+      add(
+          new BlueRelativeTarget(7.0, 4.5, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(9.0, 4.5, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(2),
+          new BlueRelativeTarget(9.7, 3.5, Rotation2d.fromDegrees(-50))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(10.6, 3.0, Rotation2d.fromDegrees(50))
+              .withMaxVelocity(2)
+              .withEntryAngle(Rotation2d.fromDegrees(20)),
+          new BlueRelativeTarget(10.6, 4.5, Rotation2d.fromDegrees(80)) // Rotation releif point
+              .withMaxVelocity(2.5)
+              .withEntryAngle(Rotation2d.fromDegrees(90)),
+          new BlueRelativeTarget(10.208, 6.64, Rotation2d.fromDegrees(90))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(110)),
+          new BlueRelativeTarget(9.6, 6.9, Rotation2d.fromDegrees(-160)) // also a rotation releif point
+              .withMaxVelocity(2.0)
               .withEntryAngle(Rotation2d.fromDegrees(180)),
           new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(-170))
               .withMaxVelocity(2.5)

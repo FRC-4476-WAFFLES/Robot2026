@@ -30,6 +30,10 @@ public class AutoSegmentChooser extends GenericAutoDropdownChooser<Optional<Auto
     return Optional.empty();
   }
 
+  public String getName() {
+    return chooser.getSendableChooser().getSelected();
+  }
+
   public Optional<List<BlueRelativeTarget>> getTargets() {
     var segmentOptional = get();
     if (segmentOptional.isPresent()) {
