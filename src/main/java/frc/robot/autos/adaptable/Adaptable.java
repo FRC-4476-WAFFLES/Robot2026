@@ -64,6 +64,8 @@ public class Adaptable {
       .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .addOption("WeakSpatula", new WeakSpatula())
+      .addOption("Inverted Spatula", new InvertedSpatula())
+      .addOption("Wait", new WaitAttack())
       .onChange(() -> InvalidateCache());
 
   private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
@@ -73,7 +75,9 @@ public class Adaptable {
       "AdaptableAuto/First Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
-      .addOption("No Sweep", new NoSweep())
+      .addOption("Rotate Out", new NoSweep())
+      .addOption("ShortLoopback", new WeakLoopbackSweep())
+      .addOption("MediumLoopback", new MediumLoopbackSweep())
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
@@ -93,6 +97,8 @@ public class Adaptable {
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
+      .addOption("ShortLoopback", new WeakLoopbackSweep())
+      .addOption("MediumLoopback", new MediumLoopbackSweep())
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
@@ -251,6 +257,14 @@ public class Adaptable {
     }
   }
 
+  public static class WaitAttack extends AutoSegment {
+    public WaitAttack() {
+      add(
+          new BlueRelativeTarget(5.8, 4, Rotation2d.fromDegrees(0))
+      );
+    }
+  }
+
   public static class Blocker extends AutoSegment {
     public Blocker() {
       add(
@@ -274,7 +288,9 @@ public class Adaptable {
   public static class SuperDeepAttack extends AutoSegment {
     public SuperDeepAttack() {
       add(
-          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(0.6),
           new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
       );
@@ -300,6 +316,30 @@ public class Adaptable {
           new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(-170))
               .withMaxVelocity(2.5)
               .withEntryAngle(Rotation2d.fromDegrees(-160))
+      );
+    }
+  }
+
+  public static class InvertedSpatula extends AutoSegment {
+    public InvertedSpatula() {
+      add(
+          // new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(170))
+          // .withMaxVelocity(2.5)
+          // .withEntryAngle(Rotation2d.fromDegrees(160)),
+          new BlueRelativeTarget(9.7, 6.9, Rotation2d.fromDegrees(-10)) // also a rotation releif point
+              .withMaxVelocity(2.5)
+              .withEntryAngle(Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(10.3, 6.64, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-60)),
+          new BlueRelativeTarget(10.6, 4.5, Rotation2d.fromDegrees(-80)) // Rotation releif point
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(10.3, 3.5, Rotation2d.fromDegrees(170))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-150)),
+          new BlueRelativeTarget(7.0, 3.8, Rotation2d.fromDegrees(160))
+
       );
     }
   }
@@ -357,6 +397,38 @@ public class Adaptable {
               .withEntryAngle(Rotation2d.fromDegrees(90))
               .withMaxVelocity(1.5),
           new BlueRelativeTarget(9.365, 5.4, Rotation2d.fromDegrees(180))
+              .withEntryAngle(Rotation2d.fromDegrees(-180))
+              .withMaxVelocity(1.5)
+      );
+    }
+  }
+
+  public static class MediumLoopbackSweep extends AutoSegment {
+    public MediumLoopbackSweep() {
+      add(
+          new BlueRelativeTarget(8, 3.959, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
+          new BlueRelativeTarget(9, 4.9, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5),
+          new BlueRelativeTarget(7.865, 5.4, Rotation2d.fromDegrees(180))
+              .withEntryAngle(Rotation2d.fromDegrees(-180))
+              .withMaxVelocity(1.5)
+      );
+    }
+  }
+
+  public static class WeakLoopbackSweep extends AutoSegment {
+    public WeakLoopbackSweep() {
+      add(
+          new BlueRelativeTarget(7.0, 3.959, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
+          new BlueRelativeTarget(8.0, 4.9, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5),
+          new BlueRelativeTarget(6.865, 5.4, Rotation2d.fromDegrees(180))
               .withEntryAngle(Rotation2d.fromDegrees(-180))
               .withMaxVelocity(1.5)
       );

@@ -122,7 +122,7 @@ public final class Constants {
     public static final double AUTO_MAX_SPEED = 3.5;
     public static final double AUTO_MAX_ACCEL = 15.0;
     public static final double AUTO_MAX_ACCEL_BUMP = 7.0;
-    public static final double AUTO_MAX_JERK = 25.0;
+    public static final double AUTO_MAX_JERK = 15.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
 
@@ -505,7 +505,7 @@ public final class Constants {
 
     // Speed-scaled intake: ramps from MIN_DUTY_SCALE at rest to 1.0 at
     // FULL_SPEED_THRESHOLD
-    public static final double INTAKE_MIN_DUTY_SCALE = 0.5; // Fraction of INTAKE_DUTY_CYCLE when stationary
+    public static final double INTAKE_MIN_DUTY_SCALE = 0.60; // Fraction of INTAKE_DUTY_CYCLE when stationary
     public static final double INTAKE_FULL_SPEED_THRESHOLD = 0.45; // Fraction of max drive speed for full intake power
 
     // Motor configs
