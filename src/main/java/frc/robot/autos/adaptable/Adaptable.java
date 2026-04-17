@@ -250,8 +250,32 @@ public class Adaptable {
   public static class NormalAttack extends AutoSegment {
     public NormalAttack() {
       add(
-          new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-45)),
           new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class DeepAttack extends AutoSegment {
+    public DeepAttack() {
+      add(
+          new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(8.25, 5.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(0.6),
+          new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class SuperDeepAttack extends AutoSegment {
+    public SuperDeepAttack() {
+      add(
+          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(0.6),
+          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
@@ -271,28 +295,6 @@ public class Adaptable {
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(-45))
               .withEntryAngle(Rotation2d.fromDegrees(-45)).withMaxVelocity(2),
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(90))
-      );
-    }
-  }
-
-  public static class DeepAttack extends AutoSegment {
-    public DeepAttack() {
-      add(
-          new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(-90)),
-          new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(PICKUP_VELOCITY)
-      );
-    }
-  }
-
-  public static class SuperDeepAttack extends AutoSegment {
-    public SuperDeepAttack() {
-      add(
-          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(0)),
-          new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(0.6),
-          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
