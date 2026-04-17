@@ -472,7 +472,7 @@ public class RobotContainer {
               / TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
           double scale = IntakeConstants.INTAKE_MIN_DUTY_SCALE
               + (1.0 - IntakeConstants.INTAKE_MIN_DUTY_SCALE)
-              * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
+                  * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
           intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE * scale);
           state.setExpanderState(ExpanderState.INTAKING);
         },

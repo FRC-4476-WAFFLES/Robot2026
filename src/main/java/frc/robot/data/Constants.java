@@ -122,7 +122,7 @@ public final class Constants {
     public static final double AUTO_MAX_SPEED = 3.5;
     public static final double AUTO_MAX_ACCEL = 15.0;
     public static final double AUTO_MAX_ACCEL_BUMP = 7.0;
-    public static final double AUTO_MAX_JERK = 80.0;
+    public static final double AUTO_MAX_JERK = 25.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
 
@@ -383,7 +383,7 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
-    public static final double OFFSET = 0;
+    public static final double OFFSET = -4.5;
     // In the format of x -> distance (m), y -> flywheel speed (rps)
     public static final NodePoint[] DistanceMap = new NodePoint[] {
         new NodePoint(1.5, 45.5 + OFFSET),
@@ -397,7 +397,7 @@ public final class Constants {
         new NodePoint(5.912, 65.7 + OFFSET),
         new NodePoint(7.022, 70.0 + OFFSET),
         new NodePoint(7.308, 71.9 + OFFSET), // taegen memes
-        new NodePoint(12.5, 100.5 + OFFSET) // Super long passing
+        new NodePoint(12.5, 85.5 + OFFSET) // Super long passing
     };
 
     public static final double RPM_RANGE = 900; // Range before indexer will start
@@ -422,8 +422,8 @@ public final class Constants {
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
     public enum IndexerState {
-      RUN(15, 40),
-      RUNSLOW(15, 40),
+      RUN(16.5, 40),
+      RUNSLOW(16.5, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
@@ -503,9 +503,10 @@ public final class Constants {
     public static final double AGITATION_DUTY_CYCLE = 0.3; // Was 5 rps with velocity control
     public static final double OUTTAKE_DUTY_CYCLE = -1;
 
-    // Speed-scaled intake: ramps from MIN_DUTY_SCALE at rest to 1.0 at FULL_SPEED_THRESHOLD
+    // Speed-scaled intake: ramps from MIN_DUTY_SCALE at rest to 1.0 at
+    // FULL_SPEED_THRESHOLD
     public static final double INTAKE_MIN_DUTY_SCALE = 0.5; // Fraction of INTAKE_DUTY_CYCLE when stationary
-    public static final double INTAKE_FULL_SPEED_THRESHOLD = 0.6; // Fraction of max drive speed for full intake power
+    public static final double INTAKE_FULL_SPEED_THRESHOLD = 0.45; // Fraction of max drive speed for full intake power
 
     // Motor configs
     public static final double MOTOR_STATOR_CURRENT_LIMIT = 120;

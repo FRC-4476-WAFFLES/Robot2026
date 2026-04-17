@@ -27,7 +27,7 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class Adaptable {
   private static Command cmd = Commands.none();
 
-  public static double PICKUP_VELOCITY = 2.0;
+  public static double PICKUP_VELOCITY = 1.9;
 
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   public static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
@@ -35,7 +35,7 @@ public class Adaptable {
   public static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
-      .withExitVelocity(0.7);
+      .withExitVelocity(1);
   public static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
   public static final BlueRelativeTarget turnShootLeft0 = new BlueRelativeTarget(3, 5.4,
@@ -340,9 +340,9 @@ public class Adaptable {
           new BlueRelativeTarget(6.8, 4.1, Rotation2d.fromDegrees(-180))
               .withEntryAngle(Rotation2d.fromDegrees(-180))
               .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
-          new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(90))
-              .withEntryAngle(Rotation2d.fromDegrees(90))
-              .withMaxVelocity(PICKUP_VELOCITY)
+          new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(120))
+              .withEntryAngle(Rotation2d.fromDegrees(70))
+              .withMaxVelocity(1.4)
       );
     }
   }
@@ -371,7 +371,7 @@ public class Adaptable {
               .withMaxVelocity(PICKUP_VELOCITY),
           new BlueRelativeTarget(6.0, 3.7, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(100))
-              .withMaxVelocity(PICKUP_VELOCITY)
+              .withMaxVelocity(1.4)
       );
     }
   }
