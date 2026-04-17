@@ -400,7 +400,7 @@ public final class Constants {
         new NodePoint(12.5, 85.5 + OFFSET) // Super long passing
     };
 
-    public static final double RPM_RANGE = 900; // Range before indexer will start
+    public static final double RPM_RANGE = 1200; // Range before indexer will start
   }
 
   public static class SpindexerConstants {
@@ -484,7 +484,7 @@ public final class Constants {
       EXTENDED(97.0),
       INTAKING(97.0),
       AGITATION_MID(75),
-      AGITATION_MAX(35);
+      AGITATION_MAX(40);
 
       private final double degrees;
 
