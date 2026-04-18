@@ -420,7 +420,7 @@ public class RobotContainer {
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               if (state.isOuttakeDesired()) {
-                intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MID); // only raise half way when outtaking
+                intake.setExpanderSetpoint(ExpanderPosition.OUTTAKE); // only raise half way when outtaking
               } else if (state.isForceIntakeIn() && state.autonomousEnabled()) {
                 intake.setExpanderSetpoint(ExpanderPosition.STOWED); // only raise half way when outtaking
               } else {

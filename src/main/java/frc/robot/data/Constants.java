@@ -391,8 +391,8 @@ public final class Constants {
         new NodePoint(2.33, 49.0 + OFFSET),
         new NodePoint(3.05, 55.0 + OFFSET),
         new NodePoint(3.827, 59.5 + OFFSET),
-        new NodePoint(4.31, 62.0 + OFFSET),
-        new NodePoint(5.28, 62.5 + OFFSET),
+        new NodePoint(4.31, 61.5 + OFFSET),
+        new NodePoint(5.28, 62.0 + OFFSET),
         new NodePoint(5.6, 64.0 + OFFSET),
         new NodePoint(5.912, 65.7 + OFFSET),
         new NodePoint(7.022, 70.0 + OFFSET),
@@ -484,6 +484,7 @@ public final class Constants {
       EXTENDED(97.0),
       INTAKING(97.0),
       AGITATION_MID(75),
+      OUTTAKE(60),
       AGITATION_MAX(40);
 
       private final double degrees;
