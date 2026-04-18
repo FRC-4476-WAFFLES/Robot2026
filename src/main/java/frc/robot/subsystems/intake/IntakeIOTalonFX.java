@@ -52,6 +52,8 @@ public class IntakeIOTalonFX implements IntakeIO {
 
     CurrentLimitsConfigs currentLimit = new CurrentLimitsConfigs()
         .withStatorCurrentLimit(IntakeConstants.MOTOR_STATOR_CURRENT_LIMIT)
+        // .withSupplyCurrentLimit(35)
+        // .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimitEnable(true);
     intakeConfigs.CurrentLimits = currentLimit;
 

@@ -88,6 +88,12 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kV = 0.6;
     slot0Configs.kS = 0.28;
     slot0Configs.kG = 0.0;
+    // var slot0Configs = new Slot0Configs();
+    // slot0Configs.kP = 30;
+    // slot0Configs.kS = 3;
+    // slot0Configs.kD = 0;
+    // slot0Configs.kV = 0.08;
+    // slot0Configs.kG = 0.0;
     indexerConfigs.Slot0 = slot0Configs;
 
     indexerConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.INDEXER_REDUCTION;
@@ -109,6 +115,8 @@ public class IndexerIOTalonFX implements IndexerIO {
   private void configureFeederMotors() {
     TalonFXConfiguration feederConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs feederCurrentLimit = new CurrentLimitsConfigs()
+        .withSupplyCurrentLimit(25)
+        .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimit(120)
         .withStatorCurrentLimitEnable(true);
 
@@ -120,6 +128,7 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kD = 0;
     slot0Configs.kV = 0.2199999988079071;
     slot0Configs.kG = 0.0;
+
     feederConfigs.Slot0 = slot0Configs;
 
     feederConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FEEDER_REDUCTION;
