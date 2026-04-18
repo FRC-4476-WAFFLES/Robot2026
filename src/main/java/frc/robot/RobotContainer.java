@@ -475,6 +475,10 @@ public class RobotContainer {
                   * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
           intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE * scale);
           state.setExpanderState(ExpanderState.INTAKING);
+
+          if (state.autonomousEnabled()) {
+            intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE);
+          }
         },
         () -> {
           intake.setIntakeDutyCycle(0);
