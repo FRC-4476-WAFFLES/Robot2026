@@ -33,8 +33,9 @@ import frc.robot.autos.Left;
 import frc.robot.autos.LeftDepot;
 import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
-import frc.robot.autos.adaptable.Adaptable;
 import frc.robot.autos.adaptable.AutoVisualizer;
+import frc.robot.autos.adaptable.autos.Adaptable;
+import frc.robot.autos.adaptable.autos.AdaptableSwitch;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -320,9 +321,11 @@ public class RobotContainer {
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
       autoChooser.addOption("Adaptable", Adaptable.run());
+      autoChooser.addOption("AdaptableSwitchover", AdaptableSwitch.run());
       autoChooser.onChange(cmd -> {
-        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay
-                                                                             // compatible
+        if (autoChooser.getSendableChooser().getSelected() == "Adaptable"
+            || autoChooser.getSendableChooser().getSelected() == "AdaptableSwitchover") {
+          // Scuffed and almost certainly not replay compatible
           Adaptable.InvalidateCache();
         } else {
           AutoVisualizer.ClearVisualizer();
