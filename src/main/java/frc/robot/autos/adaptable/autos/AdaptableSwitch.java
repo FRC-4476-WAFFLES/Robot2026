@@ -16,7 +16,6 @@ import frc.robot.autos.AutoUtils;
 import frc.robot.autos.adaptable.AdaptableBase;
 import frc.robot.autos.adaptable.AutoSegment;
 import frc.robot.autos.adaptable.AutoVisualizer;
-import frc.robot.autos.adaptable.autos.Adaptable.WaitAttack;
 import frc.robot.autos.adaptable.choosers.AutoDropdownChooser;
 import frc.robot.autos.adaptable.choosers.AutoNetworkNumber;
 import frc.robot.autos.adaptable.choosers.AutoSegmentChooser;
@@ -29,8 +28,8 @@ import frc.robot.utils.vendor.BlueRelativeTarget;
 public class AdaptableSwitch extends AdaptableBase {
   public final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
 
-  public final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(3.5);
+  public final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(6.5, 5.8, Rotation2d.fromDegrees(0))
+      .withExitVelocity(4.0);
   public final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
@@ -54,7 +53,7 @@ public class AdaptableSwitch extends AdaptableBase {
 
   private final AutoSegmentChooser entryChooser = new AutoSegmentChooser(
       autoClass + "/Entry")
-      .addOption("WaitClose", new WaitAttack())
+      .addOption("WaitClose", new WaitClose())
       .addOption("WaitMid", new WaitMid())
       .addOption("WaitFar", new WaitFar())
       .onChange(() -> InvalidateCache());
@@ -156,7 +155,7 @@ public class AdaptableSwitch extends AdaptableBase {
   public static class WaitClose extends AutoSegment {
     public WaitClose() {
       add(
-          new BlueRelativeTarget(5.8, 4, Rotation2d.fromDegrees(0))
+          new BlueRelativeTarget(6.4, 3.8, Rotation2d.fromDegrees(0))
       );
     }
   }
@@ -164,7 +163,7 @@ public class AdaptableSwitch extends AdaptableBase {
   public static class WaitMid extends AutoSegment {
     public WaitMid() {
       add(
-          new BlueRelativeTarget(5.8, 3, Rotation2d.fromDegrees(0))
+          new BlueRelativeTarget(6.2, 3, Rotation2d.fromDegrees(0))
       );
     }
   }
@@ -172,7 +171,7 @@ public class AdaptableSwitch extends AdaptableBase {
   public static class WaitFar extends AutoSegment {
     public WaitFar() {
       add(
-          new BlueRelativeTarget(5.8, 2, Rotation2d.fromDegrees(0))
+          new BlueRelativeTarget(6.2, 2, Rotation2d.fromDegrees(0))
       );
     }
   }
