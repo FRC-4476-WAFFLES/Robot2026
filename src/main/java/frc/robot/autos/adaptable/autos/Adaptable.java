@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.RobotContainer;
 import frc.robot.autos.AutoUtils;
 import frc.robot.autos.adaptable.AdaptableBase;
 import frc.robot.autos.adaptable.AutoSegment;
@@ -29,7 +30,7 @@ public class Adaptable extends AdaptableBase {
 
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   public static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(3.5);
+      .withExitVelocity(4);
   public static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
@@ -44,6 +45,9 @@ public class Adaptable extends AdaptableBase {
   public static final BlueRelativeTarget turnShootRight0 = new BlueRelativeTarget(3, 5.4,
       Rotation2d.fromDegrees(5));
   public static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
+
+  public static final BlueRelativeTarget shootingCenter = new BlueRelativeTarget(3, 4, Rotation2d.fromDegrees(0))
+      .withMaxVelocity(0.8); // Too lazy to flip coords
 
   // NT
   private final AutoNetworkNumber autoDelay = new AutoNetworkNumber(autoClass + "/Auto Delay", 0)
@@ -77,6 +81,12 @@ public class Adaptable extends AdaptableBase {
       .addOption("ShortLoopback", new WeakLoopbackSweep())
       .addOption("MediumLoopback", new MediumLoopbackSweep())
       .addOption("Loopback", new LoopbackSweep())
+      .onChange(() -> InvalidateCache());
+
+  private final AutoDropdownChooser<Boolean> divertToCenter = new AutoDropdownChooser<Boolean>(autoClass
+      + "/Goto Center")
+      .addOption("True", true)
+      .addOption("False", false)
       .onChange(() -> InvalidateCache());
 
   private final AutoNetworkNumber shootTime = new AutoNetworkNumber(autoClass + "/Shoot Timeout", 9)
@@ -188,6 +198,15 @@ public class Adaptable extends AdaptableBase {
             DriveCommands.autoToTarget(turnShootRight1.withMirroring(pathMirrored))
         );
 
+    Boolean goToCenter = divertToCenter.get();
+    if (goToCenter == null) {
+      goToCenter = false;
+    }
+    Command maybeGoToCenter = goToCenter ? DriveCommands.autoToTarget(shootingCenter.withMirroring(pathMirrored))
+        : Commands.none();
+    Command maybeGoBack = goToCenter ? DriveCommands.autoToTarget(turnShootLeft1.withMirroring(pathMirrored))
+        : Commands.none();
+
     // Auto definition
     cmd = Commands.sequence(
         AutoUtils.resetOdometry(start.withMirroring(pathMirrored)),
@@ -200,17 +219,27 @@ public class Adaptable extends AdaptableBase {
 
         Commands.deadline(
             ShooterCommands.shootAutoCommand(shootTime.getAsDouble() - 2).withTimeout(shootTime.getAsDouble()),
-            rotateForSecondPass
+            Commands.sequence(
+                rotateForSecondPass,
+                maybeGoToCenter
+            )
         ),
 
         Commands.deadline(
-            secondPass.follow(),
+            Commands.sequence(
+                maybeGoBack,
+                secondPass.follow()
+            ),
             IntakeCommands.intakeCommand()
         )
     );
 
     if (!immediate) {
       var fullPath = new ArrayList<>(Arrays.asList(firstPass.getTargets()));
+      if (goToCenter) {
+        fullPath.add(shootingCenter);
+        fullPath.add(turnShootLeft0);
+      }
       if (!blockerAuto) {
         fullPath.addAll(Arrays.asList(secondPass.getTargets()));
       }
@@ -220,6 +249,14 @@ public class Adaptable extends AdaptableBase {
     }
 
     SmartDashboard.putBoolean(autoClass + "/Cached", true);
+
+    // Warn against stupids
+    if (RobotContainer.state.getPose().getTranslation()
+        .getDistance(start.withMirroring(pathMirrored).getFieldRelativePose().getTranslation()) > 0.3) {
+      farFromStart.set(true);
+    } else {
+      farFromStart.set(false);
+    }
   }
 
   // Attacks
@@ -260,6 +297,7 @@ public class Adaptable extends AdaptableBase {
   public static class WaitAttack extends AutoSegment {
     public WaitAttack() {
       add(
+          new BlueRelativeTarget(6.5, 5.8, Rotation2d.fromDegrees(-90)),
           new BlueRelativeTarget(5.8, 4, Rotation2d.fromDegrees(0))
       );
     }
