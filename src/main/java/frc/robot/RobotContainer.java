@@ -33,7 +33,7 @@ import frc.robot.autos.Left;
 import frc.robot.autos.LeftDepot;
 import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
-import frc.robot.autos.adaptable.Adaptable;
+import frc.robot.autos.adaptable.AdaptableManager;
 import frc.robot.autos.adaptable.AutoVisualizer;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
@@ -89,6 +89,7 @@ import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.utils.vendor.Elastic;
 import frc.robot.utils.vendor.FuelSim;
 import frc.robot.utils.vendor.HubShiftUtil;
 
@@ -319,13 +320,15 @@ public class RobotContainer {
       autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
-      autoChooser.addOption("Adaptable", Adaptable.run());
+      autoChooser.addOption("Adaptable", AdaptableManager.get());
       autoChooser.onChange(cmd -> {
-        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Scuffed and almost certainly not replay
-                                                                             // compatible
-          Adaptable.InvalidateCache();
+        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") {
+          // Scuffed and almost certainly not replay compatible
+          AdaptableManager.InvalidateCache();
+          AdaptableManager.SwapTabs();
         } else {
           AutoVisualizer.ClearVisualizer();
+          Elastic.selectTab("Match");
         }
       });
     }
@@ -420,7 +423,7 @@ public class RobotContainer {
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               if (state.isOuttakeDesired()) {
-                intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MID); // only raise half way when outtaking
+                intake.setExpanderSetpoint(ExpanderPosition.OUTTAKE); // only raise half way when outtaking
               } else if (state.isForceIntakeIn() && state.autonomousEnabled()) {
                 intake.setExpanderSetpoint(ExpanderPosition.STOWED); // only raise half way when outtaking
               } else {
@@ -472,9 +475,13 @@ public class RobotContainer {
               / TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
           double scale = IntakeConstants.INTAKE_MIN_DUTY_SCALE
               + (1.0 - IntakeConstants.INTAKE_MIN_DUTY_SCALE)
-              * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
+                  * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
           intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE * scale);
           state.setExpanderState(ExpanderState.INTAKING);
+
+          if (state.autonomousEnabled()) {
+            intake.setIntakeDutyCycle(IntakeConstants.INTAKE_DUTY_CYCLE);
+          }
         },
         () -> {
           intake.setIntakeDutyCycle(0);

@@ -74,11 +74,11 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     flywheelConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FLYWHEEL_REDUCTION;
 
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 9.5;
+    slot0Configs.kP = 11;
     slot0Configs.kI = 0;
     slot0Configs.kD = 0;
-    slot0Configs.kS = 6.4;
-    slot0Configs.kV = 0.023;
+    slot0Configs.kS = 5.5;
+    slot0Configs.kV = 0.02600;
     slot0Configs.kG = 0.0;
     flywheelConfigs.Slot0 = slot0Configs;
 

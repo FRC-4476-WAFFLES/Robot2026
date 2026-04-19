@@ -2,19 +2,20 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.autos.adaptable;
+package frc.robot.autos.adaptable.autos;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotContainer;
 import frc.robot.autos.AutoUtils;
+import frc.robot.autos.adaptable.AdaptableBase;
+import frc.robot.autos.adaptable.AutoSegment;
+import frc.robot.autos.adaptable.AutoVisualizer;
 import frc.robot.autos.adaptable.choosers.AutoDropdownChooser;
 import frc.robot.autos.adaptable.choosers.AutoNetworkNumber;
 import frc.robot.autos.adaptable.choosers.AutoSegmentChooser;
@@ -24,18 +25,16 @@ import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class Adaptable {
-  private static Command cmd = Commands.none();
-
-  public static double PICKUP_VELOCITY = 2.0;
+public class Adaptable extends AdaptableBase {
+  public static double PICKUP_VELOCITY = 1.9;
 
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   public static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(3.5);
+      .withExitVelocity(4);
   public static final BlueRelativeTarget crossToAlliance = new BlueRelativeTarget(5.0, 5.4,
       Rotation2d.fromDegrees(180))
       .withEntryAngle(Rotation2d.fromDegrees(-180))
-      .withExitVelocity(0.7);
+      .withExitVelocity(1);
   public static final BlueRelativeTarget shooting = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(180));
 
   public static final BlueRelativeTarget turnShootLeft0 = new BlueRelativeTarget(3, 5.4,
@@ -47,72 +46,76 @@ public class Adaptable {
       Rotation2d.fromDegrees(5));
   public static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
 
+  public static final BlueRelativeTarget shootingCenter = new BlueRelativeTarget(3, 4, Rotation2d.fromDegrees(0))
+      .withMaxVelocity(0.8); // Too lazy to flip coords
+
   // NT
-  private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
+  private final AutoNetworkNumber autoDelay = new AutoNetworkNumber(autoClass + "/Auto Delay", 0)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
-      "AdaptableAuto/Side")
+  private final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
+      autoClass + "/Side")
       .addOption("Left", false)
       .addOption("Right", true)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
-      "AdaptableAuto/First Attack Depth")
+  private final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
+      autoClass + "/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .addOption("WeakSpatula", new WeakSpatula())
+      .addOption("Inverted Spatula", new InvertedSpatula())
+      .addOption("Wait", new WaitAttack())
       .onChange(() -> InvalidateCache());
 
-  private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
+  private final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber(autoClass + "/First Sweep Delay", 0)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser(
-      "AdaptableAuto/First Sweep")
+  private final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser(
+      autoClass + "/First Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
-      .addOption("No Sweep", new NoSweep())
+      .addOption("Rotate Out", new NoSweep())
+      .addOption("ShortLoopback", new WeakLoopbackSweep())
+      .addOption("MediumLoopback", new MediumLoopbackSweep())
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
-  private static final AutoNetworkNumber shootTime = new AutoNetworkNumber("AdaptableAuto/Shoot Timeout", 9)
+  private final AutoDropdownChooser<Boolean> divertToCenter = new AutoDropdownChooser<Boolean>(autoClass
+      + "/Goto Center")
+      .addOption("True", true)
+      .addOption("False", false)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
-      "AdaptableAuto/Second Attack Depth")
+  private final AutoNetworkNumber shootTime = new AutoNetworkNumber(autoClass + "/Shoot Timeout", 9)
+      .onChange(() -> InvalidateCache());
+
+  private final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
+      autoClass + "/Second Attack Depth")
       .addOption("BLOCKER", new Blocker())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
-  private static final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
-      "AdaptableAuto/Second Sweep")
+  private final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
+      autoClass + "/Second Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
+      .addOption("ShortLoopback", new WeakLoopbackSweep())
+      .addOption("MediumLoopback", new MediumLoopbackSweep())
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
-  public static void periodic() {
-    if (!RobotState.isEnabled() && DriverStation.isDSAttached()
-        && RobotContainer.autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Make sure robot doesn't
-                                                                                           // get lagged out while
-                                                                                           // running
-      if (cmd == null) {
-        GenerateAuto(false);
-      }
-    }
+  public Adaptable() {
+    super("AdaptableStandard");
   }
 
-  public static void InvalidateCache() {
-    cmd = null;
-    SmartDashboard.putBoolean("AdaptableAuto/Cached", false);
-  }
-
-  private static void GenerateAuto(boolean immediate) {
+  @Override
+  protected void GenerateAuto(boolean immediate) {
     Boolean pathMirrored = autoMirroring.get();
     if (pathMirrored == null) {
       return;
@@ -150,9 +153,9 @@ public class Adaptable {
       // Make permanent blocker auto
       collectBalls = Commands.sequence(
           blockPath.follow(),
-          DriveCommands.autoToTarget(new Blocker().targets.get(0)),
+          DriveCommands.autoToTarget(new Blocker().getTargets().get(0)),
           Commands.parallel(
-              DriveCommands.autoToTarget(new Blocker().targets.get(1)).repeatedly() // never end
+              DriveCommands.autoToTarget(new Blocker().getTargets().get(1)).repeatedly() // never end
           )
       );
 
@@ -195,6 +198,15 @@ public class Adaptable {
             DriveCommands.autoToTarget(turnShootRight1.withMirroring(pathMirrored))
         );
 
+    Boolean goToCenter = divertToCenter.get();
+    if (goToCenter == null) {
+      goToCenter = false;
+    }
+    Command maybeGoToCenter = goToCenter ? DriveCommands.autoToTarget(shootingCenter.withMirroring(pathMirrored))
+        : Commands.none();
+    Command maybeGoBack = goToCenter ? DriveCommands.autoToTarget(turnShootLeft1.withMirroring(pathMirrored))
+        : Commands.none();
+
     // Auto definition
     cmd = Commands.sequence(
         AutoUtils.resetOdometry(start.withMirroring(pathMirrored)),
@@ -207,17 +219,27 @@ public class Adaptable {
 
         Commands.deadline(
             ShooterCommands.shootAutoCommand(shootTime.getAsDouble() - 2).withTimeout(shootTime.getAsDouble()),
-            rotateForSecondPass
+            Commands.sequence(
+                rotateForSecondPass,
+                maybeGoToCenter
+            )
         ),
 
         Commands.deadline(
-            secondPass.follow(),
+            Commands.sequence(
+                maybeGoBack,
+                secondPass.follow()
+            ),
             IntakeCommands.intakeCommand()
         )
     );
 
     if (!immediate) {
       var fullPath = new ArrayList<>(Arrays.asList(firstPass.getTargets()));
+      if (goToCenter) {
+        fullPath.add(shootingCenter);
+        fullPath.add(turnShootLeft0);
+      }
       if (!blockerAuto) {
         fullPath.addAll(Arrays.asList(secondPass.getTargets()));
       }
@@ -226,27 +248,57 @@ public class Adaptable {
       AutoVisualizer.VisualizeAuto(start.withMirroring(pathMirrored), fullPath);
     }
 
-    SmartDashboard.putBoolean("AdaptableAuto/Cached", true);
-  }
+    SmartDashboard.putBoolean(autoClass + "/Cached", true);
 
-  public static Command run() {
-    return Commands.runOnce(() -> {
-      if (cmd == null) {
-        GenerateAuto(true);
-      }
-
-      cmd.onlyWhile(() -> RobotContainer.state.autonomousEnabled()).schedule();
-      InvalidateCache();
-    });
+    // Warn against stupids
+    if (RobotContainer.state.getPose().getTranslation()
+        .getDistance(start.withMirroring(pathMirrored).getFieldRelativePose().getTranslation()) > 0.3) {
+      farFromStart.set(true);
+    } else {
+      farFromStart.set(false);
+    }
   }
 
   // Attacks
   public static class NormalAttack extends AutoSegment {
     public NormalAttack() {
       add(
-          new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-45)),
           new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class DeepAttack extends AutoSegment {
+    public DeepAttack() {
+      add(
+          new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(8.25, 5.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(0.6),
+          new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class SuperDeepAttack extends AutoSegment {
+    public SuperDeepAttack() {
+      add(
+          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(0.6),
+          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(PICKUP_VELOCITY)
+      );
+    }
+  }
+
+  public static class WaitAttack extends AutoSegment {
+    public WaitAttack() {
+      add(
+          new BlueRelativeTarget(6.5, 5.8, Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(5.8, 4, Rotation2d.fromDegrees(0))
       );
     }
   }
@@ -257,26 +309,6 @@ public class Adaptable {
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(-45))
               .withEntryAngle(Rotation2d.fromDegrees(-45)).withMaxVelocity(2),
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(90))
-      );
-    }
-  }
-
-  public static class DeepAttack extends AutoSegment {
-    public DeepAttack() {
-      add(
-          new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(-90)),
-          new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(PICKUP_VELOCITY)
-      );
-    }
-  }
-
-  public static class SuperDeepAttack extends AutoSegment {
-    public SuperDeepAttack() {
-      add(
-          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(-90)),
-          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
@@ -300,6 +332,30 @@ public class Adaptable {
           new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(-170))
               .withMaxVelocity(2.5)
               .withEntryAngle(Rotation2d.fromDegrees(-160))
+      );
+    }
+  }
+
+  public static class InvertedSpatula extends AutoSegment {
+    public InvertedSpatula() {
+      add(
+          // new BlueRelativeTarget(6.476, 5.640, Rotation2d.fromDegrees(170))
+          // .withMaxVelocity(2.5)
+          // .withEntryAngle(Rotation2d.fromDegrees(160)),
+          new BlueRelativeTarget(9.7, 6.9, Rotation2d.fromDegrees(-10)) // also a rotation releif point
+              .withMaxVelocity(2.5)
+              .withEntryAngle(Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(10.3, 6.64, Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-60)),
+          new BlueRelativeTarget(10.6, 4.5, Rotation2d.fromDegrees(-80)) // Rotation releif point
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-90)),
+          new BlueRelativeTarget(10.3, 3.5, Rotation2d.fromDegrees(170))
+              .withMaxVelocity(2.0)
+              .withEntryAngle(Rotation2d.fromDegrees(-150)),
+          new BlueRelativeTarget(7.0, 3.8, Rotation2d.fromDegrees(160))
+
       );
     }
   }
@@ -340,9 +396,9 @@ public class Adaptable {
           new BlueRelativeTarget(6.8, 4.1, Rotation2d.fromDegrees(-180))
               .withEntryAngle(Rotation2d.fromDegrees(-180))
               .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
-          new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(90))
-              .withEntryAngle(Rotation2d.fromDegrees(90))
-              .withMaxVelocity(PICKUP_VELOCITY)
+          new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(120))
+              .withEntryAngle(Rotation2d.fromDegrees(70))
+              .withMaxVelocity(1.4)
       );
     }
   }
@@ -363,6 +419,38 @@ public class Adaptable {
     }
   }
 
+  public static class MediumLoopbackSweep extends AutoSegment {
+    public MediumLoopbackSweep() {
+      add(
+          new BlueRelativeTarget(8, 3.959, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
+          new BlueRelativeTarget(9, 4.9, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5),
+          new BlueRelativeTarget(7.865, 5.4, Rotation2d.fromDegrees(180))
+              .withEntryAngle(Rotation2d.fromDegrees(-180))
+              .withMaxVelocity(1.5)
+      );
+    }
+  }
+
+  public static class WeakLoopbackSweep extends AutoSegment {
+    public WeakLoopbackSweep() {
+      add(
+          new BlueRelativeTarget(7.0, 3.959, Rotation2d.fromDegrees(0))
+              .withEntryAngle(Rotation2d.fromDegrees(0))
+              .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
+          new BlueRelativeTarget(8.0, 4.9, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(1.5),
+          new BlueRelativeTarget(6.865, 5.4, Rotation2d.fromDegrees(180))
+              .withEntryAngle(Rotation2d.fromDegrees(-180))
+              .withMaxVelocity(1.5)
+      );
+    }
+  }
+
   public static class GreedySweep extends AutoSegment {
     public GreedySweep() {
       add(
@@ -371,7 +459,7 @@ public class Adaptable {
               .withMaxVelocity(PICKUP_VELOCITY),
           new BlueRelativeTarget(6.0, 3.7, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(100))
-              .withMaxVelocity(PICKUP_VELOCITY)
+              .withMaxVelocity(1.4)
       );
     }
   }

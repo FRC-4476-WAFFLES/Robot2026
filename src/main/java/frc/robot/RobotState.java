@@ -373,7 +373,7 @@ public class RobotState {
   }
 
   public Trigger shouldStabilize() {
-    return Controls.shootButton;
+    return Controls.shootButton.and(() -> shooterState == ShooterState.TARGET_HUB);
   }
   // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
   // if (expanderState == ExpanderState.EXTENDED) {

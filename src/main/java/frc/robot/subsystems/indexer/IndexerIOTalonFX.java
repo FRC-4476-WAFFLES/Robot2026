@@ -10,7 +10,6 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -29,7 +28,7 @@ public class IndexerIOTalonFX implements IndexerIO {
   protected final TalonFXIO feeder1;
 
   // Control Objects
-  private final VelocityVoltage indexerVelocityRequest1 = new VelocityVoltage(0);
+  private final VelocityTorqueCurrentFOC indexerVelocityRequest1 = new VelocityTorqueCurrentFOC(0);
   private final Follower indexerFollowerRequest;
   private final VelocityTorqueCurrentFOC feederVelocityRequest = new VelocityTorqueCurrentFOC(0);
   private final Follower feederFollowerRequest;
@@ -81,12 +80,18 @@ public class IndexerIOTalonFX implements IndexerIO {
 
     indexerConfigs.CurrentLimits = indexerCurrentLimit;
 
+    // var slot0Configs = new Slot0Configs();
+    // slot0Configs.kP = 0.5;
+    // slot0Configs.kI = 0;
+    // slot0Configs.kD = 0;
+    // slot0Configs.kV = 0.6;
+    // slot0Configs.kS = 0.28;
+    // slot0Configs.kG = 0.0;
     var slot0Configs = new Slot0Configs();
-    slot0Configs.kP = 0.5;
-    slot0Configs.kI = 0;
+    slot0Configs.kP = 30;
+    slot0Configs.kS = 3;
     slot0Configs.kD = 0;
-    slot0Configs.kV = 0.6;
-    slot0Configs.kS = 0.28;
+    slot0Configs.kV = 0.08;
     slot0Configs.kG = 0.0;
     indexerConfigs.Slot0 = slot0Configs;
 
@@ -109,6 +114,8 @@ public class IndexerIOTalonFX implements IndexerIO {
   private void configureFeederMotors() {
     TalonFXConfiguration feederConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs feederCurrentLimit = new CurrentLimitsConfigs()
+        .withSupplyCurrentLimit(25)
+        .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimit(120)
         .withStatorCurrentLimitEnable(true);
 
@@ -120,6 +127,7 @@ public class IndexerIOTalonFX implements IndexerIO {
     slot0Configs.kD = 0;
     slot0Configs.kV = 0.2199999988079071;
     slot0Configs.kG = 0.0;
+
     feederConfigs.Slot0 = slot0Configs;
 
     feederConfigs.Feedback.SensorToMechanismRatio = PhysicalConstants.FEEDER_REDUCTION;
