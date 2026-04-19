@@ -33,9 +33,8 @@ import frc.robot.autos.Left;
 import frc.robot.autos.LeftDepot;
 import frc.robot.autos.LeftGreedy;
 import frc.robot.autos.Preload;
+import frc.robot.autos.adaptable.AdaptableManager;
 import frc.robot.autos.adaptable.AutoVisualizer;
-import frc.robot.autos.adaptable.autos.Adaptable;
-import frc.robot.autos.adaptable.autos.AdaptableSwitch;
 import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -90,6 +89,7 @@ import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.utils.vendor.Elastic;
 import frc.robot.utils.vendor.FuelSim;
 import frc.robot.utils.vendor.HubShiftUtil;
 
@@ -320,15 +320,15 @@ public class RobotContainer {
       autoChooser.addOption("Left Depot", new LeftDepot());
       autoChooser.addOption("Left", new Left());
       autoChooser.addOption("Left Greedy", new LeftGreedy());
-      autoChooser.addOption("Adaptable", Adaptable.run());
-      autoChooser.addOption("AdaptableSwitchover", AdaptableSwitch.run());
+      autoChooser.addOption("Adaptable", AdaptableManager.get());
       autoChooser.onChange(cmd -> {
-        if (autoChooser.getSendableChooser().getSelected() == "Adaptable"
-            || autoChooser.getSendableChooser().getSelected() == "AdaptableSwitchover") {
+        if (autoChooser.getSendableChooser().getSelected() == "Adaptable") {
           // Scuffed and almost certainly not replay compatible
-          Adaptable.InvalidateCache();
+          AdaptableManager.InvalidateCache();
+          AdaptableManager.SwapTabs();
         } else {
           AutoVisualizer.ClearVisualizer();
+          Elastic.selectTab("Match");
         }
       });
     }

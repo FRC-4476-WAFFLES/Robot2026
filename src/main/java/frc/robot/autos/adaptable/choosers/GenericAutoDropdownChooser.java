@@ -4,9 +4,13 @@
 
 package frc.robot.autos.adaptable.choosers;
 
+import java.util.function.Consumer;
+
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
-public class GenericAutoDropdownChooser<T, SELF extends GenericAutoDropdownChooser<T, SELF>> { // Really cool type shenanigans for method chaining in subclass
+public class GenericAutoDropdownChooser<T, SELF extends GenericAutoDropdownChooser<T, SELF>> { // Really cool type
+                                                                                               // shenanigans for method
+                                                                                               // chaining in subclass
   protected final LoggedDashboardChooser<T> chooser;
   protected int options = 0;
 
@@ -28,6 +32,12 @@ public class GenericAutoDropdownChooser<T, SELF extends GenericAutoDropdownChoos
   @SuppressWarnings("unchecked")
   public SELF onChange(Runnable callback) {
     chooser.onChange(var -> callback.run());
+    return (SELF) this;
+  }
+
+  @SuppressWarnings("unchecked")
+  public SELF onChange(Consumer<T> callback) {
+    chooser.onChange(var -> callback.accept(chooser.get()));
     return (SELF) this;
   }
 

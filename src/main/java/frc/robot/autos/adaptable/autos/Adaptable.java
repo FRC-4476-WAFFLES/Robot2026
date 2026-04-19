@@ -8,13 +8,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.RobotContainer;
 import frc.robot.autos.AutoUtils;
+import frc.robot.autos.adaptable.AdaptableBase;
 import frc.robot.autos.adaptable.AutoSegment;
 import frc.robot.autos.adaptable.AutoVisualizer;
 import frc.robot.autos.adaptable.choosers.AutoDropdownChooser;
@@ -26,9 +24,7 @@ import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
-public class Adaptable {
-  private static Command cmd = Commands.none();
-
+public class Adaptable extends AdaptableBase {
   public static double PICKUP_VELOCITY = 1.9;
 
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
@@ -50,17 +46,17 @@ public class Adaptable {
   public static final BlueRelativeTarget turnShootRight1 = new BlueRelativeTarget(3, 5.4, Rotation2d.fromDegrees(0));
 
   // NT
-  private static final AutoNetworkNumber autoDelay = new AutoNetworkNumber("AdaptableAuto/Auto Delay", 0)
+  private final AutoNetworkNumber autoDelay = new AutoNetworkNumber(autoClass + "/Auto Delay", 0)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
-      "AdaptableAuto/Side")
+  private final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
+      autoClass + "/Side")
       .addOption("Left", false)
       .addOption("Right", true)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
-      "AdaptableAuto/First Attack Depth")
+  private final AutoSegmentChooser firstAttackDepthChooser = new AutoSegmentChooser(
+      autoClass + "/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
@@ -70,11 +66,11 @@ public class Adaptable {
       .addOption("Wait", new WaitAttack())
       .onChange(() -> InvalidateCache());
 
-  private static final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber("AdaptableAuto/First Sweep Delay", 0)
+  private final AutoNetworkNumber preSweepDelay = new AutoNetworkNumber(autoClass + "/First Sweep Delay", 0)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser(
-      "AdaptableAuto/First Sweep")
+  private final AutoSegmentChooser firstSweepChooser = new AutoSegmentChooser(
+      autoClass + "/First Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("Rotate Out", new NoSweep())
@@ -83,19 +79,19 @@ public class Adaptable {
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
-  private static final AutoNetworkNumber shootTime = new AutoNetworkNumber("AdaptableAuto/Shoot Timeout", 9)
+  private final AutoNetworkNumber shootTime = new AutoNetworkNumber(autoClass + "/Shoot Timeout", 9)
       .onChange(() -> InvalidateCache());
 
-  private static final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
-      "AdaptableAuto/Second Attack Depth")
+  private final AutoSegmentChooser secondAttackDepthChooser = new AutoSegmentChooser(
+      autoClass + "/Second Attack Depth")
       .addOption("BLOCKER", new Blocker())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
       .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
-  private static final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
-      "AdaptableAuto/Second Sweep")
+  private final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
+      autoClass + "/Second Sweep")
       .addOption("Normal", new NormalSweep())
       .addOption("Greedy", new GreedySweep())
       .addOption("No Sweep", new NoSweep())
@@ -104,23 +100,12 @@ public class Adaptable {
       .addOption("Loopback", new LoopbackSweep())
       .onChange(() -> InvalidateCache());
 
-  public static void periodic() {
-    if (!RobotState.isEnabled() && DriverStation.isDSAttached()
-        && RobotContainer.autoChooser.getSendableChooser().getSelected() == "Adaptable") { // Make sure robot doesn't
-                                                                                           // get lagged out while
-                                                                                           // running
-      if (cmd == null) {
-        GenerateAuto(false);
-      }
-    }
+  public Adaptable() {
+    super("AdaptableStandard");
   }
 
-  public static void InvalidateCache() {
-    cmd = null;
-    SmartDashboard.putBoolean("AdaptableAuto/Cached", false);
-  }
-
-  private static void GenerateAuto(boolean immediate) {
+  @Override
+  protected void GenerateAuto(boolean immediate) {
     Boolean pathMirrored = autoMirroring.get();
     if (pathMirrored == null) {
       return;
@@ -234,18 +219,7 @@ public class Adaptable {
       AutoVisualizer.VisualizeAuto(start.withMirroring(pathMirrored), fullPath);
     }
 
-    SmartDashboard.putBoolean("AdaptableAuto/Cached", true);
-  }
-
-  public static Command run() {
-    return Commands.runOnce(() -> {
-      if (cmd == null) {
-        GenerateAuto(true);
-      }
-
-      cmd.onlyWhile(() -> RobotContainer.state.autonomousEnabled()).schedule();
-      InvalidateCache();
-    });
+    SmartDashboard.putBoolean(autoClass + "/Cached", true);
   }
 
   // Attacks

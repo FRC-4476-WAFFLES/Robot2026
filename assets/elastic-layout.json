@@ -33,19 +33,6 @@
             }
           },
           {
-            "title": "Test Chooser",
-            "x": 0.0,
-            "y": 128.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "ComboBox Chooser",
-            "properties": {
-              "topic": "/SmartDashboard/Test Chooser",
-              "period": 0.06,
-              "sort_options": false
-            }
-          },
-          {
             "title": "Field",
             "x": 384.0,
             "y": 0.0,
@@ -65,16 +52,33 @@
               "trajectory_color": 4294967295,
               "show_robot_outside_widget": true
             }
+          },
+          {
+            "title": "Manual",
+            "x": 0.0,
+            "y": 512.0,
+            "width": 1152.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Manual",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
           }
         ]
       }
     },
     {
-      "name": "Adaptable",
+      "name": "AdaptableStandard",
       "grid_layout": {
         "layouts": [
           {
-            "title": "AdaptableAuto",
+            "title": "AdaptableStandard",
             "x": 1024.0,
             "y": 0.0,
             "width": 384.0,
@@ -85,58 +89,6 @@
             },
             "children": [
               {
-                "title": "First Attack Depth",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/First Attack Depth",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "First Sweep",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/First Sweep",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "Second Attack Depth",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Second Attack Depth",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "Second Sweep",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Second Sweep",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
                 "title": "Side",
                 "x": 0.0,
                 "y": 0.0,
@@ -144,7 +96,7 @@
                 "height": 128.0,
                 "type": "ComboBox Chooser",
                 "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Side",
+                  "topic": "/SmartDashboard/AdaptableStandard/Side",
                   "period": 0.06,
                   "sort_options": false
                 }
@@ -157,24 +109,23 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/Auto Delay",
+                  "topic": "SmartDashboard/AdaptableStandard/Auto Delay",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Shoot Timeout",
+                "title": "First Attack Depth",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
-                "type": "Text Display",
+                "type": "ComboBox Chooser",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/Shoot Timeout",
+                  "topic": "/SmartDashboard/AdaptableStandard/First Attack Depth",
                   "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
+                  "sort_options": false
                 }
               },
               {
@@ -185,10 +136,63 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/First Sweep Delay",
+                  "topic": "SmartDashboard/AdaptableStandard/First Sweep Delay",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
+                }
+              },
+              {
+                "title": "First Sweep",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableStandard/First Sweep",
+                  "period": 0.06,
+                  "sort_options": false
+                }
+              },
+              {
+                "title": "Shoot Timeout",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "SmartDashboard/AdaptableStandard/Shoot Timeout",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Second Attack Depth",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableStandard/Second Attack Depth",
+                  "period": 0.06,
+                  "sort_options": false
+                }
+              },
+              {
+                "title": "Second Sweep",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableStandard/Second Sweep",
+                  "period": 0.06,
+                  "sort_options": false
                 }
               },
               {
@@ -199,7 +203,7 @@
                 "height": 128.0,
                 "type": "Boolean Box",
                 "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Cached",
+                  "topic": "/SmartDashboard/AdaptableStandard/Cached",
                   "period": 0.06,
                   "data_type": "boolean",
                   "true_color": 4283215696,
@@ -238,19 +242,6 @@
             }
           },
           {
-            "title": "Test Chooser",
-            "x": 0.0,
-            "y": 128.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "ComboBox Chooser",
-            "properties": {
-              "topic": "/SmartDashboard/Test Chooser",
-              "period": 0.06,
-              "sort_options": false
-            }
-          },
-          {
             "title": "Field",
             "x": 384.0,
             "y": 0.0,
@@ -270,16 +261,46 @@
               "trajectory_color": 4294967295,
               "show_robot_outside_widget": true
             }
+          },
+          {
+            "title": "AdaptableVariation",
+            "x": 0.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "ComboBox Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/AdaptableVariation",
+              "period": 0.06,
+              "sort_options": false
+            }
+          },
+          {
+            "title": "Manual",
+            "x": 0.0,
+            "y": 640.0,
+            "width": 1408.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Manual",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
           }
         ]
       }
     },
     {
-      "name": "AdaptableSwitch",
+      "name": "AdaptableSwitchover",
       "grid_layout": {
         "layouts": [
           {
-            "title": "AdaptableAuto",
+            "title": "AdaptableSwitchover",
             "x": 1024.0,
             "y": 0.0,
             "width": 384.0,
@@ -290,58 +311,6 @@
             },
             "children": [
               {
-                "title": "First Attack Depth",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/First Attack Depth",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "First Sweep",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/First Sweep",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "Second Attack Depth",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Second Attack Depth",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "Second Sweep",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Second Sweep",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
                 "title": "Side",
                 "x": 0.0,
                 "y": 0.0,
@@ -349,7 +318,7 @@
                 "height": 128.0,
                 "type": "ComboBox Chooser",
                 "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Side",
+                  "topic": "/SmartDashboard/AdaptableSwitchover/Side",
                   "period": 0.06,
                   "sort_options": false
                 }
@@ -362,38 +331,50 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/Auto Delay",
+                  "topic": "SmartDashboard/AdaptableSwitchover/Auto Delay",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Shoot Timeout",
+                "title": "Entry",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableSwitchover/Entry",
+                  "period": 0.06,
+                  "sort_options": false
+                }
+              },
+              {
+                "title": "Pre Attack Delay",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/Shoot Timeout",
+                  "topic": "SmartDashboard/AdaptableSwitchover/Pre Attack Delay",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "First Sweep Delay",
+                "title": "Attack Chooser",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
-                "type": "Text Display",
+                "type": "ComboBox Chooser",
                 "properties": {
-                  "topic": "SmartDashboard/AdaptableAuto/First Sweep Delay",
+                  "topic": "/SmartDashboard/AdaptableSwitchover/Attack Chooser",
                   "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
+                  "sort_options": false
                 }
               },
               {
@@ -404,7 +385,7 @@
                 "height": 128.0,
                 "type": "Boolean Box",
                 "properties": {
-                  "topic": "/SmartDashboard/AdaptableAuto/Cached",
+                  "topic": "/SmartDashboard/AdaptableSwitchover/Cached",
                   "period": 0.06,
                   "data_type": "boolean",
                   "true_color": 4283215696,
@@ -443,19 +424,6 @@
             }
           },
           {
-            "title": "Test Chooser",
-            "x": 0.0,
-            "y": 128.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "ComboBox Chooser",
-            "properties": {
-              "topic": "/SmartDashboard/Test Chooser",
-              "period": 0.06,
-              "sort_options": false
-            }
-          },
-          {
             "title": "Field",
             "x": 384.0,
             "y": 0.0,
@@ -474,6 +442,36 @@
               "robot_color": 4294198070,
               "trajectory_color": 4294967295,
               "show_robot_outside_widget": true
+            }
+          },
+          {
+            "title": "AdaptableVariation",
+            "x": 0.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "ComboBox Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/AdaptableVariation",
+              "period": 0.06,
+              "sort_options": false
+            }
+          },
+          {
+            "title": "Manual",
+            "x": 0.0,
+            "y": 640.0,
+            "width": 1408.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Manual",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
             }
           }
         ]
@@ -510,6 +508,19 @@
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
+            }
+          },
+          {
+            "title": "Test Chooser",
+            "x": 128.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "ComboBox Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/Test Chooser",
+              "period": 0.06,
+              "sort_options": false
             }
           }
         ]
