@@ -36,7 +36,8 @@ public class Controls {
    * have a single source of truth
    */
   public static final Trigger shootButton = rightJoystick.button(1);
-  public static final Trigger beachButton = operatorController.rightTrigger();
+  public static final Trigger operatorShootButton = operatorController.rightTrigger();
+  public static final Trigger beachButton = operatorController.rightBumper();
 
   public static class DriverConstants {
     // public static final int kDriverControllerPort = 0;

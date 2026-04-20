@@ -50,7 +50,7 @@ public class StateOrchestrator extends VirtualSubsystem {
     } else {
       state = ShooterState.TARGET_TAG;
 
-      if (Controls.shootButton.getAsBoolean()) {
+      if (Controls.shootButton.getAsBoolean() || Controls.operatorShootButton.getAsBoolean()) {
         // Switch to passing if shot requested here
         state = ShooterState.TARGET_PASS;
       }
