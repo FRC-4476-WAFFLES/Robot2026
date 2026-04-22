@@ -63,7 +63,6 @@ public class Adaptable extends AdaptableBase {
       autoClass + "/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .addOption("WeakSpatula", new WeakSpatula())
       .addOption("Inverted Spatula", new InvertedSpatula())
@@ -97,7 +96,6 @@ public class Adaptable extends AdaptableBase {
       .addOption("BLOCKER", new Blocker())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .addOption("Superdeep", new SuperDeepAttack())
       .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
   private final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
@@ -277,18 +275,6 @@ public class Adaptable extends AdaptableBase {
           new BlueRelativeTarget(8.25, 5.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(0.6),
           new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(PICKUP_VELOCITY)
-      );
-    }
-  }
-
-  public static class SuperDeepAttack extends AutoSegment {
-    public SuperDeepAttack() {
-      add(
-          new BlueRelativeTarget(8.8, 6.2, Rotation2d.fromDegrees(0)),
-          new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(0.6),
-          new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
       );
     }

@@ -473,6 +473,8 @@ public class RobotContainer {
           var speeds = state.getRobotVelocity();
           double speedFraction = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
               / TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+          speedFraction = Math.pow(speedFraction, 0.5);
+
           double scale = IntakeConstants.INTAKE_MIN_DUTY_SCALE
               + (1.0 - IntakeConstants.INTAKE_MIN_DUTY_SCALE)
                   * Math.min(speedFraction / IntakeConstants.INTAKE_FULL_SPEED_THRESHOLD, 1.0);
@@ -509,7 +511,7 @@ public class RobotContainer {
       var parms = ShotPlanner.aimToHub();
 
       var turretSetpoint = parms.turretSetpoint();
-      if (state.onBump) {
+      if (state.onBump && state.shouldFire().getAsBoolean()) {
         var chosenOffset = ShotPlanner.getTurretBumpOffset();
         Logger.recordOutput("Turret/Bump Offset", chosenOffset);
         turret.runSetpoint(new TurretSetpoint(turretSetpoint.heading().plus(chosenOffset),

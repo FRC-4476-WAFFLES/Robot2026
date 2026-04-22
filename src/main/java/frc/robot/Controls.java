@@ -35,8 +35,7 @@ public class Controls {
    * When triggers are referenced in multiple places, they are defined here to
    * have a single source of truth
    */
-  public static final Trigger shootButton = rightJoystick.button(1);
-  public static final Trigger operatorShootButton = operatorController.rightTrigger();
+  public static final Trigger shootButton = rightJoystick.button(1).or(operatorController.rightTrigger());
   public static final Trigger beachButton = operatorController.rightBumper();
 
   public static class DriverConstants {

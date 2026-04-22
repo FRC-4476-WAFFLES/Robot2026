@@ -13,7 +13,6 @@ import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -26,7 +25,6 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
-import frc.robot.data.Constants.VisionConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.utils.lib.EpochTimer;
@@ -91,7 +89,7 @@ public class ShotPlanner {
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
           && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
-                                                                                                                                          // (so turret sees tags)
+                                                                          // (so turret sees tags)
       ) {
 
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
@@ -173,9 +171,7 @@ public class ShotPlanner {
 
   public static ShootingParameters aimToTag() {
     return aimAtField(
-        WafflesUtilities
-            .FlipIfRedAlliance(
-                VisionConstants.APRIL_TAG_FIELD_LAYOUT.getTagPose(20).orElse(Pose3d.kZero).toPose2d().getTranslation())
+        WafflesUtilities.FlipIfRedAlliance(FieldConstants.Hub.topCenterPoint.toTranslation2d())
     );
   }
 

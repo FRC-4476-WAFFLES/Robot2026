@@ -211,6 +211,19 @@
                   "true_icon": "None",
                   "false_icon": "None"
                 }
+              },
+              {
+                "title": "Goto Center",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableStandard/Goto Center",
+                  "period": 0.06,
+                  "sort_options": false
+                }
               }
             ]
           }
@@ -392,6 +405,19 @@
                   "false_color": 4294198070,
                   "true_icon": "None",
                   "false_icon": "None"
+                }
+              },
+              {
+                "title": "Goto Center",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableSwitchover/Goto Center",
+                  "period": 0.06,
+                  "sort_options": false
                 }
               }
             ]

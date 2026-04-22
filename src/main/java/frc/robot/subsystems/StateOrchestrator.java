@@ -13,7 +13,7 @@ import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 public class StateOrchestrator extends VirtualSubsystem {
   // All coordinates are blue alliance relative
-  private double shootingLineX = 4.6; // Allow shooting on bump
+  private double shootingLineX = 4.2; // Allow shooting on bump
   private double tagZoneLength = 3.5;
   private double bumpStartLineX = 4.0;
   private double bumpEndLineX = FieldConstants.LinesVertical.neutralZoneNear;
@@ -45,12 +45,15 @@ public class StateOrchestrator extends VirtualSubsystem {
     ShooterState state = ShooterState.DISABLED;
     if (pose.getX() < shootingLineX) {
       state = ShooterState.TARGET_HUB;
+      if (!RobotContainer.drive.isLevelOnGround()) {
+        state = ShooterState.TARGET_TAG;
+      }
     } else if (pose.getX() > passingLineX) {
       state = ShooterState.TARGET_PASS;
     } else {
       state = ShooterState.TARGET_TAG;
 
-      if (Controls.shootButton.getAsBoolean() || Controls.operatorShootButton.getAsBoolean()) {
+      if (Controls.shootButton.getAsBoolean()) {
         // Switch to passing if shot requested here
         state = ShooterState.TARGET_PASS;
       }

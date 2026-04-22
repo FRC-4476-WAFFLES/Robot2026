@@ -71,7 +71,6 @@ public class AdaptableSwitch extends AdaptableBase {
       autoClass + "/Attack Chooser")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .addOption("Superdeep", new SuperDeepAttack())
       .onChange(() -> InvalidateCache());
 
   public AdaptableSwitch() {
@@ -193,18 +192,6 @@ public class AdaptableSwitch extends AdaptableBase {
           new BlueRelativeTarget(8.25, 2.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(0.6),
           new BlueRelativeTarget(8.2, 1.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(1.9)
-      );
-    }
-  }
-
-  public static class SuperDeepAttack extends AutoSegment {
-    public SuperDeepAttack() {
-      add(
-          new BlueRelativeTarget(8.8, 3.2, Rotation2d.fromDegrees(0)),
-          new BlueRelativeTarget(8.6, 2.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(0.6),
-          new BlueRelativeTarget(8.6, 1.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(1.9)
       );
     }
