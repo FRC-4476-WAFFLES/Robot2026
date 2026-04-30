@@ -103,6 +103,11 @@ public class RobotState {
   @AutoLogOutput(key = "RobotState/Probably Done Shooting")
   private boolean probablyDoneShooting = false;
 
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/Rumble Operator")
+  private boolean rumbleOperator = false;
+
   /*                       */
   /* Latency Compensation */
   /*                       */
@@ -373,6 +378,10 @@ public class RobotState {
 
   public Trigger shouldStabilize() {
     return Controls.shootButton.and(() -> shooterState == ShooterState.TARGET_HUB);
+  }
+
+  public Trigger shouldRumbleTrigger() {
+    return new Trigger(() -> rumbleOperator);
   }
   // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
   // if (expanderState == ExpanderState.EXTENDED) {

@@ -512,6 +512,14 @@ public class RobotContainer {
 
     Controls.operatorController.start().onTrue(Commands.runOnce(() -> hood.zero()));
 
+    state.shouldRumbleTrigger()
+        .onTrue(Commands.runOnce(() -> Controls.operatorController.setRumble(RumbleType.kBothRumble, 1)))
+        .onFalse(Commands.runOnce(() -> Controls.operatorController.setRumble(RumbleType.kBothRumble, 0)));
+
+    Controls.shootButton.and(() -> !state.hubEnabled())
+        .onTrue(Commands.runOnce(() -> state.setRumbleOperator(true)))
+        .onFalse(Commands.runOnce(() -> state.setRumbleOperator(false)));
+
     // Auto winner override
     RobotModeTriggers.teleop().onTrue(Commands.runOnce(HubShiftUtil::initialize));
     RobotModeTriggers.autonomous().onTrue(Commands.runOnce(HubShiftUtil::initialize));
@@ -536,10 +544,10 @@ public class RobotContainer {
         .whileTrue(
             Commands.runEnd(
                 () -> {
-                  Controls.operatorController.setRumble(RumbleType.kBothRumble, 1);
+                  state.setRumbleOperator(true);
                 },
                 () -> {
-                  Controls.operatorController.setRumble(RumbleType.kBothRumble, 0);
+                  state.setRumbleOperator(false);
                 }))
         .whileTrue(
             Commands.startEnd(() -> autoWinnerNotSet.set(true), () -> autoWinnerNotSet.set(false)));

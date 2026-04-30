@@ -193,6 +193,7 @@ public class Robot extends LoggedRobot {
 
     // Disable controller vibration in case disabled while rumbling
     Controls.operatorController.getHID().setRumble(GenericHID.RumbleType.kBothRumble, 0);
+    RobotContainer.state.setRumbleOperator(false);
   }
 
   @Override
