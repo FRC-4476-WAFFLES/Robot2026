@@ -42,6 +42,7 @@ public class DriveToPose {
     return cmd;
   }
 
+  @SuppressWarnings("unused")
   private Command generate(Supplier<BlueRelativeTarget> target, BooleanSupplier purePursuit,
       boolean selfEnd) {
     ProfiledPIDController angleController = new ProfiledPIDController(

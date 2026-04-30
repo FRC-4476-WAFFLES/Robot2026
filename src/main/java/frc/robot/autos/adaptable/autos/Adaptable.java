@@ -26,7 +26,7 @@ import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class Adaptable extends AdaptableBase {
-  public static double PICKUP_VELOCITY = 1.9;
+  public static double PICKUP_VELOCITY = 1.7;
 
   public static final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
   public static final BlueRelativeTarget crossToNeutral = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
@@ -63,9 +63,10 @@ public class Adaptable extends AdaptableBase {
       autoClass + "/First Attack Depth")
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .addOption("Spatula", new Spatula())
-      .addOption("WeakSpatula", new WeakSpatula())
-      .addOption("Inverted Spatula", new InvertedSpatula())
+      .addOption("MidSpatula", new MidSpatula())
+      // .addOption("Spatula", new Spatula())
+      // .addOption("WeakSpatula", new WeakSpatula())
+      // .addOption("Inverted Spatula", new InvertedSpatula())
       .addOption("Wait", new WaitAttack())
       .onChange(() -> InvalidateCache());
 
@@ -96,7 +97,8 @@ public class Adaptable extends AdaptableBase {
       .addOption("BLOCKER", new Blocker())
       .addOption("Normal", new NormalAttack())
       .addOption("Deep", new DeepAttack())
-      .addOption("Spatula", new Spatula())
+      // .addOption("SuperDeep", new SuperDeepAttack())
+      // .addOption("Spatula", new Spatula())
       .onChange(() -> InvalidateCache());
   private final AutoSegmentChooser secondSweepChooser = new AutoSegmentChooser(
       autoClass + "/Second Sweep")
@@ -261,7 +263,7 @@ public class Adaptable extends AdaptableBase {
   public static class NormalAttack extends AutoSegment {
     public NormalAttack() {
       add(
-          new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-45)),
+          new BlueRelativeTarget(7.6, 6.64, Rotation2d.fromDegrees(-35)),
           new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
       );
@@ -271,14 +273,27 @@ public class Adaptable extends AdaptableBase {
   public static class DeepAttack extends AutoSegment {
     public DeepAttack() {
       add(
-          new BlueRelativeTarget(8.5, 6.2, Rotation2d.fromDegrees(0)),
-          new BlueRelativeTarget(8.25, 5.5, Rotation2d.fromDegrees(-90))
-              .withMaxVelocity(0.6),
+          new BlueRelativeTarget(6.9, 6.4, Rotation2d.fromDegrees(15)),
+          new BlueRelativeTarget(8.25, 6.2, Rotation2d.fromDegrees(-90))
+              .withEntryAngle(Rotation2d.fromDegrees(-90))
+              .withMaxVelocity(2),
           new BlueRelativeTarget(8.2, 4.5, Rotation2d.fromDegrees(-90))
               .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }
+
+  // public static class SuperDeepAttack extends AutoSegment {
+  // public SuperDeepAttack() {
+  // add(
+  // new BlueRelativeTarget(8.6, 6.2, Rotation2d.fromDegrees(0)),
+  // new BlueRelativeTarget(8.6, 5.5, Rotation2d.fromDegrees(-90))
+  // .withMaxVelocity(0.6),
+  // new BlueRelativeTarget(8.6, 4.5, Rotation2d.fromDegrees(-90))
+  // .withMaxVelocity(1.9)
+  // );
+  // }
+  // }
 
   public static class WaitAttack extends AutoSegment {
     public WaitAttack() {
@@ -295,6 +310,19 @@ public class Adaptable extends AdaptableBase {
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(-45))
               .withEntryAngle(Rotation2d.fromDegrees(-45)).withMaxVelocity(2),
           new BlueRelativeTarget(8.35, 4, Rotation2d.fromDegrees(90))
+      );
+    }
+  }
+
+  public static class MidSpatula extends AutoSegment {
+    public MidSpatula() {
+      add(
+          new BlueRelativeTarget(6.9, 3.75, Rotation2d.fromDegrees(0)),
+          new BlueRelativeTarget(7.8, 4.5, Rotation2d.fromDegrees(90))
+              .withEntryAngle(Rotation2d.fromDegrees(90))
+              .withMaxVelocity(PICKUP_VELOCITY),
+          new BlueRelativeTarget(7.8, 6.4, Rotation2d.fromDegrees(90))
+              .withMaxVelocity(PICKUP_VELOCITY)
       );
     }
   }

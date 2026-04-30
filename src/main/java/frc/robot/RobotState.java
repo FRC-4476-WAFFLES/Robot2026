@@ -268,7 +268,6 @@ public class RobotState {
     turretVelocityHistoryBuffer.addSample(timestamp, velocity);
   }
 
-  @SuppressWarnings("unused")
   public void updateEnabledState() {
     // Collect checks here once a loop since checking enabled has a mutex lock
     enabled = DriverStation.isEnabled();
