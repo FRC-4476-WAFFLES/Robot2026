@@ -67,7 +67,9 @@ public class DriveToPose {
 
       // Mutate constraints
       RobotState.setAutopilotMaxVelocity(blueTarget.getMaxVelocity());
-      RobotState.setAutopilotMaxAcceleration(CodeConstants.AUTO_MAX_ACCEL);
+      RobotState.setAutopilotMaxAcceleration((state.onBump && state.autonomousEnabled())
+          ? CodeConstants.AUTO_MAX_ACCEL_BUMP
+          : CodeConstants.AUTO_MAX_ACCEL);
 
       if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationRate()) {
         angleController.setConstraints(
