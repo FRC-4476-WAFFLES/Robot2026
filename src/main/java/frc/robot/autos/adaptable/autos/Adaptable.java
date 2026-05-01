@@ -412,7 +412,7 @@ public class Adaptable extends AdaptableBase {
               .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
           new BlueRelativeTarget(6.0, 4.5, Rotation2d.fromDegrees(120))
               .withEntryAngle(Rotation2d.fromDegrees(70))
-              .withMaxVelocity(1.4)
+              .withMaxVelocity(1.6)
       );
     }
   }
@@ -425,10 +425,10 @@ public class Adaptable extends AdaptableBase {
               .withMaxVelocity(PICKUP_VELOCITY), // Mid swing point
           new BlueRelativeTarget(10.5, 4.9, Rotation2d.fromDegrees(90))
               .withEntryAngle(Rotation2d.fromDegrees(90))
-              .withMaxVelocity(1.5),
+              .withMaxVelocity(1.6),
           new BlueRelativeTarget(9.365, 5.4, Rotation2d.fromDegrees(180))
               .withEntryAngle(Rotation2d.fromDegrees(-180))
-              .withMaxVelocity(1.5)
+              .withMaxVelocity(1.6)
       );
     }
   }
