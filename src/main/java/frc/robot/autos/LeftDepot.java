@@ -4,47 +4,39 @@
 
 package frc.robot.autos;
 
+import java.util.ArrayList;
+
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import frc.robot.RobotContainer;
-import frc.robot.RobotState.ShooterState;
+import frc.robot.autos.adaptable.autos.Adaptable;
 import frc.robot.commands.drive.AutoPath;
-import frc.robot.commands.drive.DriveCommands;
 import frc.robot.commands.intake.IntakeCommands;
 import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.utils.vendor.BlueRelativeTarget;
 
 public class LeftDepot extends SequentialCommandGroup {
-  private final BlueRelativeTarget start = new BlueRelativeTarget(3.570, 5.8, Rotation2d.fromDegrees(0));
-  private final BlueRelativeTarget point1 = new BlueRelativeTarget(5.9, 5.8, Rotation2d.fromDegrees(-10))
-      .withExitVelocity(3.5);
-  private final BlueRelativeTarget point2 = new BlueRelativeTarget(7.9, 6.2, Rotation2d.fromDegrees(-90));
-  private final BlueRelativeTarget point3 = new BlueRelativeTarget(7.6, 4.5, Rotation2d.fromDegrees(-90))
-      .withMaxVelocity(2.0);
-  private final BlueRelativeTarget point4 = new BlueRelativeTarget(5.0, 5.4, Rotation2d.fromDegrees(180))
-      .withEntryAngle(Rotation2d.fromDegrees(-180))
-      .withExitVelocity(0.7);
   private final BlueRelativeTarget end = new BlueRelativeTarget(0.60, 5.95, Rotation2d.fromDegrees(180));
 
   public LeftDepot() {
-    AutoPath collectBalls = new AutoPath(point2, point3, point4, end)
-        .withPreciseFinish();
+    ArrayList<BlueRelativeTarget> pathTargets = new ArrayList<>();
+    pathTargets.add(Adaptable.crossToNeutral);
+    pathTargets.addAll(new Adaptable.NormalAttack().getTargets());
+    pathTargets.addAll(new Adaptable.NormalSweep().getTargets());
+    pathTargets.add(Adaptable.crossToAlliance);
+    pathTargets.add(end);
+
+    AutoPath collectBalls = new AutoPath(pathTargets.toArray(new BlueRelativeTarget[0])).withPreciseFinish();
 
     addCommands(
-        AutoUtils.resetOdometry(start),
+        AutoUtils.resetOdometry(Adaptable.start),
 
-        DriveCommands.passThroughTarget(point1),
+        Commands.deadline(
+            collectBalls.follow(),
+            IntakeCommands.intakeCommand()
+        ),
 
-        Commands.parallel(
-            Commands.sequence(
-                IntakeCommands.intakeCommand()
-                    .until(() -> RobotContainer.state.getShooterState() == ShooterState.TARGET_HUB &&
-                        RobotContainer.state.notMoving()),
-                ShooterCommands.shootAutoCommand(8)
-            ),
-            collectBalls.follow()
-        )
+        ShooterCommands.shootAutoCommand(8)
     );
   }
 }
