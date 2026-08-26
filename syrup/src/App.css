@@ -1,0 +1,1378 @@
+/* Reset */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow: hidden;
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    background: #0f1014;
+    color: #e8e9ed;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+/* App */
+.app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background:
+        radial-gradient(circle at 20% 10%,
+            rgba(244, 123, 50, 0.06),
+            transparent 35%), #0f1014;
+}
+
+/* TOP BAR */
+.topbar {
+    height: 64px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 20px;
+
+    border-bottom: 1px solid #292b32;
+
+    background: #18191e;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    width: 260px;
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #f47b32;
+    color: white;
+
+    font-size: 17px;
+    font-weight: 800;
+
+    box-shadow:
+        0 5px 18px rgba(244, 123, 50, 0.25);
+}
+
+.brand-title {
+    color: #f2f2f4;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.brand-subtitle {
+    margin-top: 2px;
+
+    color: #777b86;
+
+    font-size: 11px;
+}
+
+.topbar-title {
+    flex: 1;
+
+    text-align: center;
+
+    color: #aeb1ba;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.export-button {
+    width: 100px;
+    height: 36px;
+
+    border: 1px solid #f47b32;
+    border-radius: 7px;
+
+    background: #f47b32;
+    color: white;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        transform 0.1s ease;
+}
+
+.export-button:hover {
+    background: #ff8b45;
+}
+
+.export-button:active {
+    transform: scale(0.97);
+}
+
+
+/* ========================================================= */
+/* WORKSPACE */
+/* ========================================================= */
+
+.workspace {
+    flex: 1;
+
+    min-height: 0;
+
+    display: flex;
+}
+
+.editor {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+}
+
+
+/* ========================================================= */
+/* TOOLBAR */
+/* ========================================================= */
+
+.toolbar {
+    height: 66px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+
+    border-bottom: 1px solid #292b32;
+
+    background: #14151a;
+}
+
+.toolbar-title {
+    color: #dedfe4;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.toolbar-subtitle {
+    margin-top: 3px;
+
+    color: #70747e;
+
+    font-size: 11px;
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+}
+
+.add-button {
+    height: 36px;
+
+    padding: 0 15px;
+
+    border: 1px solid #3a3d46;
+    border-radius: 7px;
+
+    background: #24262d;
+    color: #e1e2e6;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.add-button:hover {
+    background: #2c2f37;
+    border-color: #4a4d57;
+}
+
+
+/* ========================================================= */
+/* EDITOR BODY */
+/* ========================================================= */
+
+.editor-body {
+    flex: 1;
+
+    min-height: 0;
+
+    display: flex;
+}
+
+
+/* ========================================================= */
+/* FIELD CONTAINER */
+/* ========================================================= */
+
+.field-container {
+    flex: 1;
+
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 40px;
+
+    overflow: hidden;
+
+    background: #0c0d11;
+}
+
+
+/* ========================================================= */
+/* FIELD */
+/* ========================================================= */
+
+.field {
+    position: relative;
+
+    width: min(1100px, 100%);
+
+    aspect-ratio: 16.54 / 8.21;
+
+    overflow: hidden;
+
+    border: 2px solid #777b84;
+
+    background: #191b21;
+
+    box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.45);
+
+    user-select: none;
+}
+
+
+/* ========================================================= */
+/* GRID */
+/* ========================================================= */
+
+.grid {
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+}
+
+.grid-vertical {
+    position: absolute;
+
+    top: 0;
+    bottom: 0;
+
+    width: 1px;
+
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.grid-horizontal {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    height: 1px;
+
+    background: rgba(255, 255, 255, 0.055);
+}
+
+
+/* ========================================================= */
+/* CENTER LINE */
+/* ========================================================= */
+
+.center-line {
+    position: absolute;
+
+    left: 50%;
+    top: 0;
+    bottom: 0;
+
+    width: 2px;
+
+    transform: translateX(-50%);
+
+    background: rgba(255, 255, 255, 0.17);
+
+    pointer-events: none;
+}
+
+
+/* ========================================================= */
+/* FIELD LABELS */
+/* ========================================================= */
+
+.field-label {
+    position: absolute;
+
+    top: 16px;
+
+    padding: 5px 8px;
+
+    border-radius: 5px;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+
+    opacity: 0.45;
+
+    pointer-events: none;
+}
+
+.field-label.blue {
+    left: 16px;
+
+    color: #8ea0ff;
+
+    background: rgba(87, 105, 190, 0.12);
+}
+
+.field-label.red {
+    right: 16px;
+
+    color: #ff9c8b;
+
+    background: rgba(190, 87, 87, 0.12);
+}
+
+
+/* ========================================================= */
+/* PATH */
+/* ========================================================= */
+
+.path {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    overflow: visible;
+
+    pointer-events: none;
+
+    z-index: 2;
+}
+
+
+/* ========================================================= */
+/* WAYPOINT BUTTON */
+/* ========================================================= */
+
+.waypoint {
+    position: absolute;
+
+    width: 62px;
+    height: 62px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    transform: translate(-50%, -50%);
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 12px;
+
+    background: transparent;
+
+    cursor: grab;
+
+    z-index: 10;
+
+    touch-action: none;
+
+    transition:
+        transform 0.12s ease,
+        filter 0.15s ease;
+}
+
+.waypoint:active {
+    cursor: grabbing;
+}
+
+.waypoint:hover {
+    transform:
+        translate(-50%, -50%) scale(1.05);
+}
+
+.waypoint.rotating {
+    cursor: grabbing;
+}
+
+
+/* ========================================================= */
+/* HOLO WAYPOINT SQUARE */
+/* ========================================================= */
+
+.waypoint-number {
+    position: relative;
+
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    color: transparent;
+
+    font-size: 0;
+
+    transform-origin: center center;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+/* ========================================================= */
+/* ORANGE WAYPOINT */
+/* ========================================================= */
+
+.waypoint-number.orange {
+    background:
+        linear-gradient(135deg,
+            rgba(244, 123, 50, 0.13),
+            rgba(244, 123, 50, 0.035));
+
+    border: 3px solid rgba(244, 123, 50, 0.62);
+
+    box-shadow:
+        0 0 9px rgba(244, 123, 50, 0.25),
+        0 0 20px rgba(244, 123, 50, 0.08),
+        inset 0 0 14px rgba(244, 123, 50, 0.07);
+}
+
+
+/* ========================================================= */
+/* GREEN START */
+/* ========================================================= */
+
+.waypoint-number.green {
+    background:
+        linear-gradient(135deg,
+            rgba(53, 214, 111, 0.13),
+            rgba(53, 214, 111, 0.035));
+
+    border: 3px solid rgba(53, 214, 111, 0.62);
+
+    box-shadow:
+        0 0 9px rgba(53, 214, 111, 0.3),
+        0 0 20px rgba(53, 214, 111, 0.08),
+        inset 0 0 14px rgba(53, 214, 111, 0.07);
+}
+
+
+/* ========================================================= */
+/* RED END */
+/* ========================================================= */
+
+.waypoint-number.red {
+    background:
+        linear-gradient(135deg,
+            rgba(255, 79, 94, 0.13),
+            rgba(255, 79, 94, 0.035));
+
+    border: 3px solid rgba(255, 79, 94, 0.62);
+
+    box-shadow:
+        0 0 9px rgba(255, 79, 94, 0.3),
+        0 0 20px rgba(255, 79, 94, 0.08),
+        inset 0 0 14px rgba(255, 79, 94, 0.07);
+}
+
+
+/* ========================================================= */
+/* CENTER DOT */
+/* ========================================================= */
+
+.center-dot {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 14px;
+    height: 14px;
+
+    transform: translate(-50%, -50%);
+
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+.waypoint-number.orange .center-dot {
+    background: #f47b32;
+
+    box-shadow:
+        0 0 8px rgba(244, 123, 50, 0.8),
+        0 0 18px rgba(244, 123, 50, 0.4);
+}
+
+.waypoint-number.green .center-dot {
+    background: #35d66f;
+
+    box-shadow:
+        0 0 9px rgba(53, 214, 111, 0.85),
+        0 0 18px rgba(53, 214, 111, 0.45);
+}
+
+.waypoint-number.red .center-dot {
+    background: #ff4f5e;
+
+    box-shadow:
+        0 0 9px rgba(255, 79, 94, 0.85),
+        0 0 18px rgba(255, 79, 94, 0.45);
+}
+
+
+/* ========================================================= */
+/* ROTATION HANDLE */
+/* ========================================================= */
+
+.rotation-handle {
+    position: absolute;
+
+    width: 12px;
+    height: 12px;
+
+    right: -7px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    border-radius: 50%;
+
+    cursor: grab;
+
+    z-index: 20;
+
+    touch-action: none;
+
+    transition:
+        transform 0.12s ease,
+        box-shadow 0.12s ease;
+}
+
+.waypoint-number.orange .rotation-handle {
+    background: #f47b32;
+
+    border: 2px solid #ffb078;
+
+    box-shadow:
+        0 0 6px rgba(244, 123, 50, 0.8),
+        0 0 14px rgba(244, 123, 50, 0.45);
+}
+
+.waypoint-number.green .rotation-handle {
+    background: #35d66f;
+
+    border: 2px solid #baffd0;
+
+    box-shadow:
+        0 0 6px rgba(53, 214, 111, 0.85),
+        0 0 14px rgba(53, 214, 111, 0.45);
+}
+
+.waypoint-number.red .rotation-handle {
+    background: #ff4f5e;
+
+    border: 2px solid #ffd0d4;
+
+    box-shadow:
+        0 0 6px rgba(255, 79, 94, 0.85),
+        0 0 14px rgba(255, 79, 94, 0.45);
+}
+
+.rotation-handle:hover {
+    transform:
+        translateY(-50%) scale(1.35);
+}
+
+.waypoint.rotating .rotation-handle {
+    cursor: grabbing;
+}
+
+
+/* ========================================================= */
+/* SELECTED ORANGE */
+/* ========================================================= */
+
+.waypoint.selected .waypoint-number.orange {
+    background:
+        linear-gradient(135deg,
+            rgba(244, 123, 50, 0.2),
+            rgba(244, 123, 50, 0.06));
+
+    border-color: #ffb078;
+
+    box-shadow:
+        0 0 0 4px rgba(244, 123, 50, 0.12),
+        0 0 18px rgba(244, 123, 50, 0.75),
+        0 0 32px rgba(244, 123, 50, 0.25),
+        inset 0 0 16px rgba(244, 123, 50, 0.1);
+}
+
+
+/* ========================================================= */
+/* SELECTED GREEN */
+/* ========================================================= */
+
+.waypoint.selected .waypoint-number.green {
+    background:
+        linear-gradient(135deg,
+            rgba(53, 214, 111, 0.2),
+            rgba(53, 214, 111, 0.06));
+
+    border-color: #9affbb;
+
+    box-shadow:
+        0 0 0 4px rgba(53, 214, 111, 0.13),
+        0 0 18px rgba(53, 214, 111, 0.9),
+        0 0 32px rgba(53, 214, 111, 0.45),
+        inset 0 0 16px rgba(53, 214, 111, 0.1);
+}
+
+
+/* ========================================================= */
+/* SELECTED RED */
+/* ========================================================= */
+
+.waypoint.selected .waypoint-number.red {
+    background:
+        linear-gradient(135deg,
+            rgba(255, 79, 94, 0.2),
+            rgba(255, 79, 94, 0.06));
+
+    border-color: #ffb8be;
+
+    box-shadow:
+        0 0 0 4px rgba(255, 79, 94, 0.13),
+        0 0 18px rgba(255, 79, 94, 0.9),
+        0 0 32px rgba(255, 79, 94, 0.45),
+        inset 0 0 16px rgba(255, 79, 94, 0.1);
+}
+
+
+/* ========================================================= */
+/* SELECTED CENTER DOTS */
+/* ========================================================= */
+
+.waypoint.selected .waypoint-number.orange .center-dot {
+    background: #ff9b58;
+
+    box-shadow:
+        0 0 9px rgba(255, 155, 88, 0.95),
+        0 0 20px rgba(244, 123, 50, 0.65);
+}
+
+.waypoint.selected .waypoint-number.green .center-dot {
+    background: #62ed91;
+
+    box-shadow:
+        0 0 10px rgba(98, 237, 145, 1),
+        0 0 22px rgba(53, 214, 111, 0.7);
+}
+
+.waypoint.selected .waypoint-number.red .center-dot {
+    background: #ff7c88;
+
+    box-shadow:
+        0 0 10px rgba(255, 124, 136, 1),
+        0 0 22px rgba(255, 79, 94, 0.7);
+}
+
+
+/* ========================================================= */
+/* WAYPOINT SIDEBAR */
+/* ========================================================= */
+
+.waypoint-panel {
+    width: 330px;
+    flex-shrink: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    min-height: 0;
+
+    border-left: 1px solid #292b32;
+
+    background: #14151a;
+}
+
+
+/* ========================================================= */
+/* SIDEBAR HEADER */
+/* ========================================================= */
+
+.waypoint-panel-header {
+    height: 66px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 16px;
+
+    border-bottom: 1px solid #292b32;
+
+    background: #18191e;
+}
+
+.panel-title {
+    color: #e2e3e7;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.panel-subtitle {
+    margin-top: 3px;
+
+    color: #70747e;
+
+    font-size: 10px;
+}
+
+.panel-add-button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 1px solid #3a3d46;
+    border-radius: 7px;
+
+    background: #24262d;
+    color: #e7e8ec;
+
+    font-size: 18px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.panel-add-button:hover {
+    background: #2d3038;
+    border-color: #4a4d57;
+}
+
+
+/* ========================================================= */
+/* WAYPOINT LIST */
+/* ========================================================= */
+
+.waypoint-list {
+    flex: 1;
+
+    min-height: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding: 10px;
+
+    scrollbar-width: thin;
+    scrollbar-color: #343740 transparent;
+}
+
+.waypoint-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.waypoint-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.waypoint-list::-webkit-scrollbar-thumb {
+    background: #343740;
+    border-radius: 10px;
+}
+
+
+/* ========================================================= */
+/* WAYPOINT CARD */
+/* ========================================================= */
+
+.waypoint-card {
+    margin-bottom: 6px;
+
+    overflow: hidden;
+
+    border: 1px solid #292c34;
+    border-radius: 8px;
+
+    background: #191b21;
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.waypoint-card:last-child {
+    margin-bottom: 0;
+}
+
+.waypoint-card.expanded {
+    background: #1c1e24;
+}
+
+
+/* ========================================================= */
+/* CARD HEADER */
+/* ========================================================= */
+
+.waypoint-card-header {
+    width: 100%;
+    min-height: 58px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 9px 10px;
+
+    border: 0;
+
+    background: transparent;
+
+    color: inherit;
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.waypoint-card-header:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+
+/* ========================================================= */
+/* SIDEBAR DOT */
+/* ========================================================= */
+
+.sidebar-dot {
+    width: 11px;
+    height: 11px;
+
+    flex-shrink: 0;
+
+    margin-right: 10px;
+
+    border-radius: 50%;
+}
+
+.sidebar-dot.orange {
+    background: #f47b32;
+
+    box-shadow:
+        0 0 8px rgba(244, 123, 50, 0.65);
+}
+
+.sidebar-dot.green {
+    background: #35d66f;
+
+    box-shadow:
+        0 0 8px rgba(53, 214, 111, 0.65);
+}
+
+.sidebar-dot.red {
+    background: #ff4f5e;
+
+    box-shadow:
+        0 0 8px rgba(255, 79, 94, 0.65);
+}
+
+
+/* ========================================================= */
+/* CARD NAME */
+/* ========================================================= */
+
+.waypoint-card-name {
+    min-width: 0;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.waypoint-card-title {
+    color: #dfe1e6;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.waypoint-card-position {
+    margin-top: 3px;
+
+    color: #6f737e;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 10px;
+}
+
+
+/* ========================================================= */
+/* CHEVRON */
+/* ========================================================= */
+
+.waypoint-chevron {
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    color: #686c76;
+
+    font-size: 22px;
+
+    transform: rotate(0deg);
+
+    transition:
+        transform 0.18s ease,
+        color 0.15s ease;
+}
+
+.waypoint-chevron.open {
+    transform: rotate(90deg);
+
+    color: #aeb1ba;
+}
+
+
+/* ========================================================= */
+/* EXPANDED PROPERTIES */
+/* ========================================================= */
+
+.waypoint-properties {
+    padding: 0 12px 12px;
+
+    border-top: 1px solid #292c34;
+
+    animation:
+        waypointExpand 0.16s ease-out;
+}
+
+@keyframes waypointExpand {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* ========================================================= */
+/* PROPERTY SECTION */
+/* ========================================================= */
+
+.property-section {
+    padding-top: 12px;
+}
+
+.property-section-title {
+    margin-bottom: 7px;
+
+    color: #858994;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+}
+
+
+/* ========================================================= */
+/* PROPERTY GRID */
+/* ========================================================= */
+
+.property-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 7px;
+}
+
+
+/* ========================================================= */
+/* PROPERTY FIELD */
+/* ========================================================= */
+
+.property-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.property-field.full {
+    width: 100%;
+}
+
+.property-field>span {
+    color: #777b86;
+
+    font-size: 9px;
+    font-weight: 600;
+}
+
+
+/* ========================================================= */
+/* PROPERTY INPUT */
+/* ========================================================= */
+
+.property-field input {
+    width: 100%;
+    height: 32px;
+
+    padding: 0 9px;
+
+    border: 1px solid #333640;
+    border-radius: 6px;
+
+    outline: none;
+
+    background: #111217;
+    color: #e4e5e9;
+
+    font-size: 11px;
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.property-field input:hover {
+    border-color: #41444e;
+}
+
+.property-field input:focus {
+    border-color: #f47b32;
+
+    background: #15161b;
+
+    box-shadow:
+        0 0 0 2px rgba(244, 123, 50, 0.1);
+}
+
+.property-field input::placeholder {
+    color: #4f525c;
+}
+
+
+/* Remove native number arrows where possible */
+
+.property-field input::-webkit-outer-spin-button,
+.property-field input::-webkit-inner-spin-button {
+    margin: 0;
+
+    -webkit-appearance: none;
+}
+
+.property-field input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+
+/* ========================================================= */
+/* PROPERTY HELP */
+/* ========================================================= */
+
+.property-help {
+    margin-top: 5px;
+
+    color: #555963;
+
+    font-size: 9px;
+    line-height: 1.35;
+}
+
+
+/* ========================================================= */
+/* DELETE BUTTON */
+/* ========================================================= */
+
+.delete-waypoint-button {
+    width: 100%;
+    height: 32px;
+
+    margin-top: 14px;
+
+    border: 1px solid rgba(255, 79, 94, 0.22);
+    border-radius: 6px;
+
+    background: rgba(255, 79, 94, 0.055);
+    color: #ff7b85;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.delete-waypoint-button:hover {
+    background: rgba(255, 79, 94, 0.11);
+
+    border-color:
+        rgba(255, 79, 94, 0.42);
+}
+
+
+/* ========================================================= */
+/* PROTECTED NOTE */
+/* ========================================================= */
+
+.protected-note {
+    margin-top: 14px;
+
+    padding: 8px;
+
+    border-radius: 6px;
+
+    background: rgba(255, 255, 255, 0.025);
+
+    color: #5f636d;
+
+    font-size: 9px;
+
+    line-height: 1.4;
+
+    text-align: center;
+}
+
+
+/* ========================================================= */
+/* BOTTOM BAR */
+/* ========================================================= */
+
+.bottom-bar {
+    height: 52px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 24px;
+
+    padding: 0 20px;
+
+    border-top: 1px solid #292b32;
+
+    background: #14151a;
+}
+
+.path-info {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+.info-label {
+    color: #686c76;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    color: #cfd1d7;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+.hint {
+    margin-left: auto;
+
+    color: #5f636d;
+
+    font-size: 10px;
+}
+
+
+/* ========================================================= */
+/* RESPONSIVE */
+/* ========================================================= */
+
+@media (max-width: 1050px) {
+    .waypoint-panel {
+        width: 290px;
+    }
+
+    .field-container {
+        padding: 25px;
+    }
+}
+
+
+@media (max-width: 850px) {
+    .waypoint-panel {
+        width: 260px;
+    }
+
+    .field-container {
+        padding: 18px;
+    }
+
+    .bottom-bar {
+        gap: 12px;
+    }
+
+    .hint {
+        display: none;
+    }
+}
+
+
+@media (max-width: 700px) {
+    .editor-body {
+        flex-direction: column;
+    }
+
+    .field-container {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .waypoint-panel {
+        width: 100%;
+        height: 280px;
+        flex-shrink: 0;
+
+        border-left: 0;
+        border-top: 1px solid #292b32;
+    }
+
+    .waypoint-list {
+        display: grid;
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        align-content: start;
+
+        gap: 6px;
+    }
+
+    .waypoint-card {
+        margin-bottom: 0;
+    }
+
+    .waypoint-card.expanded {
+        grid-column: 1 / -1;
+    }
+}
+
+
+@media (max-width: 800px) {
+    .topbar {
+        padding: 0 12px;
+    }
+
+    .brand {
+        width: auto;
+    }
+
+    .topbar-title {
+        display: none;
+    }
+}
