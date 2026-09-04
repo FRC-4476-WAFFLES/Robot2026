@@ -104,7 +104,12 @@ Vision is ignored entirely in manual mode while enabled.
 4. **Update `Telemetry.checkVisionFault()`**, which enumerates `frameCamera` and `turretCamera` by hand. Skip this and the new camera's heartbeat fault silently never reaches the dashboard. `Lights` goes through `limelightsSeeTag()`, so update that too.
 5. Extend the fusion logic. With three cameras the pairwise `combineEstimates` no longer covers it — fold over a fixed-order list, don't add another special case. Fixed order matters for replay determinism, since the latency compensation is applied sequentially and isn't exactly order-independent.
 
-**Folding hazard:** `combineEstimates` computes fused heading stddev as `sqrt(1/(1/varA + 1/varB))`. Two estimates both carrying the `LARGE_VARIANCE` (1e7) "no usable heading" sentinel fuse to ≈2236, not 1e7 — the sentinel is destroyed by the arithmetic and the pose estimator receives what looks like a confident heading. This is already wrong with two cameras and gets monotonically worse with three. If you add a camera, propagate the sentinel when every input carries it. Related: `numTags` sums across cameras, so a tag seen by two double-counts (currently unread downstream, but a trap).
+**On the `LARGE_VARIANCE` sentinel and folding.** `combineEstimates` computes fused heading stddev as `sqrt(1/(1/varA + 1/varB))`, so folding two sentinel estimates divides the marker by √2: 1e7 becomes 7.07e6. That is *not* a meaningful decay — it would take 47 folds to reach a stddev of 1.0. The heading-blend guard also compares **variance** (`elementTimes` squares the stddev first), so `1e14 < 1e7` is false and the blend is correctly skipped. Folding a third camera in is safe.
+
+Two things to keep in mind if you extend this:
+
+- The sentinel is currently unreachable. `calculateGyroEstimate()` — the only producer of a `LARGE_VARIANCE` heading — returns empty immediately because `VisionConstants.IGNORE_SINGLE_TAG` is `true`. Flipping that flag wakes the path up.
+- `numTags` sums across cameras, so a tag seen by two double-counts. Nothing reads it today, but don't start without fixing it.
 
 ## Gotchas
 
