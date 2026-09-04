@@ -24,7 +24,7 @@ public class IndexerIOSim extends IndexerIOTalonFX {
     indexerSim.setRotorVelocity(simResult0.get(0) * PhysicalConstants.INDEXER_REDUCTION);
 
     var feederSim0 = feeder0.getSimState();
-    var feederSim1 = feeder0.getSimState();
+    var feederSim1 = feeder1.getSimState();
     var simResult1 = feederSimState.Evaluate(setpointFeeder, CodeConstants.PERIODIC_LOOP_TIME);
     feederSim0.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);
     feederSim1.setRotorVelocity(-simResult1.get(0) * PhysicalConstants.FEEDER_REDUCTION);

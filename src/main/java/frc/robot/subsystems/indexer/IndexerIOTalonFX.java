@@ -54,8 +54,8 @@ public class IndexerIOTalonFX implements IndexerIO {
     inputs.indexerMotorData0 = indexer0.getSignalData();
     inputs.indexerMotorData1 = indexer1.getSignalData();
 
-    inputs.feederMotorData1 = feeder0.getSignalData();
-    inputs.feederMotorData0 = feeder1.getSignalData();
+    inputs.feederMotorData0 = feeder0.getSignalData();
+    inputs.feederMotorData1 = feeder1.getSignalData();
   }
 
   @Override
