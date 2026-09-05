@@ -98,6 +98,40 @@ public class MySimTest {
 
 Skip `HAL.initialize` and Phoenix looks for the real native library instead of the `_Sim` one — `build/jni/release` contains only `CTRE_PhoenixTools_Sim.dll`, so you get `UnsatisfiedLinkError`. The error names the non-sim library, which is the giveaway.
 
+### Whole-robot tests: `SimHarness`
+
+`src/test/java/frc/robot/SimHarness.java` boots the **entire robot** headlessly — every subsystem, every sim IO layer, AdvantageKit logging — and steps it a loop at a time. This is how a change gets verified without a robot, a GUI, or a driver station.
+
+```java
+public class MyFeatureTest {
+  @BeforeAll
+  static void boot() {
+    SimHarness.boot();
+  }
+
+  @Test
+  void flywheelReachesItsSetpoint() {
+    SimHarness.enableTeleop();
+
+    RobotContainer.flywheel.runSetpoint(40.0);
+    SimHarness.stepSeconds(3.0);
+    assertTrue(RobotContainer.flywheel.atSetpoint());
+
+    RobotContainer.flywheel.runSetpoint(0.0);
+    SimHarness.disable();
+  }
+}
+```
+
+API: `boot()`, `step(loops)`, `stepSeconds(s)`, `enableTeleop()`, `enableAutonomous()`, `disable()`. `RobotBootSimTest` is the worked example.
+
+Four constraints, each learned the hard way:
+
+- **One robot per JVM.** `RobotContainer`'s subsystems are `static final`, so the robot initializes once and every test class in a run shares it. `boot()` is idempotent. Put the robot into the state you need at the start of each test; never assume defaults. Leave it disabled when you finish.
+- **Loops run in real time — a 3-second wait takes 3 seconds.** Prefer asserting that a subsystem reached a state over waiting a fixed settling time.
+- **Never use `SimHooks.pauseTiming()` / `stepTiming()` here.** `PhoenixOdometryThread` waits on CAN signals; with the sim clock paused that wait never returns while it holds `Drive.odometryLock`, so `Drive.earlyPeriodic()` deadlocks and the test hangs until the build times out.
+- **The harness must drive AdvantageKit's loop hooks**, which it does by reflection because they are package-private. Calling `robot.robotPeriodic()` alone leaves `Timer.getTimestamp()` frozen at zero, so every debouncer, timer and motion profile stalls silently — `atSetpoint()` on a debounced trigger simply never becomes true. If AdvantageKit renames those hooks the harness throws a clear error rather than quietly freezing time again.
+
 ## Simulation lies about some things
 
 Sim is not the robot. Known divergences:
@@ -113,6 +147,7 @@ A passing sim test is evidence, not proof. Say so when reporting results.
 ```
 - [ ] ./gradlew build           (compiles, runs tests)
 - [ ] ./gradlew test            (all green)
+- [ ] a SimHarness test exercises the changed behaviour, if it is testable
 - [ ] simulateJava reaches "startup complete" with no exception
 - [ ] AdvantageScope shows the field/values the change should affect
 - [ ] State plainly that this was not run on hardware
