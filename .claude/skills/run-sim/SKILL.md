@@ -65,7 +65,7 @@ Two ways to fix, pick one:
 
 `assets/AdvantageScopeLayouts/` holds saved layouts, and `assets/AdvantageScopeAssets/Robot_Leo` is the 3D robot model — point AdvantageScope's asset folder at these to get the field and mechanism visualisation. `MechanismPoses` publishes to `RobotState/MechanismPoses` for the 3D view.
 
-To capture a sim run for later replay instead of watching live, uncomment `WPILOGWriter("simlogs/")` in the SIM branch, then open the `.wpilog` in AdvantageScope or feed it to `./gradlew replayWatch`.
+Every sim run and every `SimHarness` test already writes a `.wpilog` to `simlogs/` (gitignored). Open one in AdvantageScope directly, feed it to `./gradlew replayWatch`, or read it in a test with `SimLog` — see below.
 
 ## Running tests
 
@@ -125,9 +125,28 @@ public class MyFeatureTest {
 
 API: `boot()`, `step(loops)`, `stepSeconds(s)`, `enableTeleop()`, `enableAutonomous()`, `disable()`. `RobotBootSimTest` is the worked example.
 
+### Reading the log back: `SimLog`
+
+Sim runs write a `.wpilog` to `simlogs/`. `SimLog` reads it, so a test can assert on **anything the robot logged** — not just what a subsystem exposes through a public getter. This is the tool for verifying internals.
+
+```java
+SimHarness.shutdown();          // flush and close the log
+SimLog log = SimLog.openLatest();
+
+log.fields();                            // every field name, sorted
+log.fieldsMatching("Flywheel");          // discover what exists
+log.maxDouble("/RealOutputs/Flywheel/Flywheel Goal Velocity");
+log.everTrue("/RealOutputs/Flywheel/At Setpoint");
+```
+
+Field names are the AdvantageScope keys **with a leading slash** — `/Inputs/...` for IO layer data, `/RealOutputs/...` for `recordOutput` and `@AutoLogOutput`. Use `fieldsMatching` to discover rather than guessing.
+
+`SimLog.openInAdvantageScope(path)` launches AdvantageScope on a log for a human to look at. Use it to hand over a result, not to verify one — an agent should assert on values, not on a rendered graph.
+
 Four constraints, each learned the hard way:
 
-- **One robot per JVM.** `RobotContainer`'s subsystems are `static final`, so the robot initializes once and every test class in a run shares it. `boot()` is idempotent. Put the robot into the state you need at the start of each test; never assume defaults. Leave it disabled when you finish.
+- **One robot per JVM.** `RobotContainer`'s subsystems are `static final`, so a robot is built once and cannot be rebuilt after `shutdown()`. `build.gradle` sets `forkEvery = 1` so each test class gets a fresh JVM. Within a class, state carries between methods — leave the robot disabled when you finish.
+- **`@AutoLogOutput` fields need `AutoLogOutputManager.addObject(robot)`.** `LoggedRobot` does this inside `loopFunc`, which the harness bypasses, so `SimHarness.boot()` does it explicitly. Without it those fields are silently absent from the log while `recordOutput` fields still appear — which looks like the annotation is broken rather than the harness.
 - **Loops run in real time — a 3-second wait takes 3 seconds.** Prefer asserting that a subsystem reached a state over waiting a fixed settling time.
 - **Never use `SimHooks.pauseTiming()` / `stepTiming()` here.** `PhoenixOdometryThread` waits on CAN signals; with the sim clock paused that wait never returns while it holds `Drive.odometryLock`, so `Drive.earlyPeriodic()` deadlocks and the test hangs until the build times out.
 - **The harness must drive AdvantageKit's loop hooks**, which it does by reflection because they are package-private. Calling `robot.robotPeriodic()` alone leaves `Timer.getTimestamp()` frozen at zero, so every debouncer, timer and motion profile stalls silently — `atSetpoint()` on a debounced trigger simply never becomes true. If AdvantageKit renames those hooks the harness throws a clear error rather than quietly freezing time again.
@@ -147,7 +166,7 @@ A passing sim test is evidence, not proof. Say so when reporting results.
 ```
 - [ ] ./gradlew build           (compiles, runs tests)
 - [ ] ./gradlew test            (all green)
-- [ ] a SimHarness test exercises the changed behaviour, if it is testable
+- [ ] a SimHarness test exercises the changed behaviour, or SimLog asserts on the logged field
 - [ ] simulateJava reaches "startup complete" with no exception
 - [ ] AdvantageScope shows the field/values the change should affect
 - [ ] State plainly that this was not run on hardware

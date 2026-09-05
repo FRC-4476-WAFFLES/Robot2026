@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import edu.wpi.first.hal.HAL;
 import java.lang.reflect.Method;
 
+import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import frc.robot.data.Constants.CodeConstants;
@@ -31,11 +32,12 @@ import frc.robot.data.Constants.CodeConstants;
  * settling time.
  *
  * <p>
- * <b>One robot per JVM.</b> {@code RobotContainer}'s subsystems are static and
- * initialize once, so {@link #boot} is idempotent and every test class in a run
- * shares the same robot. Tests must not assume a clean slate — put the robot
- * into the state you need at the start of each test rather than expecting
- * defaults.
+ * <b>One robot per JVM.</b> {@code RobotContainer}'s subsystems are static, so a
+ * robot is built once and cannot be rebuilt after {@link #shutdown} calls
+ * {@code Logger.end()}. {@code build.gradle} sets {@code forkEvery = 1} so every
+ * test class gets a fresh JVM and therefore a fresh robot. Within a single class,
+ * state still carries between test methods — set up what you need at the start of
+ * each test and leave the robot disabled when you finish.
  */
 public final class SimHarness {
   private static Robot robot;
@@ -55,6 +57,13 @@ public final class SimHarness {
     DriverStationSim.notifyNewData();
 
     robot = new Robot();
+
+    // LoggedRobot does this inside loopFunc, which this harness bypasses. Without
+    // it no @AutoLogOutput field is ever published.
+    AutoLogOutputManager.addObject(robot);
+
+    // Without this the WPILOG file is left unflushed and SimLog reads nothing.
+    Runtime.getRuntime().addShutdownHook(new Thread(SimHarness::shutdown));
   }
 
   /** Runs the robot for a number of 20 ms loops, in real time. */
@@ -112,6 +121,18 @@ public final class SimHarness {
     } catch (ReflectiveOperationException e) {
       throw new IllegalStateException("AdvantageKit's loop hooks moved; SimHarness needs updating", e);
     }
+  }
+
+  /**
+   * Flushes and closes the log so {@link SimLog} can read it. Registered as a JVM
+   * shutdown hook by {@link #boot}, so tests do not normally call this.
+   */
+  public static synchronized void shutdown() {
+    if (robot == null) {
+      return;
+    }
+    Logger.end();
+    robot = null;
   }
 
   /** Runs the robot for a number of seconds. Takes that long in real time. */
