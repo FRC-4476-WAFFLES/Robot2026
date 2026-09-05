@@ -62,11 +62,13 @@ public class Robot extends LoggedRobot {
         break;
 
       case SIM:
-        // Running a physics simulator. RLOG feeds AdvantageScope live; the
-        // WPILOG file is what tests and agents read back afterwards.
+        // Running a physics simulator. NT4 matches what REAL publishes, so
+        // AdvantageScope connects the same way at a desk as it does at an event.
+        // RLOG is kept as a lower-latency alternative. The WPILOG file is what
+        // tests and agents read back afterwards.
         Logger.addDataReceiver(new WPILOGWriter("simlogs/"));
+        Logger.addDataReceiver(new NT4Publisher());
         Logger.addDataReceiver(new RLOGServer());
-        // Logger.addDataReceiver(new NT4Publisher());
 
         break;
 

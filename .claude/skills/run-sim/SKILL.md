@@ -52,16 +52,9 @@ Normal noise, not errors:
 
 ### Connecting AdvantageScope
 
-This is the team's normal way to see what the robot is doing, and it needs one setting changed from the default.
+This is the team's normal way to see what the robot is doing, and it needs no setup: **File → Connect to Simulator**.
 
-`Robot.java`'s SIM branch adds **`RLOGServer`** and leaves `NT4Publisher` commented out. AdvantageScope's default live source is NetworkTables 4, so **File → Connect to Simulator** with default settings connects to NT4 on 5810 and shows only plain dashboard values — none of the AdvantageKit `Inputs/` or `RealOutputs/` fields.
-
-Two ways to fix, pick one:
-
-| Option | How | Trade-off |
-|---|---|---|
-| Point AdvantageScope at RLOG | AdvantageScope preferences → **Live Source: RLOG Server** (port 5800), then Connect to Simulator | No code change; matches what the robot already publishes |
-| Publish NT4 in sim too | Uncomment `Logger.addDataReceiver(new NT4Publisher())` in `Robot.java`'s SIM case | AdvantageScope works with defaults; slightly more sim overhead |
+Sim publishes over **NT4**, deliberately the same as the real robot, so connecting works identically at a desk and at an event. `RLOGServer` also runs on port 5800 if you prefer it — set AdvantageScope's live source to **RLOG Server** — but NT4 is the default path and the one to reach for.
 
 `assets/AdvantageScopeLayouts/` holds saved layouts, and `assets/AdvantageScopeAssets/Robot_Leo` is the 3D robot model — point AdvantageScope's asset folder at these to get the field and mechanism visualisation. `MechanismPoses` publishes to `RobotState/MechanismPoses` for the 3D view.
 
