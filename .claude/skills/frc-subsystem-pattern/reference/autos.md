@@ -84,6 +84,10 @@ new AutoPath(targets.toArray(new BlueRelativeTarget[0]))
 
 Without `withPreciseFinish()` the path ends on the same loose tolerance used mid-path — fine when the next command re-aims, wrong when the next thing is a shot.
 
+**`Autopilot.atTarget()` is a stateless predicate**: `hypot(dx, dy) <= errorXY && |rotationError| <= errorTheta`, evaluated fresh each loop. No dwell time, no hysteresis, and **no velocity term** — it can report "at target" while the robot is travelling through the tolerance window.
+
+That sounds worse than it is. Measured across the ONWEL match logs with `./gradlew logReview --args="align <dir>"`: of 18 alignment ends, 8 stopped properly at the target, 9 were the command being interrupted mid-travel far from any target, and exactly one ended at the target while still moving, at 0.33 m/s. A dwell time was considered and deliberately not added. Re-run that check before changing tolerances or adding one.
+
 ## The adaptable system
 
 Four pieces:

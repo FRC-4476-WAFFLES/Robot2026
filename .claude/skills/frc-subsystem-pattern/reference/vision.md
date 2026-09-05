@@ -86,6 +86,33 @@ Height is *also* configured Limelight-side, so keeping Z here double-applies it 
 
 `combineEstimates` latency-compensates the older estimate onto the newer one's timestamp using the odometry delta between them, then weights by `1/variance` per axis. Heading is only fused when both headings have real variance — `LARGE_VARIANCE` (1e7) is the sentinel for "this estimate has no usable heading", used instead of `Double.MAX_VALUE` to stay clear of overflow in the arithmetic.
 
+## Pose agreement
+
+`Vision` counts consecutive accepted estimates that land within
+`VisionConstants.POSE_AGREEMENT_EPSILON` (20 cm) of where odometry already thinks
+the robot is. Reaching `POSE_STABLE_UPDATE_THRESHOLD` (100, about 2 s at 50 Hz)
+means vision and odometry have converged.
+
+```java
+RobotContainer.vision.isPoseStable();          // converged and not stale
+RobotContainer.vision.getPoseStableUpdates();  // the raw count
+```
+
+Logged as `Vision/Pose Stable`, `Vision/Pose Stable Updates` and
+`Vision/Pose Agreement Error`.
+
+Two details that matter if you change it:
+
+- **The comparison happens before `addVisionMeasurement`.** Compare afterwards and the
+  correction has already pulled odometry toward the estimate, so the check partly
+  answers itself.
+- **`isPoseStable()` goes false when estimates stop arriving** (`POSE_AGREEMENT_STALE_TIME`,
+  0.5 s) rather than latching true on an old count.
+
+Nothing consumes this yet. It is a confidence signal — 1678, where the idea comes
+from, uses their equivalent only to colour LEDs. Reasonable future uses are gating
+a precise auto-align or a long shot; it is not an interlock today.
+
 ## Validation and standard deviations
 
 Every estimate passes `VisionHelpers.isValidPose` and `isValidStdevs` before fusing. Thresholds live in `VisionConstants` — ambiguity, minimum tag area, max Z error, max yaw rate, minimum distance from the field origin.
@@ -110,6 +137,19 @@ Two things to keep in mind if you extend this:
 
 - The sentinel is currently unreachable. `calculateGyroEstimate()` — the only producer of a `LARGE_VARIANCE` heading — returns empty immediately because `VisionConstants.IGNORE_SINGLE_TAG` is `true`. Flipping that flag wakes the path up.
 - `numTags` sums across cameras, so a tag seen by two double-counts. Nothing reads it today, but don't start without fixing it.
+
+## Simulated vision does not currently agree with itself
+
+Measured, not theorised: in a sim run the turret camera produces accepted
+`MEGATAG` estimates, but `Vision/Pose Agreement Error` reads **~2.4 m** against the
+sim's own truth pose. Either the vision sim is misconfigured or a camera transform
+is wrong in sim — note that `RobotContainer` passes `Transform3d.kZero` as
+`SimVisionIO`'s `robotToCamera`.
+
+**Simulation therefore cannot validate a vision change.** Test vision logic
+directly rather than through simulated cameras — see `PoseAgreementTest`, which
+drives the agreement logic through a package-private seam for exactly this reason.
+Fixing this would make sim genuinely useful for vision work.
 
 ## Gotchas
 

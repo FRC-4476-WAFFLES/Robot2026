@@ -12,6 +12,8 @@
 
 **This repo contains zero `Command` subclasses.** `AlignToPose extends Command` exists only as a commented-out line. Do not write one — use one of these two shapes.
 
+Both alignment files are also **dead**: `AlignToPose` is entirely commented out, and `AutoAlignToPose` has zero call sites. All real alignment goes through `DriveToPose`, reached via `DriveCommands.autoToTarget` / `autoToFieldPose`. Don't take either as a pattern to copy, and don't assume editing them changes robot behaviour.
+
 | Shape | When | Examples |
 |---|---|---|
 | Static factory on a `*Commands` class | The command is a fixed composition | `ShooterCommands.shootCommand()`, `IntakeCommands.intakeCommand()`, `DriveCommands.joystickDrive()` |
