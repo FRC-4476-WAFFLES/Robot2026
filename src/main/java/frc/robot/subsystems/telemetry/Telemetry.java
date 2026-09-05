@@ -15,7 +15,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Controls;
 import frc.robot.Robot;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.utils.hardware.DeferredRefresher;
 import frc.robot.utils.lib.EpochTimer;
@@ -47,7 +47,7 @@ public class Telemetry extends VirtualSubsystem {
   }).debounce(2); // If error seen in last two seconds, report issue
 
   // Async CANivore bus status checking
-  private CANBus CANivoreBus = new CANBus(CANIds.CANivoreName);
+  private CANBus CANivoreBus = Ports.Bus.CANIVORE;
   DeferredRefresher<CANBusStatus> canivoreRefresher = new DeferredRefresher<>(
       "CANivore Status",
       CodeConstants.PERIODIC_LOOP_TIME,

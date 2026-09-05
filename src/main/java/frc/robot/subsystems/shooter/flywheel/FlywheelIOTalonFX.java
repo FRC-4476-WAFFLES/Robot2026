@@ -13,6 +13,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Ports;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
 
@@ -26,8 +27,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final Follower followerRequest;
 
   public FlywheelIOTalonFX() {
-    flywheel0 = new TalonFXIO(Constants.CANIds.flywheelMotor0);
-    flywheel1 = new TalonFXIO(Constants.CANIds.flywheelMotor1);
+    flywheel0 = new TalonFXIO(Ports.FLYWHEEL_MOTOR_0);
+    flywheel1 = new TalonFXIO(Ports.FLYWHEEL_MOTOR_1);
 
     followerRequest = new Follower(flywheel0.getDeviceID(), MotorAlignmentValue.Opposed);
 

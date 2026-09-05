@@ -17,12 +17,12 @@ import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import com.ctre.phoenix6.signals.VBatOutputModeValue;
 
-import frc.robot.data.Constants;
+import frc.robot.data.Ports;
 import frc.robot.subsystems.lights.Lights.LedRange;
 
 public class LightStripIOCandle6 implements LightStripIO {
   private final int LED_COUNT;
-  private final CANdle candle = new CANdle(Constants.CANIds.CANdle);
+  private final CANdle candle = new CANdle(Ports.CANDLE.id, Ports.CANDLE.bus);
   private final SolidColor solidColorRequest = new SolidColor(0, 0);
 
   private Map<Integer, RGBWColor> colorMap = new HashMap<>(20);

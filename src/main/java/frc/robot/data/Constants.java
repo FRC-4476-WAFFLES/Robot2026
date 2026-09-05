@@ -10,7 +10,6 @@ import static edu.wpi.first.units.Units.Meters;
 
 import java.util.List;
 
-import com.ctre.phoenix6.CANBus;
 
 import edu.wpi.first.apriltag.AprilTag;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -58,36 +57,6 @@ public final class Constants {
 
     /** Replaying from a log file. */
     REPLAY
-  }
-
-  /* CAN IDs */
-  public static class CANIds {
-    // Drivetrain IDS are located in TunerConstants
-
-    // RIO bus
-    public static final int expanderMotor = 14;
-    public static final int intakeMotor0 = 16;
-    public static final int intakeMotor1 = 15;
-    public static final int climberMotor = 17;
-    public static final int indexerMotor1 = 18;
-    public static final int indexerMotor2 = 19;
-    public static final int feederMotor0 = 20;
-    public static final int feederMotor1 = 28;
-
-    public static final int flywheelMotor0 = 21;
-    public static final int flywheelMotor1 = 22;
-    public static final int hoodMotor = 23;
-
-    public static final int CANdle = 24;
-
-    // Canivore
-    public static final String CANivoreName = "CANivore";
-    public static final CANBus CANivoreBus = new CANBus(CANivoreName);
-
-    // CANivore bus
-    public static final int turretMotor = 25;
-    public static final int turretEncoder0 = 26; // 35t
-    public static final int turretEncoder1 = 27; // 36t
   }
 
   /* PWM Outputs */

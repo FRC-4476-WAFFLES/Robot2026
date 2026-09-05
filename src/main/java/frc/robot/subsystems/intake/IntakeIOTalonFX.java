@@ -18,7 +18,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.util.Units;
 import frc.robot.data.Constants;
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.IntakeConstants;
 import frc.robot.data.Constants.PhysicalConstants;
@@ -35,9 +35,9 @@ public class IntakeIOTalonFX implements IntakeIO {
   private final Follower followerRequest;
 
   public IntakeIOTalonFX() {
-    expander = new TalonFXIO(CANIds.expanderMotor);
-    intake0 = new TalonFXIO(CANIds.intakeMotor0);
-    intake1 = new TalonFXIO(CANIds.intakeMotor1);
+    expander = new TalonFXIO(Ports.EXPANDER_MOTOR);
+    intake0 = new TalonFXIO(Ports.INTAKE_MOTOR_0);
+    intake1 = new TalonFXIO(Ports.INTAKE_MOTOR_1);
 
     followerRequest = new Follower(intake0.getDeviceID(), MotorAlignmentValue.Opposed);
 

@@ -15,6 +15,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Ports;
 
 /** A shim on top of talonFX motors which optimizes their CAN usage automatically */
 public class TalonFXIO extends TalonFX {
@@ -46,6 +47,14 @@ public class TalonFXIO extends TalonFX {
   private final String CANName;
 
   private TalonFXIOSignals statusSignals;
+
+  /**
+   * Constructs a TalonFXIO from a port, which carries both the CAN ID and the bus.
+   * Prefer this over the raw ID constructors.
+   */
+  public TalonFXIO(Ports port) {
+    this(port.id, port.bus);
+  }
 
   /**
    * Constructs a TalonFXIO with a CAN ID

@@ -17,7 +17,7 @@ import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import com.ctre.phoenix6.signals.VBatOutputModeValue;
 
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.subsystems.lights.Lights.LedRange;
 import frc.robot.subsystems.lights.Lights.LightColours;
 
@@ -29,7 +29,7 @@ public class LightIOCandle implements LightIO {
   private Map<Integer, RGBWColor> colorMap = new HashMap<>(20);
 
   public LightIOCandle() {
-    candle = new CANdle(CANIds.CANdle);
+    candle = new CANdle(Ports.CANDLE.id, Ports.CANDLE.bus);
     CANdleConfiguration config = new CANdleConfiguration();
     config.LED.StripType = StripTypeValue.GRB;
     config.CANdleFeatures.Enable5VRail = Enable5VRailValue.Enabled;

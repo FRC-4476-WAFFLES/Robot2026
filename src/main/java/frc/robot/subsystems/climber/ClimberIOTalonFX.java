@@ -12,7 +12,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.data.Constants.ClimberConstants;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.hardware.PhoenixHelpers;
@@ -24,7 +24,7 @@ public class ClimberIOTalonFX implements ClimberIO {
   private final MotionMagicVoltage setpointRequest = new MotionMagicVoltage(0);
 
   public ClimberIOTalonFX() {
-    climber = new TalonFXIO(CANIds.climberMotor);
+    climber = new TalonFXIO(Ports.CLIMBER_MOTOR);
 
     ConfigureClimber();
   }

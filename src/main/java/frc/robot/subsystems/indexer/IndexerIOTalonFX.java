@@ -16,6 +16,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Ports;
 import frc.robot.utils.hardware.PhoenixHelpers;
 import frc.robot.utils.hardware.TalonFXIO;
 
@@ -34,13 +35,13 @@ public class IndexerIOTalonFX implements IndexerIO {
   private final Follower feederFollowerRequest;
 
   public IndexerIOTalonFX() {
-    indexer0 = new TalonFXIO(Constants.CANIds.indexerMotor1);
-    indexer1 = new TalonFXIO(Constants.CANIds.indexerMotor2);
+    indexer0 = new TalonFXIO(Ports.INDEXER_MOTOR_1);
+    indexer1 = new TalonFXIO(Ports.INDEXER_MOTOR_2);
 
     indexerFollowerRequest = new Follower(indexer0.getDeviceID(), MotorAlignmentValue.Aligned);
 
-    feeder0 = new TalonFXIO(Constants.CANIds.feederMotor0);
-    feeder1 = new TalonFXIO(Constants.CANIds.feederMotor1);
+    feeder0 = new TalonFXIO(Ports.FEEDER_MOTOR_0);
+    feeder1 = new TalonFXIO(Ports.FEEDER_MOTOR_1);
 
     feederFollowerRequest = new Follower(feeder0.getDeviceID(), MotorAlignmentValue.Aligned);
 

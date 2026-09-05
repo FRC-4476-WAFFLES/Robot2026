@@ -26,7 +26,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import frc.robot.data.Constants;
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.TurretConstants;
@@ -51,9 +51,9 @@ public class TurretIOTalonFX implements TurretIO {
   protected boolean turretZeroed = false;
 
   public TurretIOTalonFX() {
-    turret = new TalonFXIO(CANIds.turretMotor, CANIds.CANivoreBus);
-    cancoder0 = new CANcoderIO(CANIds.turretEncoder0, CANIds.CANivoreBus, 250);
-    cancoder1 = new CANcoderIO(CANIds.turretEncoder1, CANIds.CANivoreBus, 250);
+    turret = new TalonFXIO(Ports.TURRET_MOTOR);
+    cancoder0 = new CANcoderIO(Ports.TURRET_ENCODER_0, 250);
+    cancoder1 = new CANcoderIO(Ports.TURRET_ENCODER_1, 250);
 
     var cancoder0Config = new CANcoderConfiguration();
     cancoder0Config.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;

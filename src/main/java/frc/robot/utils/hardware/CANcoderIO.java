@@ -12,6 +12,7 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.data.Ports;
 
 /** A shim on top of CANcoders which optimizes their CAN usage automatically */
 public class CANcoderIO extends CANcoder {
@@ -27,6 +28,21 @@ public class CANcoderIO extends CANcoder {
   private final double canHz;
 
   private CANcoderIOSignals statusSignals;
+
+  /**
+   * Constructs a CANcoderIO from a port, which carries both the CAN ID and the bus.
+   * Prefer this over the raw ID constructors.
+   */
+  public CANcoderIO(Ports port) {
+    this(port.id, port.bus);
+  }
+
+  /**
+   * Constructs a CANcoderIO from a port with an explicit refresh frequency.
+   */
+  public CANcoderIO(Ports port, double canFrequency) {
+    this(port.id, port.bus, canFrequency);
+  }
 
   /**
    * Constructs a CANcoderIO with a CAN ID

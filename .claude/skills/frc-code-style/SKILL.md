@@ -86,7 +86,7 @@ import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 | Method | `camelCase` | `runSetpoint`, `atSetpoint` |
 | Field, local | `camelCase` | `flywheelGoalVelocity` |
 | Tuning constant in `Constants.java` | `SCREAMING_SNAKE` | `MOTOR_STATOR_CURRENT_LIMIT` |
-| **CAN ID in `Constants.CANIds`** | **`camelCase`** | `flywheelMotor0`, `hoodMotor` |
+| CAN device in `Ports` enum | `SCREAMING_SNAKE` | `FLYWHEEL_MOTOR_0`, `HOOD_MOTOR` |
 | Enum member | `SCREAMING_SNAKE` | `TARGET_HUB`, `FULLY_AGITATING` |
 | IO interface | `<Subsystem>IO` | `FlywheelIO` |
 | IO implementation | `<Subsystem>IO<Backend>` | `FlywheelIOTalonFX`, `FlywheelIOSim` |
@@ -94,10 +94,7 @@ import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 
 **The one deliberate exception:** static helpers in `utils/lib/` and `utils/hardware/` use `PascalCase` — `WafflesUtilities.Lerp`, `FlipIfRedAlliance`, `EpochTimer.BeginEpoch`, `PhoenixHelpers.RegisterStatusSignals`. When adding to one of those existing classes, match its neighbours. Everywhere else, `camelCase`.
 
-Two naming exceptions that are real and must not be "fixed":
-
-- **`Constants.CANIds` is entirely `camelCase`** — `expanderMotor`, `flywheelMotor0`, `CANivoreName`. It reads as an ID registry, not a constants block. Do not rename these to `SCREAMING_SNAKE`; new CAN IDs match the camelCase neighbours.
-- `Controls.java` uses the WPILib `kPrefix` form (`kLeftJoystickPort`). Keep that within `Controls`.
+One naming exception that is real and must not be "fixed": `Controls.java` uses the WPILib `kPrefix` form (`kLeftJoystickPort`). Keep that within `Controls`.
 
 "At target" checks are named `atSetpoint()` — `Flywheel`, `Hood`, and `ConstrainedMechanism` have it. `Turret` has overloaded `atSetpoint(...)` taking explicit tolerances plus `atGoal()`, which checks against a motion-profile *goal state*. Don't invent a third name.
 

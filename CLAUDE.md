@@ -35,6 +35,7 @@ On Windows use `gradlew.bat`. There is no test suite — `src/test/` does not ex
 - **`Timer.getTimestamp()`, never `Timer.getFPGATimestamp()`** in new code. The latter breaks replay. ~13 existing calls are pre-existing debt, not the standard.
 - **Every motor gets a current limit**, applied via `PhoenixHelpers.tryConfig` so CAN failures surface.
 - **Motors are `TalonFXIO`, not raw `TalonFX`** — that's what registers status signals for the single grouped CAN refresh.
+- **Every CAN device is an entry in the `Ports` enum**, constructed as `new TalonFXIO(Ports.HOOD_MOTOR)`. CAN IDs are only unique per bus, so an ID alone doesn't identify a device. Drivetrain is the exception — it lives in the generated `TunerConstants`.
 - **Never hardcode red-alliance field coordinates.** Use `BlueRelativeTarget` / `WafflesUtilities.FlipIfRedAlliance`.
 - **2-space indent, spaces not tabs, 120 columns.** Enforced by `formatter.xml` on save.
 - This code runs on a robot at competition. Prefer a boring change that is obviously correct over a clever one.

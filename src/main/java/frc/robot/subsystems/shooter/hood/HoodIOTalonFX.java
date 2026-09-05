@@ -13,7 +13,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import frc.robot.data.Constants.CANIds;
+import frc.robot.data.Ports;
 import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.utils.hardware.PhoenixHelpers;
@@ -25,7 +25,7 @@ public class HoodIOTalonFX implements HoodIO {
   private final MotionMagicVoltage setpointRequest = new MotionMagicVoltage(0);
 
   public HoodIOTalonFX() {
-    hood = new TalonFXIO(CANIds.hoodMotor);
+    hood = new TalonFXIO(Ports.HOOD_MOTOR);
 
     ConfigureHood();
   }
