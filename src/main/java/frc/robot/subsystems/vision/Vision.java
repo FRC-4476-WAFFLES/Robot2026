@@ -6,6 +6,7 @@ package frc.robot.subsystems.vision;
 
 import java.util.Optional;
 
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.Matrix;
@@ -18,6 +19,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
@@ -41,6 +43,18 @@ public class Vision extends VirtualSubsystem {
   public final TagCamera turretCamera;
 
   public int highTrustEstimatesLeft = 0;
+
+  /*
+   * Pose agreement. Counts consecutive accepted estimates that land close to
+   * where
+   * odometry already thinks we are. A high count means vision and odometry have
+   * converged, so the pose can be trusted for something precise. A single good
+   * estimate does not mean that; a sustained run of them does.
+   */
+  @AutoLogOutput(key = "Vision/Pose Stable Updates")
+  private int poseStableUpdates = 0;
+
+  private double lastAgreementTimestamp = -1;
   public final Trigger onGround = new Trigger(() -> {
     return !RobotContainer.state.onBump;
   }).onTrue(Commands.runOnce(() -> {
@@ -104,6 +118,10 @@ public class Vision extends VirtualSubsystem {
         if (VisionHelpers.isValidPose(estimate.pose)
             && VisionHelpers.isValidStdevs(estimate.standardDeviation)) {
           Logger.recordOutput("Vision/Validated Pose", estimate.pose);
+
+          // Compare before applying the measurement, otherwise the correction
+          // pulls odometry towards the estimate and the check answers itself.
+          updatePoseAgreement(estimate.pose);
 
           Matrix<N3, N1> chosenDeviations = estimate.standardDeviation;
           if (highTrustEstimatesLeft > 0) {
@@ -181,6 +199,44 @@ public class Vision extends VirtualSubsystem {
         numTags,
         a.odometryAtTimestamp
     ));
+  }
+
+  /**
+   * Records whether an accepted estimate agrees with the current odometry pose.
+   * Consecutive agreements build confidence; one disagreement resets it.
+   */
+  /* Package-private so the agreement logic can be driven directly from a test. */
+  void updatePoseAgreement(Pose2d estimatePose) {
+    double error = estimatePose.getTranslation()
+        .getDistance(RobotContainer.state.getPose().getTranslation());
+
+    if (error < VisionConstants.POSE_AGREEMENT_EPSILON) {
+      poseStableUpdates++;
+    } else {
+      poseStableUpdates = 0;
+    }
+
+    lastAgreementTimestamp = Timer.getTimestamp();
+    Logger.recordOutput("Vision/Pose Agreement Error", error);
+  }
+
+  /** How many consecutive accepted estimates have agreed with odometry. */
+  public int getPoseStableUpdates() {
+    return poseStableUpdates;
+  }
+
+  /**
+   * Whether vision and odometry have agreed for long enough that the pose can be
+   * trusted for something precise. False if no estimate has been accepted
+   * recently, so this goes false when vision drops out rather than latching true.
+   */
+  @AutoLogOutput(key = "Vision/Pose Stable")
+  public boolean isPoseStable() {
+    if (lastAgreementTimestamp < 0
+        || Timer.getTimestamp() - lastAgreementTimestamp > VisionConstants.POSE_AGREEMENT_STALE_TIME) {
+      return false;
+    }
+    return poseStableUpdates >= VisionConstants.POSE_STABLE_UPDATE_THRESHOLD;
   }
 
   /**

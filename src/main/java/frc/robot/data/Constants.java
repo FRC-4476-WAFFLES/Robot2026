@@ -214,6 +214,15 @@ public final class Constants {
     // this many seconds
     public static final double LL_HEARTBEAT_MIN_FREQ = 0.5;
 
+    // Pose agreement tracking. Counts consecutive accepted vision estimates that
+    // land within POSE_AGREEMENT_EPSILON of where odometry already thinks we are;
+    // once that count reaches the threshold the estimate has converged and the
+    // pose can be trusted for precise actions.
+    public static final double POSE_AGREEMENT_EPSILON = 0.20; // meters
+    public static final int POSE_STABLE_UPDATE_THRESHOLD = 100; // ~2s at 50Hz
+    // Agreement goes stale if no estimate has been accepted for this long
+    public static final double POSE_AGREEMENT_STALE_TIME = 0.5; // seconds
+
     // Used to read from the raw stddevs array returned by a limelight
     public static final int MEGATAG_1_XStdDevIndex = 0;
     public static final int MEGATAG_1_YStdDevIndex = 1;
