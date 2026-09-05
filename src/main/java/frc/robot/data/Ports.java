@@ -49,6 +49,18 @@ public enum Ports {
   }
 
   /**
+   * Whether this device's bus runs CAN FD, which selects its signal refresh rate.
+   *
+   * <p>
+   * Declared rather than read from {@code CANBus.isNetworkFD()}, which reports
+   * true for every bus in simulation. The RIO's bus is physically CAN 2.0 and the
+   * CANivore is CAN FD; that does not change at runtime.
+   */
+  public boolean isCANFD() {
+    return bus != Bus.RIO;
+  }
+
+  /**
    * The robot's CAN buses. Nested so that the enum constants above can reference
    * them in their constructor arguments.
    */

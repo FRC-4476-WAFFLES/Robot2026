@@ -53,7 +53,11 @@ public class TalonFXIO extends TalonFX {
    * Prefer this over the raw ID constructors.
    */
   public TalonFXIO(Ports port) {
-    this(port.id, port.bus);
+    super(port.id, port.bus);
+
+    isCANFD = port.isCANFD();
+    CANName = port.bus.getName();
+    setup();
   }
 
   /**

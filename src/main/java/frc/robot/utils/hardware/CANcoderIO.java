@@ -34,14 +34,24 @@ public class CANcoderIO extends CANcoder {
    * Prefer this over the raw ID constructors.
    */
   public CANcoderIO(Ports port) {
-    this(port.id, port.bus);
+    super(port.id, port.bus);
+
+    CANName = port.bus.getName();
+    isCANFD = port.isCANFD();
+    canHz = isCANFD ? CodeConstants.FD_CAN_FREQUENCY : CodeConstants.BASE_CAN_FREQUENCY;
+    setup();
   }
 
   /**
    * Constructs a CANcoderIO from a port with an explicit refresh frequency.
    */
   public CANcoderIO(Ports port, double canFrequency) {
-    this(port.id, port.bus, canFrequency);
+    super(port.id, port.bus);
+
+    CANName = port.bus.getName();
+    isCANFD = port.isCANFD();
+    canHz = canFrequency;
+    setup();
   }
 
   /**
