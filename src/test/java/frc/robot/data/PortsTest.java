@@ -52,4 +52,20 @@ public class PortsTest {
   void noTwoPortsShareAnIdOnTheSameBus() {
     assertNull(Ports.findDuplicate());
   }
+
+  /**
+   * TalonFXIO's raw-ID constructor hardcoded CANName to "rio"; the Ports
+   * constructor derives it from the bus instead. They must agree, because
+   * PhoenixHelpers groups signals for the batched refresh by this name.
+   *
+   * <p>
+   * The matching isCANFD assumption cannot be asserted here — CANBus.isNetworkFD()
+   * needs the CTRE native library, which is not on the library path in a headless
+   * test. Confirm on the robot instead: RIO devices should still refresh at
+   * CodeConstants.BASE_CAN_FREQUENCY (50 Hz), not FD_CAN_FREQUENCY (100 Hz).
+   */
+  @Test
+  void rioBusNameMatchesWhatTheRawIdConstructorAssumed() {
+    assertEquals("rio", Ports.Bus.RIO.getName());
+  }
 }
