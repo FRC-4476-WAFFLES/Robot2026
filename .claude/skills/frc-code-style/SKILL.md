@@ -20,9 +20,13 @@ Team 4476 WAFFLES robot code — WPILib + AdvantageKit; `build.gradle` names the
 
 Older files under `utils/` had drifted to 4-space indentation; Spotless has since pulled them back. If you see indentation drift again, run `./gradlew spotlessApply` rather than matching it.
 
-**Run `./gradlew spotlessApply` before committing.** Spotless formats from the build using the same `formatter.xml` VS Code uses, so it works without an editor — which matters because format-on-save never runs for an agent writing files directly. `./gradlew spotlessCheck` reports violations without changing anything.
+**Formatting is handled by a pre-commit hook.** It runs `./gradlew spotlessApply` and stages whatever Spotless changed, so committed code is always formatted regardless of editor — which matters because format-on-save never runs for an agent writing files directly. Costs about 4 seconds a commit.
 
-`enforceCheck` is `false`, so a formatting violation will not fail the build. That makes running `spotlessApply` your job, not the build's.
+The hook stages **only** files Spotless modified, so unrelated unstaged work in progress is never swept into your commit. It lives in `scripts/pre-commit.sh` and is installed into `.git/hooks/` by a Gradle plugin on any Gradle run, so it needs no per-clone setup.
+
+`./gradlew spotlessApply` still works by hand, and `spotlessCheck` reports violations without changing anything. `enforceCheck` is `false`, so formatting never fails a build.
+
+If the hook blocks a commit — usually Gradle failing to start — `git commit --no-verify` skips it. Don't make that a habit; it's the one path back to formatting drift.
 
 Do not hand-align code into columns; let the formatter wrap. Use `// spotless:off` … `// spotless:on` to protect a block that genuinely needs manual layout.
 
