@@ -28,7 +28,8 @@ public class SecondOrderSim {
     velocity = Velocity;
   }
 
-  // If precise velocity is needed, and is available, copy func and replace TargetVelocity with a parameter
+  // If precise velocity is needed, and is available, copy func and replace
+  // TargetVelocity with a parameter
   public Vector<N2> Evaluate(double Target, double deltaTime) {
     double T = deltaTime;
 
@@ -37,7 +38,8 @@ public class SecondOrderSim {
     previousnput = Target;
 
     // Magic as far as I'm concerned
-    double k2_stable = Math.max(Math.max(k2, T * T / 2 + T * k1 / 2), T * k1); // Clamp k2 if timestep is too low to be stable
+    double k2_stable = Math.max(Math.max(k2, T * T / 2 + T * k1 / 2), T * k1); // Clamp k2 if timestep is too low to be
+                                                                               // stable
 
     position = position + T * velocity; // Integrate position
     double acceleration = (Target + k3 * TargetVelocity - position - k1 * velocity) / k2_stable;
@@ -54,7 +56,8 @@ public class SecondOrderSim {
     previousnput = Target;
 
     // Magic as far as I'm concerned
-    double k2_stable = Math.max(Math.max(k2, T * T / 2 + T * k1 / 2), T * k1); // Clamp k2 if timestep is too low to be stable
+    double k2_stable = Math.max(Math.max(k2, T * T / 2 + T * k1 / 2), T * k1); // Clamp k2 if timestep is too low to be
+                                                                               // stable
 
     position = position + T * velocity; // Integrate position
     double acceleration = (Target + k3 * TargetVelocity - position - k1 * velocity) / k2_stable;

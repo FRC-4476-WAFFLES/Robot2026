@@ -157,7 +157,7 @@ public final class SimHarness {
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Controls                                                                */
+  /* Controls */
   /* ---------------------------------------------------------------------- */
 
   public static final int LEFT_JOYSTICK = Controls.DriverConstants.kLeftJoystickPort;
@@ -170,7 +170,7 @@ public final class SimHarness {
    * available" and no trigger binding can ever fire.
    */
   private static void attachControllers() {
-    for (int port : new int[] {LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR}) {
+    for (int port : new int[] { LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR }) {
       DriverStationSim.setJoystickButtonCount(port, 16);
       DriverStationSim.setJoystickAxisCount(port, 6);
       DriverStationSim.setJoystickPOVCount(port, 1);
@@ -225,7 +225,7 @@ public final class SimHarness {
 
   /** Releases every button, axis and D-pad on every controller. */
   public static void releaseAllControls() {
-    for (int port : new int[] {LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR}) {
+    for (int port : new int[] { LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR }) {
       DriverStationSim.setJoystickButtons(port, 0);
       for (int axis = 0; axis < 6; axis++) {
         DriverStationSim.setJoystickAxis(port, axis, 0.0);

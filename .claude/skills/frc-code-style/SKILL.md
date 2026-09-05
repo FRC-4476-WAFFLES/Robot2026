@@ -20,7 +20,13 @@ Team 4476 WAFFLES, WPILib 2026 + AdvantageKit. Match the surrounding file; these
 
 `utils/hardware/` and `utils/lib/subsystems/` contain five 4-space files. That is legacy drift, not a second standard. New files use 2.
 
-Formatting is enforced by `formatter.xml` via VS Code format-on-save. Do not hand-align code into columns; let the formatter wrap.
+**Run `./gradlew spotlessApply` before committing.** Spotless formats from the build using the same `formatter.xml` VS Code uses, so it works without an editor — which matters because format-on-save never runs for an agent writing files directly. `./gradlew spotlessCheck` reports violations without changing anything.
+
+`enforceCheck` is `false`, so a formatting violation will not fail the build. That makes running `spotlessApply` your job, not the build's.
+
+Do not hand-align code into columns; let the formatter wrap. Use `// spotless:off` … `// spotless:on` to protect a block that genuinely needs manual layout.
+
+Four paths are excluded in `build.gradle` and must stay that way: vendor copies (`LimelightHelpers`, `utils/vendor/**`) so they stay diffable against upstream, generated files (`BuildConstants`, `TunerConstants`), `**/obsolete/**`, and `AlignToPose.java` — whose 115 lines of commented-out code made up 60% of the initial reformat for no benefit. If that dead code is ever deleted, drop the exclusion.
 
 ## File header
 

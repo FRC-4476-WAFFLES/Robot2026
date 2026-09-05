@@ -8,24 +8,24 @@ package frc.robot.utils.lib.subsystems;
  * Provides all periodic methods and cannot be bound to the commandscheduler.
  */
 public class VirtualSubsystem implements IExpandedSubsystem {
-    private String name;
+  private String name;
 
-    public VirtualSubsystem() {
-        String name = this.getClass().getSimpleName();
-        this.name = name.substring(name.lastIndexOf('.') + 1);
-        ExpandedSubsystemManager.RegisterSubsystem(this);
-        ExpandedSubsystemManager.RegisterVirtualSubsystem(this); // Wires up the extra periodic method
+  public VirtualSubsystem() {
+    String name = this.getClass().getSimpleName();
+    this.name = name.substring(name.lastIndexOf('.') + 1);
+    ExpandedSubsystemManager.RegisterSubsystem(this);
+    ExpandedSubsystemManager.RegisterVirtualSubsystem(this); // Wires up the extra periodic method
 
-    }
+  }
 
-    public void periodic() {}
+  public void periodic() {}
 
-    /**
-    * Gets the name of this Subsystem.
-    *
-    * @return Name
-    */
-    public String getName() {
-        return name;
-    }
+  /**
+  * Gets the name of this Subsystem.
+  *
+  * @return Name
+  */
+  public String getName() {
+    return name;
+  }
 }

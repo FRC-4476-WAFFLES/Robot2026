@@ -17,9 +17,9 @@ public class EpochTimer {
     // public DoublePublisher doublePublisher;
 
     // public Epoch(String name) {
-    //     // doublePublisher = epochTable.getDoubleTopic(name).publish();
-    //     // doublePublisher.set(-1);
-    //     this.name = name;
+    // // doublePublisher = epochTable.getDoubleTopic(name).publish();
+    // // doublePublisher.set(-1);
+    // this.name = name;
     // }
   }
 

@@ -14,18 +14,18 @@ public class VisionHelpers {
   private static final double[] DEFAULT_STDDEVS = new double[12];
 
   // /**
-  //  * Depending on the state of the robot, get which tags to localize off of 
-  //  * @return an int array of valid tag IDs
-  //  */
+  // * Depending on the state of the robot, get which tags to localize off of
+  // * @return an int array of valid tag IDs
+  // */
   // public static int[] getValidTagIDs() {
-  //     // Expand to allow other tags while not coral pathing, but for now is ok
-  //     var alliance = DriverStation.getAlliance();
-  //     if (alliance.isPresent()) {
-  //         if (alliance.get() == Alliance.Red) {
-  //             return VisionConstants.RED_VALID_REEF_TAG_IDs;
-  //         }
-  //     }
-  //     return VisionConstants.BLUE_VALID_REEF_TAG_IDs;
+  // // Expand to allow other tags while not coral pathing, but for now is ok
+  // var alliance = DriverStation.getAlliance();
+  // if (alliance.isPresent()) {
+  // if (alliance.get() == Alliance.Red) {
+  // return VisionConstants.RED_VALID_REEF_TAG_IDs;
+  // }
+  // }
+  // return VisionConstants.BLUE_VALID_REEF_TAG_IDs;
   // }
 
   /**

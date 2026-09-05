@@ -94,7 +94,7 @@ public class CANcoderIO extends CANcoder {
    * Initializes all status signals
    */
   private void setup() {
-    // Init record with signals  
+    // Init record with signals
     statusSignals = new CANcoderIOSignals(
         getPosition(),
         getVelocity(),

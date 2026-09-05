@@ -67,7 +67,7 @@ public class WheelRadiusCharacterization {
               Rotation2d currentRotation = RobotContainer.state.getRotation();
               state.accumulatedRotation += Math.abs(currentRotation.minus(state.lastRotation).getRadians());
 
-              //Debugging
+              // Debugging
               // gyroDelta.set(Math.abs(currentRotation.minus(state.lastRotation).getRadians()));
               // accumulatedRotNT.set(state.accumulatedRotation);
               // currentRotNT.set(currentRotation.getRadians());

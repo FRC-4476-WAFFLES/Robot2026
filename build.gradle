@@ -3,6 +3,37 @@ plugins {
     id "edu.wpi.first.GradleRIO" version "2026.2.1"
     id "com.peterabeles.gversion" version "1.10"
     id "io.freefair.lombok" version "8.4"
+    id "com.diffplug.spotless" version "8.1.0"
+}
+
+spotless {
+    // Report violations but do not fail the build on them yet. Flip this to true
+    // once everyone is used to running spotlessApply.
+    enforceCheck false
+
+    java {
+        target 'src/main/java/frc/**/*.java', 'src/test/java/frc/**/*.java'
+
+        targetExclude(
+                // Vendor copies must stay diffable against upstream
+                'src/main/java/frc/robot/utils/vision/LimelightHelpers.java',
+                'src/main/java/frc/robot/utils/vendor/**',
+                // Generated every build
+                'src/main/java/frc/robot/data/BuildConstants.java',
+                'src/main/java/frc/robot/data/TunerConstants.java',
+                // Dead code kept for reference
+                'src/main/java/frc/robot/**/obsolete/**',
+                // 115 lines of commented-out code; formatting it is 60% of the
+                // reformat diff and zero value. Remove this exclusion if that
+                // dead code is ever deleted.
+                'src/main/java/frc/robot/commands/drive/AlignToPose.java'
+        )
+
+        // The same config VS Code formats with, so the editor and the build agree.
+        eclipse().configFile('formatter.xml')
+
+        toggleOffOn()
+    }
 }
 
 java {

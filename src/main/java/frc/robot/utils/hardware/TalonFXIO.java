@@ -86,7 +86,7 @@ public class TalonFXIO extends TalonFX {
    * Initializes all status signals
    */
   private void setup() {
-    // Init record with signals  
+    // Init record with signals
     statusSignals = new TalonFXIOSignals(
         getPosition(),
         getVelocity(),

@@ -82,9 +82,12 @@ public class Telemetry extends VirtualSubsystem {
 
   // Dashboard pose test
   public final Field2d dashboardField = new Field2d();
-  // public final NetworkTable dashboardPoseTable = NetworkTableInstance.getDefault().getTable("DashboardPose");
-  // private final DoubleArrayPublisher fieldPub = dashboardPoseTable.getDoubleArrayTopic("robotPose").publish();
-  // private final StringPublisher fieldTypePub = dashboardPoseTable.getStringTopic(".type").publish();
+  // public final NetworkTable dashboardPoseTable =
+  // NetworkTableInstance.getDefault().getTable("DashboardPose");
+  // private final DoubleArrayPublisher fieldPub =
+  // dashboardPoseTable.getDoubleArrayTopic("robotPose").publish();
+  // private final StringPublisher fieldTypePub =
+  // dashboardPoseTable.getStringTopic(".type").publish();
 
   /**
    * Construct a telemetry subsystem
@@ -120,9 +123,9 @@ public class Telemetry extends VirtualSubsystem {
       dashboardField.setRobotPose(pose);
       // fieldTypePub.set("Field2d");
       // fieldPub.set(new double[] {
-      //     pose.getX(),
-      //     pose.getY(),
-      //     pose.getRotation().getDegrees()
+      // pose.getX(),
+      // pose.getY(),
+      // pose.getRotation().getDegrees()
       // });
     }
     EpochTimer.EndEpoch("Telemetry");

@@ -10,18 +10,19 @@
 // import edu.wpi.first.math.geometry.Rotation2d;
 // import frc.robot.data.Constants.CodeConstants;
 
-// /** Aligns to a pose with automatic alliance flipping & custom deadzones. For use in auto. */
+// /** Aligns to a pose with automatic alliance flipping & custom deadzones. For
+// use in auto. */
 // public class AutoAlignToPose extends AlignToPose {
-//   public AutoAlignToPose(Supplier<Pose2d> targetPose) {
-//     super(targetPose);
+// public AutoAlignToPose(Supplier<Pose2d> targetPose) {
+// super(targetPose);
 
-//     withPositionTolerance(0.04);
-//     withThetaTolerance(Rotation2d.fromDegrees(1));
-//     withAllianceFlipping(true);
-//     withMaxVelocity(CodeConstants.AUTO_MAX_SPEED);
-//   }
+// withPositionTolerance(0.04);
+// withThetaTolerance(Rotation2d.fromDegrees(1));
+// withAllianceFlipping(true);
+// withMaxVelocity(CodeConstants.AUTO_MAX_SPEED);
+// }
 
-//   public AutoAlignToPose(Pose2d targetPose) {
-//     this(() -> targetPose);
-//   }
+// public AutoAlignToPose(Pose2d targetPose) {
+// this(() -> targetPose);
+// }
 // }

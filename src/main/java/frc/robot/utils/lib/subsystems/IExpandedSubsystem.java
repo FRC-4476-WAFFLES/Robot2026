@@ -5,7 +5,7 @@
 package frc.robot.utils.lib.subsystems;
 
 public interface IExpandedSubsystem {
-    default public void earlyPeriodic() {}
+  default public void earlyPeriodic() {}
 
-    default public void latePeriodic() {}
+  default public void latePeriodic() {}
 }

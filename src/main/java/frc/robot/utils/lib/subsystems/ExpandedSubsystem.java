@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * Offers an early periodic method as well as a late periodic method in addition to all standard subsystem features.
  */
 public class ExpandedSubsystem extends SubsystemBase implements IExpandedSubsystem {
-    public ExpandedSubsystem() {
-        ExpandedSubsystemManager.RegisterSubsystem(this);
-    }
+  public ExpandedSubsystem() {
+    ExpandedSubsystemManager.RegisterSubsystem(this);
+  }
 }
