@@ -7,10 +7,10 @@ description: Use when running this robot project's simulator or its unit tests �
 
 ## The one rule that makes everything work
 
-**Every Gradle command must run on the WPILib JDK.**
+**Every Gradle command must run on the WPILib JDK.** `gradle.properties` already does this, so plain `./gradlew` works.
 
 ```bash
-./gradlew -Dorg.gradle.java.home="C:/Users/Public/wpilib/2026/jdk" <task>
+./gradlew <task>
 ```
 
 WPILib's JNI libraries check the MSVC runtime bundled *inside the JDK*, not the system Visual C++ redistributable. Most JDKs ship an old one. VS Code's WPILib extension passes this automatically, which is why sim works from the extension and fails from a terminal.
@@ -25,18 +25,12 @@ Symptoms of the wrong JDK, all the same cause:
 
 Installing the system VC++ redistributable does **not** fix this. Only the JDK matters. The project targets Java 17 and the WPILib JDK is Temurin 17; a system Java 21 is wrong on both counts.
 
-To avoid typing the flag, add `gradle.properties` at the repo root:
-
-```properties
-org.gradle.java.home=C:/Users/Public/wpilib/2026/jdk
-```
-
-That file is machine-specific — it breaks anyone whose WPILib lives elsewhere or who isn't on Windows. It is not committed. Decide per machine.
+This is already handled — `gradle.properties` at the repo root sets `org.gradle.java.home` to the WPILib JDK, so plain `./gradlew` works. If you are not on Windows, change that one line to `<your home>/wpilib/2026/jdk`. If any of the symptoms above appear, that file is the first thing to check.
 
 ## Running the simulator
 
 ```bash
-./gradlew -Dorg.gradle.java.home="C:/Users/Public/wpilib/2026/jdk" simulateJava
+./gradlew simulateJava
 ```
 
 **This blocks until the sim is closed.** Run it in the background and poll the log rather than waiting on it.
@@ -58,17 +52,26 @@ Normal noise, not errors:
 
 ### Connecting AdvantageScope
 
-This is the team's normal way to see what the robot is doing. In AdvantageScope: **File → Connect to Simulator**. No configuration; it finds NT4 on localhost:5810.
+This is the team's normal way to see what the robot is doing, and it needs one setting changed from the default.
 
-`Robot.java` sends `RLOGServer` in SIM mode rather than `NT4Publisher`, so AdvantageKit outputs arrive over RLOG. Fields appear under `RealOutputs/` and `Inputs/`. `simgui.json` and the `assets/AdvantageScopeLayouts` folder hold saved layouts.
+`Robot.java`'s SIM branch adds **`RLOGServer`** and leaves `NT4Publisher` commented out. AdvantageScope's default live source is NetworkTables 4, so **File → Connect to Simulator** with default settings connects to NT4 on 5810 and shows only plain dashboard values — none of the AdvantageKit `Inputs/` or `RealOutputs/` fields.
 
-To log a sim run to a file for later replay, uncomment the `WPILOGWriter("simlogs/")` line in `Robot.java`'s SIM branch.
+Two ways to fix, pick one:
+
+| Option | How | Trade-off |
+|---|---|---|
+| Point AdvantageScope at RLOG | AdvantageScope preferences → **Live Source: RLOG Server** (port 5800), then Connect to Simulator | No code change; matches what the robot already publishes |
+| Publish NT4 in sim too | Uncomment `Logger.addDataReceiver(new NT4Publisher())` in `Robot.java`'s SIM case | AdvantageScope works with defaults; slightly more sim overhead |
+
+`assets/AdvantageScopeLayouts/` holds saved layouts, and `assets/AdvantageScopeAssets/Robot_Leo` is the 3D robot model — point AdvantageScope's asset folder at these to get the field and mechanism visualisation. `MechanismPoses` publishes to `RobotState/MechanismPoses` for the 3D view.
+
+To capture a sim run for later replay instead of watching live, uncomment `WPILOGWriter("simlogs/")` in the SIM branch, then open the `.wpilog` in AdvantageScope or feed it to `./gradlew replayWatch`.
 
 ## Running tests
 
 ```bash
-./gradlew -Dorg.gradle.java.home="C:/Users/Public/wpilib/2026/jdk" test
-./gradlew -Dorg.gradle.java.home="C:/Users/Public/wpilib/2026/jdk" test --tests 'frc.robot.data.*'
+./gradlew test
+./gradlew test --tests 'frc.robot.data.*'
 ```
 
 Tests live in `src/test/java/`, mirroring the main package layout. **`deploy` does not depend on `test`**, so tests never slow a deploy down.
@@ -115,7 +118,7 @@ A passing sim test is evidence, not proof. Say so when reporting results.
 - [ ] State plainly that this was not run on hardware
 ```
 
-Both the build and the sim need the JDK flag.
+All of these run on the WPILib JDK via `gradle.properties`.
 
 ## Related
 
