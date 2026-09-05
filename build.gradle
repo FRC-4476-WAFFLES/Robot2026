@@ -170,6 +170,12 @@ tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
 }
 
+// Review a real match log: ./gradlew logReview --args="align <log|dir>"
+task(logReview, type: JavaExec) {
+    mainClass = "frc.robot.LogReview"
+    classpath = sourceSets.test.runtimeClasspath
+}
+
 task(replayWatch, type: JavaExec) {
     mainClass = "org.littletonrobotics.junction.ReplayWatch"
     classpath = sourceSets.main.runtimeClasspath

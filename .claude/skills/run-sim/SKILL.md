@@ -170,6 +170,28 @@ Four constraints, each learned the hard way:
 - **Never use `SimHooks.pauseTiming()` / `stepTiming()` here.** `PhoenixOdometryThread` waits on CAN signals; with the sim clock paused that wait never returns while it holds `Drive.odometryLock`, so `Drive.earlyPeriodic()` deadlocks and the test hangs until the build times out.
 - **The harness must drive AdvantageKit's loop hooks**, which it does by reflection because they are package-private. Calling `robot.robotPeriodic()` alone leaves `Timer.getTimestamp()` frozen at zero, so every debouncer, timer and motion profile stalls silently — `atSetpoint()` on a debounced trigger simply never becomes true. If AdvantageKit renames those hooks the harness throws a clear error rather than quietly freezing time again.
 
+## Reviewing real match logs
+
+Simulation cannot tell you what the robot actually did at an event. `LogReview`
+streams a real `.wpilog` and answers questions about it:
+
+```bash
+./gradlew logReview --args="fields C:/path/to/match.wpilog"    # what did that code log?
+./gradlew logReview --args="align  C:/path/to/logdir"          # how did alignments end?
+```
+
+Pass **Windows-style paths**; a Git Bash `/c/...` path reaches Java as `C:\c\...` and fails.
+
+Three things it exists to encode:
+
+- **Stream, don't load.** A match log is 50-100MB. `SimLog` builds a map of boxed values and is fine for a short sim run but will thrash on a match log — `LogReview` keeps only the entry IDs it needs.
+- **Structs are raw bytes.** `Pose2d` and `ChassisSpeeds` serialise as consecutive little-endian doubles (x, y, theta / vx, vy, omega). Decode them directly; `SimLog` skips struct fields entirely.
+- **Logs are often truncated.** A robot that loses power mid-write leaves a partial final record, and `DataLogReader` throws part-way through iteration. Catch it and keep what you read, rather than losing the whole file.
+
+Field names change between seasons and between deploys. Always run `fields` on an
+actual log before assuming a key exists — older logs here predate
+`RobotState/Autopilot/Active` entirely.
+
 ## Simulation lies about some things
 
 Sim is not the robot. Known divergences:
