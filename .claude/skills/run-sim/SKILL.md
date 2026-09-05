@@ -125,6 +125,32 @@ public class MyFeatureTest {
 
 API: `boot()`, `step(loops)`, `stepSeconds(s)`, `enableTeleop()`, `enableAutonomous()`, `disable()`. `RobotBootSimTest` is the worked example.
 
+### Pressing buttons: covering `configureBindings()`
+
+The harness attaches simulated controllers at boot, so trigger bindings can be exercised without a human on a joystick. This is the only way to cover `RobotContainer.configureBindings()`.
+
+```java
+SimHarness.enableTeleop();
+SimHarness.releaseAllControls();
+
+SimHarness.tapButton(SimHarness.RIGHT_JOYSTICK, 2, 2);   // press, hold 2 loops, release
+SimHarness.step(2);
+assertTrue(RobotContainer.state.isManualMode());
+
+SimHarness.setAxis(SimHarness.LEFT_JOYSTICK, 0, 0.75);   // 0 = X, 1 = Y
+SimHarness.setPov(SimHarness.OPERATOR, 0);               // D-pad up; -1 releases
+```
+
+Ports are `LEFT_JOYSTICK`, `RIGHT_JOYSTICK`, `OPERATOR`, taken from `Controls` so they cannot drift. Button numbers are 1-based, matching `CommandJoystick.button(n)` and `XboxController.Button.kA.value`. On the operator's Xbox controller the triggers are **axes** 2 and 3, not buttons. `ControlsSimTest` is the worked example.
+
+Three things to get right:
+
+- **Enable first.** Commands do not run while disabled, so a binding will not fire even though the trigger flips. Call `enableTeleop()` before pressing anything.
+- **Call `releaseAllControls()` at the start of each test.** Controller state persists across test methods within a class.
+- **Step at least one loop after a press.** Triggers are polled by the `CommandScheduler`, so nothing happens until the next loop. `setButton`/`setAxis`/`setPov` each step once for you; give a command more loops if it needs them.
+
+The harness declares 16 buttons, 6 axes and 1 POV per port at boot. Without those counts the driver station rejects every read with `Joystick Button N on port M not available` and no binding can ever fire.
+
 ### Reading the log back: `SimLog`
 
 Sim runs write a `.wpilog` to `simlogs/`. `SimLog` reads it, so a test can assert on **anything the robot logged** — not just what a subsystem exposes through a public getter. This is the tool for verifying internals.
