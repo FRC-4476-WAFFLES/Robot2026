@@ -33,7 +33,7 @@ Registration is automatic — each base class registers itself with `ExpandedSub
 
 ## The subsystem trio
 
-Every hardware subsystem is three (or four) files in its own package. Standalone mechanisms sit at the top level — `subsystems/climber/`, `intake/`, `indexer/`, `drive/`, `vision/`, `lights/`. Mechanisms that are part of a larger assembly nest one level under it: `subsystems/shooter/flywheel/`, `shooter/hood/`, `shooter/turret/`. Put a new mechanism under an area folder only if it's genuinely part of that assembly.
+Every hardware subsystem is three (or four) files in its own package. Standalone mechanisms sit at the top level — `subsystems/drive/`, `subsystems/vision/` and so on. Mechanisms that are part of a larger assembly nest one level under it, as the current robot's shooter does with `subsystems/shooter/flywheel/`, `shooter/hood/`, `shooter/turret/`. Put a new mechanism under an area folder only if it's genuinely part of that assembly; list `subsystems/` to see what this season's robot actually has.
 
 **1. `FooIO.java`** — the interface. Inputs class carries data only; every method is a `default` no-op so `new FooIO() {}` is a valid null implementation for replay.
 

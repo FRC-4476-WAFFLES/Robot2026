@@ -75,7 +75,7 @@ Timer.getFPGATimestamp()      // ❌ real wall clock, breaks replay
 
 AdvantageKit replaces `Timer.getTimestamp()` with the logged loop timestamp during replay. `getFPGATimestamp()` always returns the real FPGA clock.
 
-**This repo currently has 13 `Timer.getFPGATimestamp()` calls across 7 files** (`RobotState`, `EpochTimer`, `WafflesUtilities`, `DeferredRefresher`, `LimelightIO`, `SimVisionIO`, `ModuleIOSim`). They are pre-existing debt, not the standard. Do not copy them into new code because the surrounding file uses them — `Drive.earlyPeriodic` and `Turret.periodic` use `Timer.getTimestamp()`, which is correct. Converting an existing call is a welcome fix, but changes odometry timebase alignment, so raise it rather than doing it silently as part of an unrelated change.
+A number of `Timer.getFPGATimestamp()` calls survive in older files — `grep -rn 'getFPGATimestamp' src` for the current list. They are pre-existing debt, not the standard. Do not copy them into new code because the surrounding file uses them — `Drive.earlyPeriodic` and `Turret.periodic` use `Timer.getTimestamp()`, which is correct. Converting an existing call is a welcome fix, but changes odometry timebase alignment, so raise it rather than doing it silently as part of an unrelated change.
 
 Subsystems are constructed in `RobotContainer`'s static initializer, which runs before `Logger.start()`. You therefore **cannot seed a timestamp field at construction**. Use a sentinel and initialize lazily:
 

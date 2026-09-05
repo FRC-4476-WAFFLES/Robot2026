@@ -4,9 +4,9 @@ description: Use when writing, editing, or reviewing any Java file in this robot
 paths: src/main/java/**/*.java
 ---
 
-# Robot2026 Java Style
+# Java Style
 
-Team 4476 WAFFLES, WPILib 2026 + AdvantageKit. Match the surrounding file; these are the repo-wide defaults when the file gives no signal.
+Team 4476 WAFFLES robot code — WPILib + AdvantageKit; `build.gradle` names the season. Match the surrounding file; these are the repo-wide defaults when the file gives no signal.
 
 ## Formatting
 
@@ -18,7 +18,7 @@ Team 4476 WAFFLES, WPILib 2026 + AdvantageKit. Match the surrounding file; these
 | Braces | K&R — `{` on the same line, `} else {` on one line. |
 | Final newline | Not required. |
 
-`utils/hardware/` and `utils/lib/subsystems/` contain five 4-space files. That is legacy drift, not a second standard. New files use 2.
+Older files under `utils/` had drifted to 4-space indentation; Spotless has since pulled them back. If you see indentation drift again, run `./gradlew spotlessApply` rather than matching it.
 
 **Run `./gradlew spotlessApply` before committing.** Spotless formats from the build using the same `formatter.xml` VS Code uses, so it works without an editor — which matters because format-on-save never runs for an agent writing files directly. `./gradlew spotlessCheck` reports violations without changing anything.
 
@@ -26,7 +26,7 @@ Team 4476 WAFFLES, WPILib 2026 + AdvantageKit. Match the surrounding file; these
 
 Do not hand-align code into columns; let the formatter wrap. Use `// spotless:off` … `// spotless:on` to protect a block that genuinely needs manual layout.
 
-Four paths are excluded in `build.gradle` and must stay that way: vendor copies (`LimelightHelpers`, `utils/vendor/**`) so they stay diffable against upstream, generated files (`BuildConstants`, `TunerConstants`), `**/obsolete/**`, and `AlignToPose.java` — whose 115 lines of commented-out code made up 60% of the initial reformat for no benefit. If that dead code is ever deleted, drop the exclusion.
+Four paths are excluded in `build.gradle` and must stay that way: vendor copies (`LimelightHelpers`, `utils/vendor/**`) so they stay diffable against upstream, generated files (`BuildConstants`, `TunerConstants`), `**/obsolete/**`, and `AlignToPose.java` — a dead file whose large block of commented-out code dominated the initial reformat diff for no benefit. If that dead code is ever deleted, drop the exclusion.
 
 ## File header
 
@@ -40,7 +40,7 @@ Every new file starts with the WPILib BSD header:
 
 Files ported from Mechanical Advantage (`Drive.java`, `DriveCommands.java`, `Module*.java`) keep the Littleton Robotics header instead. Preserve whichever header a file already has.
 
-About a quarter of existing files have no header (`Controls.java`, `FlywheelIO.java`, `IndexerIO.java`, `MechanismPoses.java`, …). That's drift, not an exemption — 12 of 16 `*IO.java` files do have one. Add the header to new files; don't go add it to old ones as a drive-by.
+Some existing files have no header. That's drift, not an exemption — most files, including most `*IO.java` files, do have one. Add the header to new files; don't go add it to old ones as a drive-by.
 
 ## Imports
 

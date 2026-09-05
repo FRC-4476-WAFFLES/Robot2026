@@ -25,7 +25,7 @@ Symptoms of the wrong JDK, all the same cause:
 
 Installing the system VC++ redistributable does **not** fix this. Only the JDK matters. The project targets Java 17 and the WPILib JDK is Temurin 17; a system Java 21 is wrong on both counts.
 
-This is already handled — `gradle.properties` at the repo root sets `org.gradle.java.home` to the WPILib JDK, so plain `./gradlew` works. If you are not on Windows, change that one line to `<your home>/wpilib/2026/jdk`. If any of the symptoms above appear, that file is the first thing to check.
+This is already handled — `gradle.properties` at the repo root sets `org.gradle.java.home` to the WPILib JDK, so plain `./gradlew` works. The path is year-scoped: it must match the WPILib release the GradleRIO version in `build.gradle` targets, and needs updating each season. If you are not on Windows it lives under `<your home>/wpilib/<year>/jdk`. If any of the symptoms above appear, that file is the first thing to check.
 
 ## Running the simulator
 
@@ -56,7 +56,7 @@ This is the team's normal way to see what the robot is doing, and it needs no se
 
 Sim publishes over **NT4**, deliberately the same as the real robot, so connecting works identically at a desk and at an event. `RLOGServer` also runs on port 5800 if you prefer it — set AdvantageScope's live source to **RLOG Server** — but NT4 is the default path and the one to reach for.
 
-`assets/AdvantageScopeLayouts/` holds saved layouts, and `assets/AdvantageScopeAssets/Robot_Leo` is the 3D robot model — point AdvantageScope's asset folder at these to get the field and mechanism visualisation. `MechanismPoses` publishes to `RobotState/MechanismPoses` for the 3D view.
+`assets/AdvantageScopeLayouts/` holds saved layouts, and `assets/AdvantageScopeAssets/` holds the 3D robot model for the current robot — point AdvantageScope's asset folder at these to get the field and mechanism visualisation. `MechanismPoses` publishes to `RobotState/MechanismPoses` for the 3D view.
 
 Every sim run and every `SimHarness` test already writes a `.wpilog` to `simlogs/` (gitignored). Open one in AdvantageScope directly, feed it to `./gradlew replayWatch`, or read it in a test with `SimLog` — see below.
 

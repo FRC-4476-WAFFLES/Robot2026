@@ -154,7 +154,7 @@ Fixing this would make sim genuinely useful for vision work.
 ## Gotchas
 
 - **Don't flush NetworkTables per camera.** There's a commented-out block explaining it: NT flush is rate-limited to once per 10ms, and flushing per-Limelight causes loop overruns. Left as a warning, not dead code to delete.
-- **`LimelightHelpers.java` is vendor code**, 1677 lines, copied verbatim. Never reformat or refactor it — it must stay diffable against upstream. Its `PascalCase` static methods are its own convention, not the team's.
+- **`LimelightHelpers.java` is vendor code**, copied verbatim. Never reformat or refactor it — it must stay diffable against upstream. Its `PascalCase` static methods are its own convention, not the team's.
 - **Limelights are throttled while disabled** (`LIMELIGHT_DISABLED_THROTTLE = 120` frames) to stop them overheating on the cart.
 - **A Limelight is "disconnected" by heartbeat staleness**, not by NT connection — `LL_HEARTBEAT_MIN_FREQ`.
 - **Vision timestamps come from the camera**, in the FPGA timebase, and get converted where needed via `WafflesUtilities.currentTimeToFPGA`. Don't substitute `Timer.getTimestamp()` for a frame timestamp — they answer different questions.

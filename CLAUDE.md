@@ -1,6 +1,6 @@
 # Robot2026 — Leo (FRC 4476 WAFFLES)
 
-WPILib 2026 + AdvantageKit robot code. Java 17, Gradle (GradleRIO), CTRE Phoenix 6, PathPlanner, Limelight.
+WPILib + AdvantageKit robot code. Java 17, Gradle (GradleRIO), CTRE Phoenix 6, PathPlanner, Limelight. `build.gradle` names the season.
 
 ## Commands
 
