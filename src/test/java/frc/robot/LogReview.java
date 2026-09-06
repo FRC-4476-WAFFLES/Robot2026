@@ -42,6 +42,9 @@ public final class LogReview {
   private static final String SIM_TRUTH = "/RealOutputs/Vision/UnderlyingFieldPose";
   private static final String VALIDATED = "/RealOutputs/Vision/Validated Pose";
   private static final String BATTERY_VOLTAGE = "/SystemStats/BatteryVoltage";
+  private static final String FLYWHEEL_GOAL = "/RealOutputs/Flywheel/Flywheel Goal Velocity";
+  private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
+  private static final String FLYWHEEL_MOTOR = "/Inputs/Flywheel/FlywheelMotorData0";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
   private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
@@ -82,6 +85,7 @@ public final class LogReview {
       case "channels" -> reviewChannels(logs);
       case "motor" -> reviewMotor(args[1], logs);
       case "bog" -> reviewBog(args[1], logs);
+      case "shooter" -> reviewShooter(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -608,6 +612,85 @@ public final class LogReview {
     System.out.printf("%d bog episodes, %.2f s total, %.2f s mean, %.2f s longest%n",
         episodes.size(), totalTime, totalTime / Math.max(1, episodes.size()),
         episodes.isEmpty() ? 0 : episodes.get(0));
+  }
+
+  /**
+   * Reports how well the flywheel holds its setpoint as battery voltage falls.
+   * The flywheel is run in torque current control, whose achievable speed scales
+   * with bus voltage, so a goal that is reachable on a fresh battery can become
+   * unreachable on a sagging one no matter what the controller asks for.
+   */
+  private static void reviewShooter(List<File> logs) throws IOException {
+    // Buckets of 0.5V from 8.0V up, index 0 meaning below 8.0V.
+    Draw[] error = newBuckets();
+    Draw[] atSetpoint = newBuckets();
+    Draw[] goals = newBuckets();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int goalEntry = -1;
+      int atEntry = -1;
+      int motorEntry = -1;
+      int batteryEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double goal = 0;
+      double battery = 12;
+      boolean at = false;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_AT_SETPOINT -> atEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case BATTERY_VOLTAGE -> batteryEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (entry == atEntry) {
+            at = record.getBoolean();
+          } else if (enabled && entry == motorEntry && goal > 1.0) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+            int bucket = Math.max(0, Math.min(9, (int) ((battery - 8.0) * 2) + 1));
+            error[bucket].add(goal - speed, false);
+            atSetpoint[bucket].add(at ? 1 : 0, false);
+            goals[bucket].add(goal, false);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    System.out.printf("%-14s %10s %12s %12s %12s%n",
+        "battery", "samples", "goal", "shortfall", "at setpoint");
+    for (int i = 0; i < 10; i++) {
+      if (error[i].count == 0) {
+        continue;
+      }
+      String label = i == 0 ? "below 8.0V"
+          : String.format("%.1f-%.1fV", 8.0 + (i - 1) * 0.5, 8.0 + i * 0.5);
+      System.out.printf("%-14s %10d %11.1f %11.2f %11.1f%%%n",
+          label, error[i].count, goals[i].mean(), error[i].mean(),
+          100 * atSetpoint[i].mean());
+    }
   }
 
   private static Draw[] newBuckets() {

@@ -154,8 +154,53 @@ next to `TotalCurrent` for exactly this reason: when they disagree, the PDH
 reported something impossible. Exclude q5 by passing the other logs
 individually; `logReview` accepts a list of paths.
 
+### Why low voltage makes the shooter undershoot
+
+The flywheel runs `VelocityTorqueCurrentFOC`, and a motor's achievable speed
+scales with bus voltage. As the battery sags, a goal that was reachable stops
+being reachable no matter what the controller asks for. Measured across the
+ONWEL logs with `./gradlew logReview --args="shooter <dir>"`:
+
+| Battery | Samples | Goal | **Shortfall** | Reported "at setpoint" |
+|---|---|---|---|---|
+| 12.0 – 12.5 V | 2855 | 48.8 rps | 0.14 rps | 98.4 % |
+| 11.0 – 11.5 V | 3897 | 51.2 rps | 0.47 rps | 97.8 % |
+| 10.0 – 10.5 V | 3845 | 52.7 rps | 1.62 rps | 95.3 % |
+| 9.0 – 9.5 V | 4133 | 53.3 rps | 3.99 rps | 94.9 % |
+| 8.0 – 8.5 V | 3161 | 55.3 rps | 6.67 rps | 91.2 % |
+| **below 8.0 V** | 680 | 57.2 rps | **11.60 rps** | **71.0 %** |
+
+Perfectly monotonic. Below 8 V the wheel is **20 % below its goal**.
+
+**And the readiness gate does not catch it.** `Flywheel.atSetpoint()` compares
+against `FlywheelConstants.RPM_RANGE`, which is **1200 RPM = 20 rps** — on a
+~53 rps goal that is a **±38 % tolerance**. The wheel can be a fifth slow and
+still report ready, which is exactly what the table above shows.
+
+**For hub shots the flywheel check is bypassed entirely.** `RobotState.canFire()`
+reads:
+
+```java
+.and(() -> shooterState == ShooterState.TARGET_HUB ? true : (RobotContainer.flywheel.atSetpoint()))
+```
+
+Whether that is deliberate for a close dump shot is a question for whoever wrote
+it, but it means hub shots fire at any flywheel speed.
+
+Note the goal column rises as voltage falls — the longest shots need the most
+flywheel, and spinning the flywheel is itself one of the largest current draws.
+The shooter is partly causing the sag that then starves it.
+
 ### What to do
 
+0. **Fix the readiness gate first.** It is the cheapest change and the one that
+   directly causes short shots: a ±38 % tolerance means we fire while slow. Pick
+   a real number from testing, and decide deliberately whether hub shots should
+   keep bypassing the check. Risk to weigh: a tight gate means the robot refuses
+   to shoot when it cannot reach speed, which is correct but changes what the
+   driver sees.
+0b. **Use measured flywheel velocity in the shot, not the commanded value**, so a
+   wheel that is 8 rps down either aims for what it actually has or waits.
 1. **Power manager** — the 581 pattern: define each robot state as a complete
    supply-current budget across every subsystem, and reapply limits on transition
    from a background thread. Capping supply current attacks the peak directly.
