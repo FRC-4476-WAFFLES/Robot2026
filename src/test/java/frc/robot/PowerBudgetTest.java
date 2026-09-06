@@ -73,16 +73,14 @@ public class PowerBudgetTest {
 
   @Test
   void theFeederIsNeverCutWhileShooting() {
-    // The feeder holds 36-37 rps in the logs no matter the load, and a ball
-    // entering at an inconsistent speed makes the shot inconsistent however well
-    // the flywheel is holding. Slowing the feed would buy the flywheel recovery
-    // time at the cost of the thing it is recovering for.
+    // A ball entering at an inconsistent speed makes the shot inconsistent
+    // however well the flywheel is holding, so the feeder is never cut below its
+    // own configured limit. It is not raised either: that 25A limit was added
+    // deliberately to reduce sag and the drive team saw no quality loss from it.
     for (PowerManagerState state : new PowerManagerState[] { PowerManagerState.SHOOTING,
         PowerManagerState.SHOOTING_FAR, PowerManagerState.SHOOTING_AND_INTAKING }) {
       assertTrue(state.feederSupplyCurrent >= PowerManagerState.DEFAULT.feederSupplyCurrent,
-          state + " must not cut the feeder below its default allowance");
-      assertTrue(state.feederSupplyCurrent > 35,
-          state + " must leave the feeder clear of the 27-35A it draws at high duty");
+          state + " must not cut the feeder below what the subsystem configures for itself");
     }
   }
 

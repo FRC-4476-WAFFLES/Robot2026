@@ -27,7 +27,7 @@ public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
   DEFAULT(45, 120, 60, 90, 25, 90),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 140, 20, 50, 90),
+  SHOOTING(20, 160, 140, 20, 25, 90),
   /**
    * A long shot, where accuracy collapses in the logs. The flywheel allowance is
    * the same as {@link #SHOOTING} because it cannot use any more: a long shot
@@ -36,13 +36,13 @@ public enum PowerManagerState {
    * itself, so the drivetrain is cut harder here than anywhere else. Long shots
    * in the logs were taken on a median 7.5 V bus, against 12 V up close.
    */
-  SHOOTING_FAR(10, 160, 140, 20, 50, 90),
+  SHOOTING_FAR(10, 160, 140, 20, 25, 90),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 140, 90, 50, 90);
+  SHOOTING_AND_INTAKING(20, 160, 140, 90, 25, 90);
 
   /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
   public static final double FAR_SHOT_DISTANCE = 3.5;
@@ -67,12 +67,24 @@ public enum PowerManagerState {
   public final double intakeSupplyCurrent;
 
   /**
-   * Per feeder motor, supply. Two of them. The feeder is only ever given more,
-   * never less: it holds 36 - 37 rps in the logs regardless of load, and a ball
-   * entering the shooter at an inconsistent speed makes the shot inconsistent no
-   * matter how well the flywheel is holding. Its configured 25 A limit is below
-   * the 27 - 35 A it draws at high duty, so today the limiter is cutting it back
-   * under exactly the load where consistency matters most.
+   * Per feeder motor, supply. Two of them. Held at 25 A everywhere, which is
+   * what the subsystem configures for itself.
+   *
+   * <p>
+   * That limit was added deliberately after the 2026 ONWEL event to reduce
+   * battery sag, and the drive team reports no loss of shot quality from it. The
+   * feeder is in the shot path, so it is never cut <i>below</i> that — a ball
+   * entering the shooter at an inconsistent speed makes the shot inconsistent
+   * however well the flywheel is holding.
+   *
+   * <p>
+   * <b>Worth re-measuring once a log exists from after that change.</b> Every
+   * feeder number here comes from ONWEL logs, which predate the limit: the
+   * feeder drew 27 - 35 A at high duty because nothing stopped it. Run
+   * {@code logReview --args="motor Indexer/Feeder <log>"} on a recent log — if
+   * feeder speed still sits flat at 36 - 37 rps across every duty bucket, the
+   * limit costs nothing and should stay. If speed falls off at high duty, it is
+   * throttling the feeder under load and this column is where to raise it.
    */
   public final double feederSupplyCurrent;
 
