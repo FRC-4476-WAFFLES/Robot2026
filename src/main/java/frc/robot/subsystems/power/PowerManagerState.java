@@ -42,7 +42,7 @@ public enum PowerManagerState {
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 140, 90, 25, 90);
+  SHOOTING_AND_INTAKING(15, 160, 140, 50, 25, 90);
 
   /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
   public static final double FAR_SHOT_DISTANCE = 3.5;
@@ -59,10 +59,20 @@ public enum PowerManagerState {
   /** Per flywheel motor, supply. Two of them. */
   public final double flywheelSupplyCurrent;
   /**
-   * Per intake motor, supply. The default is set above the measured 84 A peak so
-   * it changes nothing: a 35 A limit here used to make the intake bog down and
-   * was removed on purpose. It is only tightened while shooting without
-   * intaking, where the intake is measured drawing 2.2 A anyway.
+   * Per intake motor, supply.
+   *
+   * <p>
+   * {@link #DEFAULT} sits above the measured 84 A peak so it changes nothing: a
+   * 35 A limit here used to make the intake bog down and was removed on purpose.
+   * That headroom exists for driving hard into a pile, which is an autonomous
+   * and teleop-intaking problem, not a shooting one.
+   *
+   * <p>
+   * Shooting while intaking is a slower business — the robot is lining up a shot,
+   * not charging a pile — so that state gets a middle number: above the 13.6 A it
+   * is measured drawing there, below the allowance reserved for hitting a pile at
+   * speed. While shooting without intaking it is measured drawing 2.2 A, so the
+   * tightest cap costs nothing and is only a guard.
    */
   public final double intakeSupplyCurrent;
 
