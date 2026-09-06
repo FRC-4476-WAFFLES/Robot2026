@@ -104,6 +104,7 @@ public final class LogReview {
       case "leadtime" -> reviewLeadTime(logs);
       case "battery" -> reviewBattery(logs);
       case "predict" -> reviewPredict(logs);
+      case "energy" -> reviewEnergy(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -138,6 +139,8 @@ public final class LogReview {
   private static final double BATTERY_RESISTANCE = 0.0155;
   /** Volts of flywheel back-EMF per rps, implied by measured current at two speeds. */
   private static final double BACK_EMF_PER_RPS = 0.186;
+  /** Bus volts the drivetrain cap returns during a shot, from the predict mode. */
+  private static final double DRIVE_CAP_VOLTS = 0.35;
   /** Speed tolerance used when measuring how long the flywheel takes to recover. */
   private static final double RECOVERY_TOLERANCE = 2.5;
   /** The supply current limit ModuleIOTalonFX configures on each drive motor. */
@@ -1024,12 +1027,15 @@ public final class LogReview {
     final double minTolerance = 2.0;
     final double maxTolerance = 8.0;
 
-    // Buckets of 0.5m from 1.0m.
+    // Buckets of 0.5m from 1.0m, run twice: once against the wheel as it
+    // actually behaved, and once with the deficit shrunk by however much faster
+    // the wheel would have recovered under the new current limits and the higher
+    // bus voltage the drivetrain cap buys.
     int buckets = 10;
-    double[] openTime = new double[buckets];
-    double[] wantedTime = new double[buckets];
+    double[][] openTime = new double[2][buckets];
+    double[][] wantedTime = new double[2][buckets];
     double[] toleranceSum = new double[buckets];
-    int[] opens = new int[buckets];
+    int[][] opens = new int[2][buckets];
 
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
@@ -1042,10 +1048,12 @@ public final class LogReview {
       boolean shooting = false;
       double goal = 0;
       double distance = 0;
-      double trueSince = -1;
-      double outsideSince = -1;
-      boolean open = false;
+      double[] trueSince = { -1, -1 };
+      double[] outsideSince = { -1, -1 };
+      boolean[] open = { false, false };
       double last = -1;
+      int batteryEntry = -1;
+      double battery = 12;
 
       try {
         for (DataLogRecord record : reader) {
@@ -1057,6 +1065,7 @@ public final class LogReview {
               case ENABLED -> enabledEntry = start.entry;
               case SHOOTING -> shootingEntry = start.entry;
               case DISTANCE_TO_TARGET -> distanceEntry = start.entry;
+              case BATTERY_VOLTAGE -> batteryEntry = start.entry;
               default -> {
               }
             }
@@ -1068,6 +1077,8 @@ public final class LogReview {
           int entry = record.getEntry();
           if (entry == enabledEntry) {
             enabled = record.getBoolean();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
           } else if (entry == shootingEntry) {
             shooting = record.getBoolean();
           } else if (entry == goalEntry) {
@@ -1079,39 +1090,52 @@ public final class LogReview {
             double step = last < 0 ? 0 : Math.min(0.1, now - last);
             last = now;
             if (!enabled || !shooting || goal <= 1.0 || distance < 1.0) {
-              trueSince = -1;
-              outsideSince = -1;
-              open = false;
+              Arrays.fill(trueSince, -1);
+              Arrays.fill(outsideSince, -1);
+              Arrays.fill(open, false);
               continue;
             }
             int bucket = Math.min(buckets - 1, (int) ((distance - 1.0) * 2));
             double tolerance = Math.max(minTolerance,
                 Math.min(maxTolerance, goal * ACCEPTED_RANGE_ERROR / (2 * distance)));
-            wantedTime[bucket] += step;
             toleranceSum[bucket] += tolerance * step;
 
             ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
             double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
-            if (Math.abs(goal - speed) < tolerance) {
-              outsideSince = -1;
-              if (trueSince < 0) {
-                trueSince = now;
+            double deficit = Math.abs(goal - speed);
+
+            // How much faster the wheel would come back. Available recovery
+            // current is what is left of the bus above back-EMF, so both the
+            // raised ceiling and the volts the drivetrain cap returns show up
+            // here. A residual deficit shrinks in proportion.
+            double headroom = Math.max(0.1, battery - BACK_EMF_PER_RPS * speed);
+            double availableNow = Math.min(75, headroom / 0.064);
+            double availableNew = Math.min(140, (headroom + DRIVE_CAP_VOLTS) / 0.064);
+            double improvedDeficit = deficit * availableNow / availableNew;
+
+            for (int variant = 0; variant < 2; variant++) {
+              wantedTime[variant][bucket] += step;
+              if ((variant == 0 ? deficit : improvedDeficit) < tolerance) {
+                outsideSince[variant] = -1;
+                if (trueSince[variant] < 0) {
+                  trueSince[variant] = now;
+                }
+                if (!open[variant] && now - trueSince[variant] >= risingDebounce) {
+                  open[variant] = true;
+                  opens[variant][bucket]++;
+                }
+              } else {
+                trueSince[variant] = -1;
+                if (outsideSince[variant] < 0) {
+                  outsideSince[variant] = now;
+                }
+                if (open[variant] && now - outsideSince[variant] >= fallingDebounce) {
+                  open[variant] = false;
+                }
               }
-              if (!open && now - trueSince >= risingDebounce) {
-                open = true;
-                opens[bucket]++;
+              if (open[variant]) {
+                openTime[variant][bucket] += step;
               }
-            } else {
-              trueSince = -1;
-              if (outsideSince < 0) {
-                outsideSince = now;
-              }
-              if (open && now - outsideSince >= fallingDebounce) {
-                open = false;
-              }
-            }
-            if (open) {
-              openTime[bucket] += step;
             }
           }
         }
@@ -1123,15 +1147,15 @@ public final class LogReview {
     System.out.printf("gate open by distance: tolerance = goal * %.2fm / (2 * distance), "
         + "clamped %.0f-%.0f rps, falling debounce %.2fs%n%n",
         ACCEPTED_RANGE_ERROR, minTolerance, maxTolerance, fallingDebounce);
-    System.out.printf("  %-12s %10s %12s %10s %10s%n",
-        "distance", "time spent", "tolerance", "opens", "open %");
+    System.out.printf("  %-12s %10s %12s %14s %16s%n",
+        "distance", "time spent", "tolerance", "open as logged", "open with power mgr");
     for (int i = 0; i < buckets; i++) {
-      if (wantedTime[i] < 1.0) {
+      if (wantedTime[0][i] < 1.0) {
         continue;
       }
-      System.out.printf("  %4.1f-%4.1fm %9.0fs %10.1f rps %9d %9.0f%%%n",
-          1.0 + i * 0.5, 1.5 + i * 0.5, wantedTime[i], toleranceSum[i] / wantedTime[i],
-          opens[i], 100 * openTime[i] / wantedTime[i]);
+      System.out.printf("  %4.1f-%4.1fm %9.0fs %10.1f rps %12.0f%% %15.0f%%%n",
+          1.0 + i * 0.5, 1.5 + i * 0.5, wantedTime[0][i], toleranceSum[i] / wantedTime[0][i],
+          100 * openTime[0][i] / wantedTime[0][i], 100 * openTime[1][i] / wantedTime[1][i]);
     }
   }
 
@@ -1567,7 +1591,16 @@ public final class LogReview {
     // Voltage and estimated drivetrain draw at the moment of each shot.
     List<double[]> shots = new ArrayList<>();
 
+    System.out.printf("internal resistance per log. A pack whose resistance is high sags harder%n"
+        + "at the same current than any amount of current limiting can make up for.%n%n");
+    System.out.printf("  %-28s %10s %14s %12s%n", "log", "samples", "resistance", "open circuit");
+
     for (File log : logs) {
+      long logN = 0;
+      double logI = 0;
+      double logV = 0;
+      double logII = 0;
+      double logIV = 0;
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       Map<Integer, String> statorAmps = new HashMap<>();
       Map<Integer, String> appliedVolts = new HashMap<>();
@@ -1620,6 +1653,11 @@ public final class LogReview {
               sumV += battery;
               sumII += total * total;
               sumIV += total * battery;
+              logN++;
+              logI += total;
+              logV += battery;
+              logII += total * total;
+              logIV += total * battery;
             }
           } else if (entry == fireEntry) {
             boolean nowFiring = record.getBoolean();
@@ -1641,7 +1679,15 @@ public final class LogReview {
       } catch (RuntimeException e) {
         // truncated log; keep what was read
       }
+
+      if (logN > 2000) {
+        double logSlope = (logN * logIV - logI * logV) / (logN * logII - logI * logI);
+        System.out.printf("  %-28s %10d %11.1f mOhm %10.2fV%n",
+            log.getName().replace("akit_26-04-11_", "").replace(".wpilog", "").replace("_onwel", ""),
+            logN, -logSlope * 1000, (logV - logSlope * logI) / logN);
+      }
     }
+    System.out.println();
 
     if (n < 100 || shots.isEmpty()) {
       System.out.println("not enough data");
@@ -1858,6 +1904,126 @@ public final class LogReview {
       }
     }
     return shots;
+  }
+
+  /**
+   * Integrates each motor's supply current against bus voltage to say where a
+   * match's energy actually goes, and how much of it is spent standing still.
+   *
+   * <p>
+   * The idle column is the interesting one. It is energy drawn while the motor is
+   * commanded below a tenth of duty — holding a position, fighting a spring, or
+   * simply not switched off — and it buys nothing. Every watt-hour there is a
+   * watt-hour of pack the shooter does not get late in a match.
+   */
+  private static void reviewEnergy(List<File> logs) throws IOException {
+    Map<String, double[]> energy = new HashMap<>();
+    double totalSeconds = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> talons = new HashMap<>();
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> lastTime = new HashMap<>();
+      int enabledEntry = -1;
+      int batteryEntry = -1;
+      boolean enabled = false;
+      double battery = 12;
+      double firstTime = -1;
+      double latestTime = -1;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.name.equals(BATTERY_VOLTAGE)) {
+              batteryEntry = start.entry;
+            } else if (start.type.equals("struct:TalonFXIOData")) {
+              talons.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("CurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("AppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          double now = record.getTimestamp() / 1e6;
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+            if (enabled && firstTime < 0) {
+              firstTime = now;
+            }
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (enabled && talons.containsKey(entry)) {
+            String motor = talons.get(entry);
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double supply = Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET));
+            double duty = Math.abs(buf.getDouble(DUTY_CYCLE_OFFSET));
+            accumulate(energy, motor, supply * battery, duty < 0.1, now, lastTime);
+            latestTime = now;
+          } else if (enabled && statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            Double applied = volts.get(base);
+            if (applied != null && battery > 4) {
+              accumulate(energy, base + "(est)", stator.get(base) * applied, applied < 1.0, now,
+                  lastTime);
+            }
+          } else if (enabled && appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+      if (firstTime > 0 && latestTime > firstTime) {
+        totalSeconds += latestTime - firstTime;
+      }
+    }
+
+    if (energy.isEmpty()) {
+      System.out.println("no motor data");
+      return;
+    }
+    double grand = energy.values().stream().mapToDouble(e -> e[0]).sum();
+    System.out.printf("%.0f seconds enabled across %d logs, %.1f Wh total through the motors%n",
+        totalSeconds, logs.size(), grand / 3600);
+    System.out.printf("(a typical 18 Ah battery holds about 216 Wh)%n%n");
+    System.out.printf("  %-30s %10s %8s %12s %10s%n",
+        "motor", "Wh", "share", "idle Wh", "idle share");
+    energy.entrySet().stream()
+        .sorted((a, b) -> Double.compare(b.getValue()[0], a.getValue()[0]))
+        .forEach(e -> System.out.printf("  %-30s %9.1f %7.0f%% %11.1f %9.0f%%%n",
+            e.getKey(), e.getValue()[0] / 3600, 100 * e.getValue()[0] / grand,
+            e.getValue()[1] / 3600, 100 * e.getValue()[1] / Math.max(1e-9, e.getValue()[0])));
+  }
+
+  private static void accumulate(Map<String, double[]> energy, String motor, double watts,
+      boolean idle, double now, Map<String, Double> lastTime) {
+    Double previous = lastTime.put(motor, now);
+    if (previous == null) {
+      return;
+    }
+    double step = Math.min(0.1, now - previous);
+    if (step <= 0) {
+      return;
+    }
+    double[] totals = energy.computeIfAbsent(motor, k -> new double[2]);
+    totals[0] += watts * step;
+    if (idle) {
+      totals[1] += watts * step;
+    }
   }
 
   private static Draw[] newBuckets() {
