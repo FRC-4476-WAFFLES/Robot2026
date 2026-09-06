@@ -89,14 +89,28 @@ public class PowerBudgetTest {
   }
 
   @Test
+  void turboStarvesEverythingExceptTheDrivetrain() {
+    PowerManagerState turbo = PowerManagerState.TURBO;
+    assertTrue(turbo.driveSupplyCurrent >= PowerManagerState.DEFAULT.driveSupplyCurrent,
+        "TURBO must not cut the drivetrain -- it exists to let the robot move");
+    assertTrue(turbo.flywheelSupplyCurrent < PowerManagerState.DEFAULT.flywheelSupplyCurrent
+        && turbo.intakeSupplyCurrent < PowerManagerState.DEFAULT.intakeSupplyCurrent
+        && turbo.spindexerSupplyCurrent < PowerManagerState.DEFAULT.spindexerSupplyCurrent,
+        "TURBO must starve everything that is not the drivetrain, which is where its benefit comes from");
+    assertTrue(turbo.drawCeiling() < PowerManagerState.DEFAULT.drawCeiling(),
+        "TURBO must leave the battery with more to give, not less");
+  }
+
+  @Test
   void theSpindexerIsNeverCapped() {
     // The spindexer governs shot rate and has never had a supply limit. Capping
     // it during a long shot would free about 27A on average, which is not worth
     // risking the rate on. Every state must stay above its measured 64A peak.
     for (PowerManagerState state : PowerManagerState.values()) {
-      if (state == PowerManagerState.SHOOTING_FAR) {
+      if (state == PowerManagerState.SHOOTING_FAR || state == PowerManagerState.TURBO) {
         // A long shot is one deliberate shot, not a burst, so rate does not
-        // matter there and clipping the spindexer's peaks buys bus voltage.
+        // matter there and clipping the spindexer's peaks buys bus voltage. In
+        // turbo the driver has said they are not shooting at all.
         continue;
       }
       assertTrue(state.spindexerSupplyCurrent > 64,
