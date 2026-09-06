@@ -58,6 +58,9 @@ public final class LogReview {
   private static final String AUTONOMOUS = "/DriverStation/Autonomous";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
   private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
+  private static final String PDH_VOLTAGE = "/PowerDistribution/Voltage";
+  /** How close in time two readings must be to be worth comparing, in seconds. */
+  private static final double FRESH_PAIR_WINDOW = 0.10;
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
   private static final String ENABLED = "/DriverStation/Enabled";
 
@@ -107,6 +110,7 @@ public final class LogReview {
       case "energy" -> reviewEnergy(logs);
       case "ceiling" -> reviewCeiling(logs);
       case "brownout" -> reviewBrownout(logs);
+      case "wiring" -> reviewWiring(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -2287,6 +2291,120 @@ public final class LogReview {
           .filter(e -> e[0] + Math.max(0, e[1] - 4 * cap) * BATTERY_RESISTANCE < threshold)
           .count();
       System.out.printf("  %8.0fA %13d %15d%n", cap, stillBelow, events.size() - stillBelow);
+    }
+  }
+
+  /**
+   * Separates resistance in the battery from resistance in the robot's wiring by
+   * fitting the same current against two different voltage measurements.
+   *
+   * <p>
+   * {@code SystemStats/BatteryVoltage} is what the roboRIO reads at its own
+   * input. {@code PowerDistribution/Voltage} is what the PDH reads at its
+   * terminals. Both see the same load current, so fitting each against it gives
+   * the resistance upstream of that point. The PDH figure covers the battery, its
+   * cable, the SB50 and the main breaker. The difference between the two is
+   * everything between the PDH and the RIO.
+   *
+   * <p>
+   * That difference matters more than it sounds: brownout is triggered on the
+   * RIO's own measurement, so a poor feed to the RIO browns the robot out at a
+   * battery voltage that was never actually low.
+   */
+  private static void reviewWiring(List<File> logs) throws IOException {
+    for (File log : logs) {
+      long n = 0;
+      double sumI = 0;
+      double sumRio = 0;
+      double sumPdh = 0;
+      double sumII = 0;
+      double sumIRio = 0;
+      double sumIPdh = 0;
+      double worstGap = 0;
+      double currentAtWorstGap = 0;
+
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int rioEntry = -1;
+      int pdhEntry = -1;
+      int currentEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double rio = 12;
+      double pdh = 12;
+      double total = 0;
+      double pdhTime = -1;
+      double currentTime = -1;
+      long rejected = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case BATTERY_VOLTAGE -> rioEntry = start.entry;
+              case PDH_VOLTAGE -> pdhEntry = start.entry;
+              case TOTAL_CURRENT -> currentEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == currentEntry) {
+            total = record.getDouble();
+            currentTime = record.getTimestamp() / 1e6;
+          } else if (entry == pdhEntry) {
+            pdh = record.getDouble();
+            pdhTime = record.getTimestamp() / 1e6;
+          } else if (entry == rioEntry) {
+            rio = record.getDouble();
+            double now = record.getTimestamp() / 1e6;
+            // Only pair readings taken at nearly the same moment. WPILOG records
+            // on change, so without this a fresh voltage gets paired with a
+            // current from seconds earlier, and the fit is meaningless.
+            boolean fresh = now - pdhTime < FRESH_PAIR_WINDOW && now - currentTime < FRESH_PAIR_WINDOW
+                && pdhTime > 0 && currentTime > 0;
+            if (enabled && !fresh) {
+              rejected++;
+            }
+            if (enabled && fresh && rio > 4.0 && pdh > 4.0 && total > 0 && total < 260) {
+              n++;
+              sumI += total;
+              sumRio += rio;
+              sumPdh += pdh;
+              sumII += total * total;
+              sumIRio += total * rio;
+              sumIPdh += total * pdh;
+              if (pdh - rio > worstGap) {
+                worstGap = pdh - rio;
+                currentAtWorstGap = total;
+              }
+            }
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+
+      if (n < 50) {
+        System.out.printf("%-22s only %d usable pairs of %d samples%n",
+            log.getName(), n, n + rejected);
+        continue;
+      }
+      double denominator = n * sumII - sumI * sumI;
+      double rioResistance = -(n * sumIRio - sumI * sumRio) / denominator;
+      double pdhResistance = -(n * sumIPdh - sumI * sumPdh) / denominator;
+      System.out.printf("%-22s %7d paired %7d dropped   PDH %5.1f mOhm   RIO %5.1f mOhm"
+          + "   between them %5.2f mOhm   worst gap %.2fV at %.0fA%n",
+          log.getName().replace("akit_26-04-11_", "").replace(".wpilog", "").replace("_onwel", ""),
+          n, rejected, pdhResistance * 1000, rioResistance * 1000,
+          (rioResistance - pdhResistance) * 1000, worstGap, currentAtWorstGap);
     }
   }
 
