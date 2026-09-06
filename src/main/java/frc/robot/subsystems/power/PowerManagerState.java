@@ -25,9 +25,9 @@ package frc.robot.subsystems.power;
  */
 public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
-  DEFAULT(45, 120, 60, 90),
+  DEFAULT(45, 120, 60, 90, 25),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 140, 20),
+  SHOOTING(20, 160, 140, 20, 50),
   /**
    * A long shot, where accuracy collapses in the logs. The flywheel allowance is
    * the same as {@link #SHOOTING} because it cannot use any more: a long shot
@@ -36,13 +36,13 @@ public enum PowerManagerState {
    * itself, so the drivetrain is cut harder here than anywhere else. Long shots
    * in the logs were taken on a median 7.5 V bus, against 12 V up close.
    */
-  SHOOTING_FAR(10, 160, 140, 20),
+  SHOOTING_FAR(10, 160, 140, 20, 50),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 140, 90);
+  SHOOTING_AND_INTAKING(20, 160, 140, 90, 50);
 
   /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
   public static final double FAR_SHOT_DISTANCE = 3.5;
@@ -66,12 +66,23 @@ public enum PowerManagerState {
    */
   public final double intakeSupplyCurrent;
 
+  /**
+   * Per feeder motor, supply. Two of them. The feeder is only ever given more,
+   * never less: it holds 36 - 37 rps in the logs regardless of load, and a ball
+   * entering the shooter at an inconsistent speed makes the shot inconsistent no
+   * matter how well the flywheel is holding. Its configured 25 A limit is below
+   * the 27 - 35 A it draws at high duty, so today the limiter is cutting it back
+   * under exactly the load where consistency matters most.
+   */
+  public final double feederSupplyCurrent;
+
   PowerManagerState(double driveSupplyCurrent, double flywheelStatorCurrent,
-      double flywheelSupplyCurrent, double intakeSupplyCurrent) {
+      double flywheelSupplyCurrent, double intakeSupplyCurrent, double feederSupplyCurrent) {
     this.driveSupplyCurrent = driveSupplyCurrent;
     this.flywheelStatorCurrent = flywheelStatorCurrent;
     this.flywheelSupplyCurrent = flywheelSupplyCurrent;
     this.intakeSupplyCurrent = intakeSupplyCurrent;
+    this.feederSupplyCurrent = feederSupplyCurrent;
   }
 
   /**
@@ -93,6 +104,6 @@ public enum PowerManagerState {
    * puts the shot on target.
    */
   public double drawCeiling() {
-    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent;
+    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent + 2 * feederSupplyCurrent;
   }
 }

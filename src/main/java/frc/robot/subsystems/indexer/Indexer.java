@@ -11,10 +11,11 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.utils.lib.subsystems.PowerManaged;
 import frc.robot.data.Constants.SpindexerConstants.IndexerState;
 import frc.robot.utils.lib.EpochTimer;
 
-public class Indexer extends SubsystemBase {
+public class Indexer extends SubsystemBase implements PowerManaged {
   private final IndexerIO io;
   private final IndexerIOInputsAutoLogged inputs = new IndexerIOInputsAutoLogged();
 
@@ -23,6 +24,16 @@ public class Indexer extends SubsystemBase {
 
   @AutoLogOutput(key = "Indexer/Feeder Goal Velocity")
   private double feederGoalVelocity = 0;
+
+  /**
+   * Applies a supply current limit to the feeder motors only. The spindexer is
+   * left alone: it is not in the shot path, and its limits are already the
+   * loosest on the robot. Runs on the PowerManager thread, not the main loop.
+   */
+  @Override
+  public boolean applyCurrentLimits(double supplyCurrentLimit) {
+    return io.setFeederSupplyCurrentLimit(supplyCurrentLimit);
+  }
 
   public Indexer(IndexerIO io) {
     this.io = io;
