@@ -96,6 +96,7 @@ public final class LogReview {
       case "shots" -> reviewShots(logs);
       case "gate" -> reviewGate(logs);
       case "modes" -> reviewModes(logs);
+      case "recovery" -> reviewRecovery(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -1174,6 +1175,139 @@ public final class LogReview {
             : String.format("%.1f (%.0f)", modes[i].mean(), modes[i].peak));
       }
       System.out.println();
+    }
+  }
+
+  /**
+   * Works out whether the new current limits would let the flywheel recover fast
+   * enough to shoot, by identifying the wheel's real acceleration per amp from
+   * the logs and then re-running each measured dip under the new ceilings.
+   *
+   * <p>
+   * The identification is the honest part: for every stretch where the wheel is
+   * accelerating back towards its goal, {@code alpha / current} gives
+   * {@code torqueConstant / inertia} directly, with no need to know either. What
+   * follows from it is an estimate, and it assumes the battery holds up.
+   */
+  private static void reviewRecovery(List<File> logs) throws IOException {
+    // Identified from the logs below.
+    List<double[]> accelSamples = new ArrayList<>();
+    // Each measured dip: how deep, and how long it took to come back.
+    List<double[]> dips = new ArrayList<>();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int goalEntry = -1;
+      int motorEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double goal = 0;
+      double lastSpeed = Double.NaN;
+      double lastTime = Double.NaN;
+      double dipStart = -1;
+      double dipDepth = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          if (record.getEntry() == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (record.getEntry() == goalEntry) {
+            goal = record.getDouble();
+          } else if (enabled && record.getEntry() == motorEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+            double stator = Math.abs(buf.getDouble(STATOR_CURRENT_OFFSET));
+            double now = record.getTimestamp() / 1e6;
+
+            if (!Double.isNaN(lastSpeed) && now - lastTime > 0.005 && now - lastTime < 0.06) {
+              double alpha = (speed - lastSpeed) / (now - lastTime);
+              // Only stretches that are genuinely accelerating under real
+              // current, and below goal so the controller is asking for all of
+              // it rather than holding station.
+              if (alpha > 20 && stator > 20 && goal > 1 && speed < goal - 2) {
+                accelSamples.add(new double[] { alpha, stator, speed });
+              }
+            }
+
+            if (goal > 1) {
+              double error = goal - speed;
+              if (error > 3 && dipStart < 0) {
+                dipStart = now;
+                dipDepth = error;
+              } else if (dipStart >= 0) {
+                dipDepth = Math.max(dipDepth, error);
+                if (error < 2) {
+                  dips.add(new double[] { dipDepth, now - dipStart, goal });
+                  dipStart = -1;
+                } else if (now - dipStart > 3.0) {
+                  dipStart = -1;
+                }
+              }
+            }
+            lastSpeed = speed;
+            lastTime = now;
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (accelSamples.isEmpty() || dips.isEmpty()) {
+      System.out.println("not enough recovery data in these logs");
+      return;
+    }
+
+    // rps per second, per amp of stator current
+    List<Double> ratios = new ArrayList<>(
+        accelSamples.stream().map(sample -> sample[0] / sample[1]).sorted().toList());
+    double accelPerAmp = ratios.get(ratios.size() / 2);
+    System.out.printf("identified from %d accelerating samples: %.3f rps/s per amp of stator%n",
+        accelSamples.size(), accelPerAmp);
+    System.out.printf("  so 75A gives %.0f rps/s, 160A gives %.0f rps/s%n%n",
+        75 * accelPerAmp, 160 * accelPerAmp);
+
+    // Today the 60A supply limit binds first. At high duty supply is close to
+    // stator, so the effective stator ceiling is near the supply limit.
+    double effectiveNow = 75;
+    double effectiveNew = 160;
+
+    System.out.printf("%d measured dips. Recovery time to come back within 2 rps.%n", dips.size());
+    System.out.printf("The model column is what the identified acceleration predicts at today's%n"
+        + "effective ceiling. Where measured runs far above it, the wheel was not getting%n"
+        + "the current the limit allows -- it had no voltage left to push it, and raising%n"
+        + "the limit cannot help those.%n%n");
+    System.out.printf("  %-14s %8s %12s %12s %14s%n",
+        "dip depth", "dips", "measured", "model now", "model at 160A");
+    for (double low = 3; low < 30; low += 5) {
+      final double lo = low;
+      List<double[]> inBucket = dips.stream()
+          .filter(dip -> dip[0] >= lo && dip[0] < lo + 5).toList();
+      if (inBucket.size() < 5) {
+        continue;
+      }
+      List<Double> times = new ArrayList<>(inBucket.stream().map(dip -> dip[1]).sorted().toList());
+      double measured = times.get(times.size() / 2);
+      double depth = inBucket.stream().mapToDouble(dip -> dip[0]).average().orElse(0);
+      double predictedNow = depth / (effectiveNow * accelPerAmp);
+      double predictedNew = depth / (effectiveNew * accelPerAmp);
+      System.out.printf("  %4.0f-%4.0f rps %8d %11.2fs %11.2fs %13.2fs%s%n",
+          low, low + 5, inBucket.size(), measured, predictedNow, predictedNew,
+          measured > predictedNow * 2 ? "   <- voltage limited, not current limited" : "");
     }
   }
 
