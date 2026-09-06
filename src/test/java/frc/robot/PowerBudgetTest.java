@@ -102,8 +102,11 @@ public class PowerBudgetTest {
     // intaking happens must leave it clear of that.
     assertTrue(PowerManagerState.DEFAULT.intakeSupplyCurrent > 84,
         "DEFAULT must not clamp the intake below its measured peak");
-    assertTrue(PowerManagerState.SHOOTING_AND_INTAKING.intakeSupplyCurrent > 84,
-        "SHOOTING_AND_INTAKING must not clamp the intake -- a pile is when it needs torque");
+    // Shooting while intaking is done at low speed, so it does not need the
+    // allowance reserved for driving hard into a pile. It must still stay well
+    // clear of the 13.6A it draws there and of the 35A limit that used to bog it.
+    assertTrue(PowerManagerState.SHOOTING_AND_INTAKING.intakeSupplyCurrent > 40,
+        "SHOOTING_AND_INTAKING must leave the intake clear of the 35A that used to bog it");
   }
 
 }
