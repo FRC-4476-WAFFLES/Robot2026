@@ -27,12 +27,28 @@ public class StickCurveTest {
   }
 
   @Test
+  void aStickThatCannotQuiteReachTheEndStillGivesFullSpeed() {
+    // A thumbstick often tops out below 1.0, worse on a diagonal and worse as it
+    // wears. Without an upper deadband the driver pushes as hard as the stick
+    // goes and never gets full speed. Team 581 uses the same 0.95.
+    assertEquals(1.0, Controls.applyCurve(Controls.UPPER_DEADBAND, Controls.TRANSLATION_CURVE), 1e-9,
+        "a stick at the upper deadband must count as full");
+    assertEquals(1.0, Controls.applyCurve(0.97, Controls.ROTATION_CURVE), 1e-9,
+        "past the upper deadband must stay at full, not exceed it");
+
+    var velocity = Controls.getLinearVelocityFromJoysticks(0.67, 0.67);
+    assertEquals(1.0, velocity.getNorm(), 0.02,
+        "a diagonal that cannot quite reach the corner should still give full speed");
+  }
+
+  @Test
   void theCurveIsMonotonic() {
     // A curve that dips would mean pushing the stick further sometimes slows the
     // robot down, which is far worse than any amount of twitchiness.
     for (double curve : new double[] { 0.0, 0.5, 0.7, 1.0 }) {
       double previous = -1.1;
-      for (double input = -1.0; input <= 1.0; input += 0.01) {
+      // Stop short of the upper deadband, where the curve deliberately plateaus.
+      for (double input = -0.94; input <= 0.94; input += 0.01) {
         double output = Controls.applyCurve(input, curve);
         assertTrue(output > previous,
             String.format("curve %.1f is not monotonic near %.2f", curve, input));
@@ -54,6 +70,36 @@ public class StickCurveTest {
           Controls.applyCurve(input, Controls.TRANSLATION_CURVE),
           Controls.applyRotationCurve(input));
     }
+  }
+
+  @Test
+  void fullStickGivesFullSpeedInEveryDirection() {
+    // A square-gated stick reads 1.0 on both axes at full diagonal, so the raw
+    // magnitude is 1.414 -- above full scale. It has to come out as full speed
+    // in that direction, not as 1.414 times full speed and not as less than
+    // full speed either.
+    System.out.printf("%18s %10s %10s%n", "stick", "magnitude", "heading");
+    double[][] directions = { { 0, 1 }, { 1, 0 }, { 1, 1 }, { -1, 1 }, { 0.707, 0.707 } };
+    for (double[] d : directions) {
+      var velocity = Controls.getLinearVelocityFromJoysticks(d[0], d[1]);
+      double magnitude = velocity.getNorm();
+      System.out.printf("  (%5.2f, %5.2f) %13.3f %9.1f deg%n",
+          d[0], d[1], magnitude, velocity.getAngle().getDegrees());
+      assertEquals(1.0, magnitude, 0.02,
+          String.format("full stick at (%.2f, %.2f) should give full speed", d[0], d[1]));
+      assertEquals(Math.toDegrees(Math.atan2(d[1], d[0])), velocity.getAngle().getDegrees(), 0.5,
+          "the curve must not bend the direction the robot travels");
+    }
+  }
+
+  @Test
+  void halfStickOnTheDiagonalIsStillCurved() {
+    // The magnitude is what gets shaped, so a half-deflected diagonal should be
+    // softened by the same amount a half-deflected straight push is.
+    double straight = Controls.getLinearVelocityFromJoysticks(0.0, 0.5).getNorm();
+    double diagonal = Controls.getLinearVelocityFromJoysticks(0.354, 0.354).getNorm();
+    assertEquals(straight, diagonal, 0.02,
+        "the same stick distance should give the same speed whichever way it is pushed");
   }
 
   @Test
