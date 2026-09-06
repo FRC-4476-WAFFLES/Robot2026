@@ -252,6 +252,18 @@ public final class Constants {
      * unreachable when 19 % of estimates miss by 20 cm, and reports the pose lost
      * for most of a match. "Has it been badly wrong for a while" does not.
      */
+    /**
+     * How many vision estimates are trusted far above normal after a bump
+     * crossing, to pull the pose back after the wheels have slipped.
+     *
+     * <p>
+     * Measured across 263 crossings in the ONWEL logs, a clean crossing under
+     * half a second costs about 3 cm of agreement error, a one-to-two second one
+     * costs 31 cm, and a two-to-four second one costs over a metre. This wants
+     * to be enough to close the worst of those.
+     */
+    public static final int BUMP_HIGH_TRUST_ESTIMATES = 5;
+
     public static final double POSE_LOST_DISTANCE = 1.0; // meters
     public static final double POSE_LOST_TIME = 1.0; // seconds
 

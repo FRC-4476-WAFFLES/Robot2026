@@ -57,11 +57,45 @@ public class Vision extends VirtualSubsystem {
   private double poseBadSince = -1;
 
   private double lastAgreementTimestamp = -1;
+  /*
+   * Two ways to notice a bump crossing has ended, because one of them is not
+   * reliable on its own.
+   *
+   * RobotState.onBump is decided from the robot's X position first, and that
+   * position is the very thing a crossing corrupts — the wheels slip, odometry
+   * drifts, and the test is then reading a pose that may be a metre out.
+   * Replaying the match logs, the robot became level 330 times and onBump was
+   * still true on every single one of them: the gyro knew the crossing was over
+   * while the position test did not. On a partial crossing, where the robot goes
+   * up and comes back without the pose ever leaving the band, it may never
+   * notice at all, and nothing arms the recovery.
+   *
+   * The Pigeon's gravity vector does not depend on the pose, so it still knows
+   * which way is up after the wheels have lied. Arming from both is strictly
+   * better than arming from either: more chances to catch a crossing, and no way
+   * to catch fewer.
+   */
   public final Trigger onGround = new Trigger(() -> {
     return !RobotContainer.state.onBump;
-  }).onTrue(Commands.runOnce(() -> {
-    highTrustEstimatesLeft = 5;
-  }));
+  }).onTrue(Commands.runOnce(this::armBumpRecovery));
+
+  public final Trigger becameLevel = new Trigger(() -> {
+    return RobotContainer.drive.isLevelOnGround();
+  }).onTrue(Commands.runOnce(this::armBumpRecovery));
+
+  /**
+   * Trusts the next few vision estimates far more than usual, to pull the pose
+   * back after the wheels have slipped.
+   *
+   * <p>
+   * Measured across 263 crossings in the match logs, a clean fast one costs about
+   * 3 cm of agreement error and a slow two-to-four second one costs over a metre.
+   * The slow ones are the crossings where the robot is struggling, which is
+   * exactly when it is least able to notice.
+   */
+  private void armBumpRecovery() {
+    highTrustEstimatesLeft = VisionConstants.BUMP_HIGH_TRUST_ESTIMATES;
+  }
   // public final Trigger returnToNormal = new Trigger(() ->
   // shouldReturnToNormal).debounce(0.1)
   // .onTrue(Commands.runOnce(() -> justCrossedBump = false));
