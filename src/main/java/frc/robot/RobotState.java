@@ -300,6 +300,11 @@ public class RobotState {
     return isShooting;
   }
 
+  /** True while the robot is trying to pick balls up. */
+  public boolean isIntaking() {
+    return isIntaking;
+  }
+
   public boolean isManualMode() {
     return manualMode;
   }

@@ -49,6 +49,8 @@ public final class LogReview {
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
   private static final String SHOOTING = "/RealOutputs/RobotState/Shooting";
+  private static final String INTAKING = "/RealOutputs/RobotState/Intaking";
+  private static final String AUTONOMOUS = "/DriverStation/Autonomous";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
   private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
@@ -92,6 +94,7 @@ public final class LogReview {
       case "shooter" -> reviewShooter(logs);
       case "shots" -> reviewShots(logs);
       case "gate" -> reviewGate(logs);
+      case "modes" -> reviewModes(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -1016,6 +1019,87 @@ public final class LogReview {
                 : String.format("%.2fs", closedDurations.get(closedDurations.size() / 2)),
             brief);
       }
+    }
+  }
+
+  /**
+   * Splits every managed motor's supply current by what the robot was doing, so a
+   * budget can be set from what a mechanism actually needs in each mode rather
+   * than from its worst case across the whole match.
+   */
+  private static void reviewModes(List<File> logs) throws IOException {
+    // mode index: 0 auto, 1 teleop shooting, 2 teleop intaking, 3 teleop both, 4
+    // teleop neither
+    String[] modeNames = { "auto", "shooting", "intaking", "shoot+intake", "idle" };
+    Map<String, Draw[]> draws = new HashMap<>();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> talons = new HashMap<>();
+      int enabledEntry = -1;
+      int autoEntry = -1;
+      int shootEntry = -1;
+      int intakeEntry = -1;
+      boolean enabled = false;
+      boolean auto = false;
+      boolean shooting = false;
+      boolean intaking = false;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.name.equals(AUTONOMOUS)) {
+              autoEntry = start.entry;
+            } else if (start.name.equals(SHOOTING)) {
+              shootEntry = start.entry;
+            } else if (start.name.equals(INTAKING)) {
+              intakeEntry = start.entry;
+            } else if (start.type.equals("struct:TalonFXIOData")) {
+              talons.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == autoEntry) {
+            auto = record.getBoolean();
+          } else if (entry == shootEntry) {
+            shooting = record.getBoolean();
+          } else if (entry == intakeEntry) {
+            intaking = record.getBoolean();
+          } else if (enabled && talons.containsKey(entry)) {
+            int mode = auto ? 0 : shooting && intaking ? 3 : shooting ? 1 : intaking ? 2 : 4;
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            draws.computeIfAbsent(talons.get(entry), k -> newBuckets())[mode]
+                .add(Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET)), false);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    System.out.printf("supply current by mode, mean over samples with peak in brackets%n%n");
+    System.out.printf("%-30s", "motor");
+    for (String mode : modeNames) {
+      System.out.printf("%18s", mode);
+    }
+    System.out.println();
+    for (String motor : new TreeSet<>(draws.keySet())) {
+      Draw[] modes = draws.get(motor);
+      System.out.printf("%-30s", motor);
+      for (int i = 0; i < modeNames.length; i++) {
+        System.out.printf("%18s", modes[i].count == 0 ? "-"
+            : String.format("%.1f (%.0f)", modes[i].mean(), modes[i].peak));
+      }
+      System.out.println();
     }
   }
 

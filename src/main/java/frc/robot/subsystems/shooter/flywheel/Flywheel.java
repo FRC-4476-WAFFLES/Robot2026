@@ -84,7 +84,17 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
    */
   @Override
   public boolean applyCurrentLimits(double supplyCurrentLimit) {
-    return io.setSupplyCurrentLimit(supplyCurrentLimit);
+    return applyCurrentLimits(FlywheelConstants.MOTOR_STATOR_CURRENT_LIMIT, supplyCurrentLimit);
+  }
+
+  /**
+   * The flywheel needs its stator limit managed as well as its supply limit.
+   * Stator current is what accelerates the wheel back to speed after a ball, and
+   * measured stator peaks sit right at the configured ceiling, so raising only
+   * the supply limit would not give it any more recovery.
+   */
+  public boolean applyCurrentLimits(double statorCurrentLimit, double supplyCurrentLimit) {
+    return io.setCurrentLimits(statorCurrentLimit, supplyCurrentLimit);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {

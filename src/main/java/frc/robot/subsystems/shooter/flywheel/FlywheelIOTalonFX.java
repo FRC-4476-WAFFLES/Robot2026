@@ -60,11 +60,11 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   }
 
   @Override
-  public boolean setSupplyCurrentLimit(double supplyCurrentLimit) {
-    // The stator limit is repeated because applying a CurrentLimitsConfigs
-    // replaces the whole group, not just the field being changed.
+  public boolean setCurrentLimits(double statorCurrentLimit, double supplyCurrentLimit) {
+    // Applying a CurrentLimitsConfigs replaces the whole group, so both limits
+    // are always written together.
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-        .withStatorCurrentLimit(Constants.FlywheelConstants.MOTOR_STATOR_CURRENT_LIMIT)
+        .withStatorCurrentLimit(statorCurrentLimit)
         .withStatorCurrentLimitEnable(true)
         .withSupplyCurrentLimit(supplyCurrentLimit)
         .withSupplyCurrentLimitEnable(true);

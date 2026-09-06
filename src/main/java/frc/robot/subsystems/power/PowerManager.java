@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -18,7 +19,6 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
-import frc.robot.utils.lib.subsystems.PowerManaged;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 /**
@@ -71,11 +71,15 @@ public class PowerManager extends VirtualSubsystem {
   private final Alert divergenceAlert = new Alert("Power limits did not apply; check CAN", AlertType.kWarning);
   private double divergentSince = Double.NaN;
 
-  /** One mechanism's share of a budget. */
+  /**
+   * One mechanism's share of a budget. {@code supplyLimit} is only used to order
+   * the writes; {@code apply} carries whatever set of limits that mechanism
+   * actually needs, which for the flywheel is two numbers rather than one.
+   */
   private record Share(
       String name,
-      PowerManaged mechanism,
-      double limit
+      double supplyLimit,
+      BooleanSupplier apply
   ) {}
 
   @Override
@@ -111,7 +115,11 @@ public class PowerManager extends VirtualSubsystem {
    * that scores and one that falls short.
    */
   private PowerManagerState chooseState() {
-    if (RobotContainer.state.isShooting()) {
+    boolean shooting = RobotContainer.state.isShooting();
+    if (shooting && RobotContainer.state.isIntaking()) {
+      return PowerManagerState.SHOOTING_AND_INTAKING;
+    }
+    if (shooting) {
       return PowerManagerState.SHOOTING;
     }
     return PowerManagerState.DEFAULT;
@@ -139,20 +147,25 @@ public class PowerManager extends VirtualSubsystem {
     }
 
     List<Share> shares = new ArrayList<>(List.of(
-        new Share("Drive", RobotContainer.drive, target.driveSupplyCurrent),
-        new Share("Flywheel", RobotContainer.flywheel, target.flywheelSupplyCurrent)));
+        new Share("Drive", target.driveSupplyCurrent,
+            () -> RobotContainer.drive.applyCurrentLimits(target.driveSupplyCurrent)),
+        new Share("Flywheel", target.flywheelSupplyCurrent,
+            () -> RobotContainer.flywheel.applyCurrentLimits(
+                target.flywheelStatorCurrent, target.flywheelSupplyCurrent)),
+        new Share("Intake", target.intakeSupplyCurrent,
+            () -> RobotContainer.intake.applyCurrentLimits(target.intakeSupplyCurrent))));
 
     // Write the reductions first so a half-applied transition is under budget
     // rather than over it.
     if (previous != null) {
-      shares.removeIf(share -> share.limit() == limitFor(previous, share.name()));
+      shares.removeIf(share -> share.supplyLimit() == limitFor(previous, share.name()));
       shares.sort(Comparator.comparingDouble(
-          share -> share.limit() < limitFor(previous, share.name()) ? 0 : 1));
+          share -> share.supplyLimit() < limitFor(previous, share.name()) ? 0 : 1));
     }
 
     boolean allApplied = true;
     for (Share share : shares) {
-      allApplied &= share.mechanism().applyCurrentLimits(share.limit());
+      allApplied &= share.apply().getAsBoolean();
     }
     // Only claim the state is in force if every write actually landed, so the
     // retry above keeps trying and the alert stays up until it is true.
@@ -165,6 +178,7 @@ public class PowerManager extends VirtualSubsystem {
     return switch (name) {
       case "Drive" -> state.driveSupplyCurrent;
       case "Flywheel" -> state.flywheelSupplyCurrent;
+      case "Intake" -> state.intakeSupplyCurrent;
       default -> throw new IllegalArgumentException("no budget column for " + name);
     };
   }
