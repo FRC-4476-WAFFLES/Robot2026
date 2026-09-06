@@ -35,8 +35,17 @@ public enum PowerManagerState {
    * left to drive recovery current. What actually helps is the bus voltage
    * itself, so the drivetrain is cut harder here than anywhere else. Long shots
    * in the logs were taken on a median 7.5 V bus, against 12 V up close.
+   *
+   * <p>
+   * The ball path is capped here too, and only here. A 20 A ceiling sits at what
+   * the feeder averages anyway, so it does not slow a normal feed — it clips the
+   * peaks, which reach 84 A on the feeder and 64 A on the spindexer, and peaks
+   * are what sag the bus. Replaying the logs, that is worth about three more
+   * landed shots in 184 on top of the drivetrain cap. Cutting harder than this
+   * buys three more and guts the feed for it, which is a bad trade even on a
+   * long shot: a slow feed still scores, an inconsistent one does not.
    */
-  SHOOTING_FAR(10, 160, 140, 20, 25, 90),
+  SHOOTING_FAR(10, 160, 140, 20, 20, 20),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
