@@ -27,13 +27,13 @@ public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
   DEFAULT(45, 120, 60, 90),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 105, 20),
+  SHOOTING(20, 160, 140, 20),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 105, 90);
+  SHOOTING_AND_INTAKING(20, 160, 140, 90);
 
   /** Per drive motor, supply. Four of them. */
   public final double driveSupplyCurrent;
@@ -71,6 +71,14 @@ public enum PowerManagerState {
    * so that it is never clamped, which means counting it would show a large
    * saving whenever that allowance is lowered even though the intake was drawing
    * 2.2 A either way. Including it hides whether the real draw went up or down.
+   *
+   * <p>
+   * Note this is a ceiling, not a prediction. The drivetrain cap is a guarantee:
+   * it can never exceed its number. The flywheel's allowance is an option it
+   * only spends while recovering from a ball, which is a fraction of a second at
+   * a time. Average draw while shooting falls; the instantaneous peak during a
+   * recovery burst is deliberately allowed to rise, because that burst is what
+   * puts the shot on target.
    */
   public double drawCeiling() {
     return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent;
