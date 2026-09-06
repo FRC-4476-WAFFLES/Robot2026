@@ -231,6 +231,45 @@ a calibration path rather than a sensitivity, and inverting it there is not
 valid. Getting a tolerance for those distances needs either real projectile
 physics or more video points.
 
+### Where we shoot from, and where accuracy falls off
+
+159 hub shots across the ONWEL logs, from `./gradlew logReview --args="shots <dir>"`.
+"Within 4 rps" is the share of shots whose flywheel was close enough to land
+inside about half a metre:
+
+| Distance | Shots | Median deficit | Within 4 rps | Median battery |
+|---|---|---|---|---|
+| 1.0 – 1.5 m | 4 | 0.2 rps | 100 % | 12.16 V |
+| 1.5 – 2.0 m | 28 | 1.7 rps | 79 % | 11.99 V |
+| 2.0 – 2.5 m | 47 | 0.9 rps | 87 % | 11.73 V |
+| 2.5 – 3.0 m | 23 | 1.4 rps | 78 % | 11.62 V |
+| 3.0 – 3.5 m | 18 | 0.4 rps | 83 % | 11.07 V |
+| **3.5 – 4.0 m** | 18 | 3.4 rps | **56 %** | 10.59 V |
+| **4.0 – 4.5 m** | 11 | 9.8 rps | **18 %** | 7.52 V |
+| **4.5 – 5.0 m** | 8 | 17.5 rps | **13 %** | 10.19 V |
+
+Range is 1.30 m to 9.21 m, but 73 % of hub shots are inside 3.5 m.
+
+**Accuracy falls off a cliff at exactly 3.5 m**, which matches what the drive team
+reports independently. And the median battery voltage falls with distance, from
+12.0 V close in to 7.5 V at 4 – 4.5 m. Longer shots need more flywheel, more
+flywheel means more current, and the resulting sag is what starves the shot. The
+shooter creates the conditions that ruin its own long shots.
+
+**This is the metric to move.** If a power budget works, the cliff moves outward.
+
+### Recovery is not a tuning problem
+
+`kP` is 11 amps per rps, and `RECOVERY_FF_PER_RPS` adds another 10. During a
+20 rps dip the controller asks for roughly 420 A against a 120 A stator limit —
+saturated more than threefold. The gains are not doing anything during recovery;
+the motor is simply flat out.
+
+Two things follow. Raising the current ceiling **cannot** upset the tune, because
+the tune only operates near setpoint where the demand is ~20 A. And there is
+nothing to tune for recovery — the only lever is the ceiling. That removes the
+need to simulate before changing it.
+
 ### What a tighter gate would cost
 
 Fraction of time the wheel was within a given tolerance of its goal. Debounce is
