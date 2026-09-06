@@ -58,6 +58,29 @@ public class PowerManager extends VirtualSubsystem {
   private static final double DIVERGENCE_ALERT_TIME = 1.0;
   /** How often to retry a budget that did not fully apply. */
   private static final double RETRY_PERIOD = 0.5;
+  /**
+   * Stick deflection past which the driver is taken to be going somewhere rather
+   * than nudging into place, and the drivetrain is given back in full. Set high
+   * enough that lining up a shot does not trip it.
+   */
+  private static final double ESCAPE_DEMAND = 0.7;
+  /**
+   * How long the shooting budget is held after the robot last fired.
+   *
+   * <p>
+   * The budget is keyed to firing rather than to being ready to fire, so the
+   * drivetrain is never weak while merely driving around spun up. That works
+   * because the cap is not there to prevent the dip — the dip is the ball taking
+   * energy out of the wheel, and nothing electrical stops that. It is there to
+   * hold the bus up during the recovery afterwards, which the logs put at 0.06 s
+   * for a normal dip and up to 0.6 s for a deep one. A configuration write lands
+   * well inside that.
+   *
+   * <p>
+   * The hold also stops the budget thrashing between states during a burst,
+   * which would put a pair of blocking CAN writes on the bus for every ball.
+   */
+  private static final double SHOT_HOLD_TIME = 1.0;
 
   private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
     Thread thread = new Thread(runnable, "PowerManager");
@@ -71,6 +94,7 @@ public class PowerManager extends VirtualSubsystem {
 
   private final Alert divergenceAlert = new Alert("Power limits did not apply; check CAN", AlertType.kWarning);
   private double divergentSince = Double.NaN;
+  private double shotHeldUntil = Double.NEGATIVE_INFINITY;
 
   /**
    * One mechanism's share of a budget. {@code supplyLimit} is only used to order
@@ -100,6 +124,8 @@ public class PowerManager extends VirtualSubsystem {
     Logger.recordOutput("Power/Requested State", state.toString());
     Logger.recordOutput("Power/Applied State", inForce == null ? "NONE" : inForce.toString());
     Logger.recordOutput("Power/Draw Ceiling (A)", state.drawCeiling());
+    Logger.recordOutput("Power/Driver Override",
+        !RobotContainer.state.joysticksFree(ESCAPE_DEMAND));
 
     if (inForce == state) {
       divergentSince = Double.NaN;
@@ -111,13 +137,35 @@ public class PowerManager extends VirtualSubsystem {
   }
 
   /**
-   * Picks the budget for what the robot is doing. Shooting takes priority: a
-   * flywheel that cannot recover between balls is the difference between a shot
-   * that scores and one that falls short.
+   * Picks the budget for what the robot is doing.
+   *
+   * <p>
+   * The trigger is firing, held for {@link #SHOT_HOLD_TIME} afterwards. Two
+   * earlier triggers were measured and rejected. A flywheel goal is set a median
+   * of 7 s before the shot, and the wheel is nearly at speed a median of 1.1 s
+   * before it — either would leave the drivetrain weak while driving around the
+   * shooting zone spun up, which is exactly when a defended robot needs it.
+   *
+   * <p>
+   * Firing gives no warning at all: {@code RobotState/Shooting} goes true in the
+   * same loop the ball leaves. That is fine, because the cap is not trying to
+   * prevent the dip. It is holding the bus up for the recovery afterwards, and
+   * the wheel does not start dropping until a median of 0.2 s after the command
+   * in any case.
    */
   private PowerManagerState chooseState() {
-    boolean shooting = RobotContainer.state.isShooting();
-    if (!shooting) {
+    // The driver always wins. A robot pinned in its own zone with a spun-up
+    // flywheel must not be the robot that cannot drive out, so a hard shove on
+    // the sticks hands the drivetrain straight back. A shot taken while moving
+    // gently still gets the budget; one taken while fighting to escape does not,
+    // which is the right way round.
+    if (!RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
+      return PowerManagerState.DEFAULT;
+    }
+    if (RobotContainer.state.isShooting()) {
+      shotHeldUntil = Timer.getTimestamp() + SHOT_HOLD_TIME;
+    }
+    if (Timer.getTimestamp() > shotHeldUntil) {
       return PowerManagerState.DEFAULT;
     }
     // Intaking outranks distance: being dragged down in a pile is the one case

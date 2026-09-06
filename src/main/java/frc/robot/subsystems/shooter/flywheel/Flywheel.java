@@ -78,6 +78,29 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
     return flywheelAtSetpoint.getAsBoolean();
   }
 
+  /** The speed the flywheel is being asked for, or 0 if it is not being used. */
+  public double getGoalVelocity() {
+    return flywheelGoalVelocity;
+  }
+
+  /**
+   * True once the wheel is close enough to its goal that a shot is imminent.
+   *
+   * <p>
+   * This is deliberately looser than {@link #atSetpoint}, and it exists for
+   * {@code PowerManager} rather than for firing. In the match logs the wheel
+   * reaches this state a median of 1.1 s before the ball leaves, against 7 s for
+   * the goal merely being set, so a budget keyed to it hands the battery over
+   * shortly before the shot instead of for the whole approach. The drivetrain
+   * stays at full strength while driving into position.
+   */
+  @AutoLogOutput(key = "Flywheel/Nearly Ready")
+  public boolean nearlyReady() {
+    return flywheelGoalVelocity > 1.0
+        && Math.abs(
+            inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < FlywheelConstants.NEARLY_READY_TOLERANCE;
+  }
+
   /**
    * Runs on the PowerManager thread, not the main loop — the IO layer's write is
    * a blocking CAN call.

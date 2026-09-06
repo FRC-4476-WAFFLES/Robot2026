@@ -50,6 +50,7 @@ public final class LogReview {
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
   private static final String SHOOTING = "/RealOutputs/RobotState/Shooting";
+  private static final String SHOOTER_HUB_COMMAND = "/RealOutputs/Commands/Shooter Hub";
   private static final String INTAKING = "/RealOutputs/RobotState/Intaking";
   private static final String AUTONOMOUS = "/DriverStation/Autonomous";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
@@ -97,6 +98,7 @@ public final class LogReview {
       case "gate" -> reviewGate(logs);
       case "modes" -> reviewModes(logs);
       case "recovery" -> reviewRecovery(logs);
+      case "leadtime" -> reviewLeadTime(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -746,6 +748,7 @@ public final class LogReview {
     List<double[]> hubShots = new ArrayList<>();
     List<Double> dips = new ArrayList<>();
     List<double[]> feederVsDip = new ArrayList<>();
+    List<Double> dipDelays = new ArrayList<>();
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
@@ -812,6 +815,13 @@ public final class LogReview {
             ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
             speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
             if (pending != null) {
+              // When the wheel first starts giving up speed. This is the window
+              // a limit change has to land in if it is triggered by the fire
+              // command itself.
+              if (pending[9] < 0 && speed < pending[3] - 2.0) {
+                pending[9] = record.getTimestamp() / 1e6 - fireStart;
+                dipDelays.add(pending[9]);
+              }
               pending[5] = Math.min(pending[5], speed);
               pending[6] = speed;
               pending[7] = record.getTimestamp() / 1e6 - fireStart;
@@ -842,7 +852,7 @@ public final class LogReview {
               if (state.contains("HUB")) {
                 hubShots.add(new double[] { distance, Math.abs(goal - speed), battery });
               }
-              pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0, feederSpeed };
+              pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0, feederSpeed, -1 };
               pendingState = state;
             }
             if (firing && !nowFiring && pending != null) {
@@ -881,6 +891,20 @@ public final class LogReview {
       }
       System.out.printf("  median %.1f rps, 90th percentile %.1f rps%n",
           deficits.get(deficits.size() / 2), deficits.get(deficits.size() * 9 / 10));
+    }
+
+    if (!dipDelays.isEmpty()) {
+      Collections.sort(dipDelays);
+      System.out.printf("%ndelay from the fire command to the wheel starting to drop, %d shots%n",
+          dipDelays.size());
+      System.out.printf("  median %.3fs   25th %.3fs   10th %.3fs   shortest %.3fs%n",
+          dipDelays.get(dipDelays.size() / 2), dipDelays.get(dipDelays.size() / 4),
+          dipDelays.get(dipDelays.size() / 10), dipDelays.get(0));
+      for (double bound : new double[] { 0.05, 0.10, 0.20 }) {
+        long under = dipDelays.stream().filter(d -> d < bound).count();
+        System.out.printf("  %d of %d (%.0f%%) dropped within %.2fs of the command%n",
+            under, dipDelays.size(), 100.0 * under / dipDelays.size(), bound);
+      }
     }
 
     if (!feederVsDip.isEmpty()) {
@@ -1309,6 +1333,203 @@ public final class LogReview {
           low, low + 5, inBucket.size(), measured, predictedNow, predictedNew,
           measured > predictedNow * 2 ? "   <- voltage limited, not current limited" : "");
     }
+  }
+
+  /**
+   * Answers when the drivetrain limit would need to be applied to be any use.
+   *
+   * <p>
+   * Two numbers decide it. How long after the robot decides it is shooting the
+   * first ball actually leaves, which is the lead time available for a blocking
+   * CAN write to land. And how much the drivetrain is drawing in the moment
+   * before a shot, because a cap on a drivetrain that is already idle saves
+   * nothing.
+   */
+  private static void reviewLeadTime(List<File> logs) throws IOException {
+    // Each candidate trigger, and how long before the ball leaves it fires.
+    Map<String, List<Double>> leads = new java.util.LinkedHashMap<>();
+    leads.put("RobotState/Shooting", new ArrayList<>());
+    leads.put("flywheel goal set", new ArrayList<>());
+    leads.put("Commands/Shooter Hub", new ArrayList<>());
+    leads.put("flywheel within 10 rps", new ArrayList<>());
+    leads.put("flywheel within 4 rps", new ArrayList<>());
+    leads.put("autopilot aligning", new ArrayList<>());
+    List<Double> driveBeforeShot = new ArrayList<>();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> driveSupply = new HashMap<>();
+      int shootEntry = -1;
+      int goalEntry = -1;
+      int hubEntry = -1;
+      int motorEntry = -1;
+      int activeEntry = -1;
+      int fireEntry = -1;
+      double goal = 0;
+      int enabledEntry = -1;
+      int batteryEntry = -1;
+      boolean enabled = false;
+      boolean shooting = false;
+      boolean firing = false;
+      double battery = 12;
+      Map<String, Double> since = new HashMap<>();
+      boolean countedThisBurst = false;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(SHOOTING)) {
+              shootEntry = start.entry;
+            } else if (start.name.equals(FLYWHEEL_GOAL)) {
+              goalEntry = start.entry;
+            } else if (start.name.equals(SHOOTER_HUB_COMMAND)) {
+              hubEntry = start.entry;
+            } else if (start.name.equals(FLYWHEEL_MOTOR)) {
+              motorEntry = start.entry;
+            } else if (start.name.equals(ACTIVE)) {
+              activeEntry = start.entry;
+            } else if (start.name.equals(FIRE_SHOT)) {
+              fireEntry = start.entry;
+            } else if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.name.equals(BATTERY_VOLTAGE)) {
+              batteryEntry = start.entry;
+            } else if (start.name.endsWith("DriveCurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("DriveAppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          double now = record.getTimestamp() / 1e6;
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (entry == shootEntry) {
+            boolean nowShooting = record.getBoolean();
+            if (nowShooting && !shooting) {
+              since.put("RobotState/Shooting", now);
+              countedThisBurst = false;
+            } else if (!nowShooting) {
+              since.remove("RobotState/Shooting");
+            }
+            shooting = nowShooting;
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+            if (goal > 1.0) {
+              since.putIfAbsent("flywheel goal set", now);
+            } else {
+              since.remove("flywheel goal set");
+              since.remove("flywheel within 10 rps");
+              since.remove("flywheel within 4 rps");
+            }
+          } else if (entry == activeEntry) {
+            if (record.getBoolean()) {
+              since.putIfAbsent("autopilot aligning", now);
+            } else {
+              since.remove("autopilot aligning");
+            }
+          } else if (entry == motorEntry && goal > 1.0) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double error = Math.abs(goal - Math.abs(buf.getDouble(VELOCITY_OFFSET)));
+            if (error < 10) {
+              since.putIfAbsent("flywheel within 10 rps", now);
+            } else {
+              since.remove("flywheel within 10 rps");
+            }
+            if (error < 4) {
+              since.putIfAbsent("flywheel within 4 rps", now);
+            } else {
+              since.remove("flywheel within 4 rps");
+            }
+          } else if (entry == hubEntry) {
+            if (record.getBoolean()) {
+              since.putIfAbsent("Commands/Shooter Hub", now);
+            } else {
+              since.remove("Commands/Shooter Hub");
+            }
+          } else if (entry == fireEntry) {
+            boolean nowFiring = record.getBoolean();
+            if (nowFiring && !firing && enabled) {
+              if (!countedThisBurst) {
+                for (var trigger : leads.entrySet()) {
+                  Double start = since.get(trigger.getKey());
+                  if (start != null) {
+                    trigger.getValue().add(now - start);
+                  }
+                }
+                countedThisBurst = true;
+              }
+              double total = driveSupply.values().stream().mapToDouble(Double::doubleValue).sum();
+              driveBeforeShot.add(total);
+            }
+            firing = nowFiring;
+          } else if (statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          } else if (appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    System.out.printf("how much warning each candidate trigger gives before the ball leaves%n%n");
+    System.out.printf("  %-24s %8s %9s %9s %9s %14s%n",
+        "trigger", "bursts", "median", "25th", "10th", "under 0.3s");
+    for (var trigger : leads.entrySet()) {
+      List<Double> times = trigger.getValue();
+      if (times.isEmpty()) {
+        System.out.printf("  %-24s %8s%n", trigger.getKey(), "never set");
+        continue;
+      }
+      Collections.sort(times);
+      long tooShort = times.stream().filter(t -> t < 0.3).count();
+      System.out.printf("  %-24s %8d %8.2fs %8.2fs %8.2fs %12.0f%%%n",
+          trigger.getKey(), times.size(), times.get(times.size() / 2),
+          times.get(times.size() / 4), times.get(times.size() / 10),
+          100.0 * tooShort / times.size());
+    }
+    System.out.println();
+
+    Collections.sort(driveBeforeShot);
+    System.out.printf("estimated drivetrain supply current at the moment of a shot, %d shots%n",
+        driveBeforeShot.size());
+    System.out.printf("  median %.0fA   75th %.0fA   90th %.0fA   peak %.0fA   (all four motors)%n",
+        driveBeforeShot.get(driveBeforeShot.size() / 2),
+        driveBeforeShot.get(driveBeforeShot.size() * 3 / 4),
+        driveBeforeShot.get(driveBeforeShot.size() * 9 / 10),
+        driveBeforeShot.get(driveBeforeShot.size() - 1));
+    for (double bound : new double[] { 40, 60, 100 }) {
+      long over = driveBeforeShot.stream().filter(d -> d > bound).count();
+      System.out.printf("  %d of %d (%.0f%%) were drawing more than %.0fA%n",
+          over, driveBeforeShot.size(), 100.0 * over / driveBeforeShot.size(), bound);
+    }
+  }
+
+  private static void updateDriveSupply(String base, Map<String, Double> stator,
+      Map<String, Double> volts, double battery, Map<String, Double> driveSupply) {
+    Double amps = stator.get(base);
+    Double applied = volts.get(base);
+    if (amps == null || applied == null || battery < 4.0) {
+      return;
+    }
+    driveSupply.put(base, amps * applied / battery);
   }
 
   private static Draw[] newBuckets() {
