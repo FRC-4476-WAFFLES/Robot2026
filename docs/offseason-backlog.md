@@ -300,6 +300,66 @@ measurement will compute a hood angle for a speed the wheel is about to leave,
 overshooting badly. The safe use of the measurement is timing only — hold fire
 until measured is close to commanded — which is the gate, not a second feature.
 
+### The power manager, as built
+
+Landed on `offseason`. `PowerManager` is a `VirtualSubsystem` holding a
+`PowerManagerState` per thing the robot is doing, applied off the main loop
+because a Phoenix config write blocks.
+
+| State | Drive | Flywheel stator/supply | Intake | Feeder | Spindexer |
+|---|---|---|---|---|---|
+| `DEFAULT` | 45 | 120 / 60 | 90 | 25 | 90 |
+| `SHOOTING` | 20 | 160 / 140 | 20 | 25 | 90 |
+| `SHOOTING_FAR` | 10 | 160 / 140 | 20 | 25 | 90 |
+| `SHOOTING_AND_INTAKING` | 15 | 160 / 140 | 50 | 25 | 90 |
+
+All per motor, supply unless stated. `DEFAULT` reproduces what each subsystem
+configures for itself, so it is a no-op.
+
+**What is never cut.** The feeder, because a ball entering at an inconsistent
+speed makes the shot inconsistent however well the flywheel is holding — and its
+25 A limit was added deliberately after ONWEL to reduce sag with no observed
+quality loss, so it is not raised either. The spindexer, because it governs shot
+rate and has never had a limit. The intake below what it draws while intaking,
+because a 35 A limit there used to make it bog.
+
+**When it applies.** Three triggers were measured:
+
+| Trigger | Median warning | Under 0.3 s |
+|---|---|---|
+| `RobotState/Shooting` | 0.00 s | 100 % |
+| flywheel nearly at speed | 1.07 s | 19 % |
+| flywheel goal set | 7.23 s | 1 % |
+
+The two early ones would leave the drivetrain weak while driving around the
+shooting zone spun up, which is when a defended robot most needs it. Firing wins
+despite giving no warning, because **the cap is not preventing the dip** — that is
+the ball taking energy out, and nothing electrical stops it — **it is holding the
+bus up for the recovery afterwards**, and the wheel does not start dropping until
+a median of 0.2 s after the command. The state is held 1 s after firing so a
+burst does not thrash the bus.
+
+A hard shove on the sticks, or `setTurboOverride`, hands the drivetrain back
+immediately. The override has no control bound to it yet.
+
+**Why a current limit is not the whole answer.** The flywheel's acceleration was
+identified from the logs at **2.311 rps/s per amp of stator**, from 3918
+accelerating samples. Re-running every measured dip through it:
+
+| Dip depth | Dips | Measured | Model at today's ceiling | Model at 160 A |
+|---|---|---|---|---|
+| 3 – 8 rps | 1004 | 0.06 s | 0.03 s | 0.02 s |
+| 8 – 13 rps | 1069 | 0.07 s | 0.06 s | 0.03 s |
+| 13 – 18 rps | 67 | **0.24 s** | 0.09 s | 0.04 s |
+| 18 – 23 rps | 17 | **0.59 s** | 0.12 s | 0.06 s |
+
+The model matches measurement for dips up to 13 rps — 93 % of them — so raising
+the ceiling roughly halves recovery there. It under-predicts deep dips by five
+times, because those were **voltage limited, not current limited**: the wheel was
+not getting the current it was already allowed. Raising a limit cannot help a
+motor with no voltage to push through it. That is what the drivetrain cap is for,
+and it is the more important half of the change.
+
 ### What to do
 
 0. **Fix the readiness gate first.** It is the cheapest change and the one that
@@ -308,10 +368,9 @@ until measured is close to commanded — which is the gate, not a second feature
    keep bypassing the check. Risk to weigh: a tight gate means the robot refuses
    to shoot when it cannot reach speed, which is correct but changes what the
    driver sees.
-1. **Power manager** — the 581 pattern: define each robot state as a complete
-   supply-current budget across every subsystem, and reapply limits on transition
-   from a background thread. Capping supply current attacks the peak directly.
-   Limits today are set once in `configure*()` and never change.
+1. ~~**Power manager**~~ — done, see above. Nothing has run on a robot: first
+   deployment should be on blocks, watching `Power/Requested State` against
+   `Power/Applied State` to confirm the CAN writes land.
 2. **Set the supply limits that are missing, before anything clever.** Intake's
    is commented out; hood, turret and climber have none. This is a small change
    with a measured justification.
