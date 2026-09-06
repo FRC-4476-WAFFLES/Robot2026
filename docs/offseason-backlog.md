@@ -203,6 +203,34 @@ clamps flat at 61.0 rps beyond 12.5 m. The fix landed after ONWEL. The test
 stays as a regression guard: it fails if the map ever commands above the
 flywheel's free speed again.
 
+### How much a slow flywheel actually costs, validated against video
+
+Near 3.5 m the hood map is flat (6.13 → 5.74 → 6.01 rotations), so the flywheel
+map's local slope there *is* the true range sensitivity. `ShotMapTest` prints it:
+**5.6 rps per metre at 3.5 m**.
+
+Checked against event video for two shots in q31 (both at ~3.5 m, `shots` mode
+gives the flywheel deficit and the match clock):
+
+| Field clock | Deficit | Predicted short | Observed on video |
+|---|---|---|---|
+| 1:34 | 4.3 rps | 0.77 m | **0.6 – 0.7 m** |
+| 1:26 | ~22 rps | 3.9 m | **3 – 4 m** |
+
+Both within measurement error. The model holds.
+
+**So `RPM_RANGE = 1200` (20 rps) permits a 3.6 m range error at 3.5 m.** For
+0.3 m of accuracy the tolerance needs to be about **1.7 rps — roughly 100 RPM**,
+a tenfold tightening.
+
+**The method only works where the hood is flat.** `ShotMapTest` also prints the
+slope across the whole map, and it collapses to 0.4 – 0.5 rps/m at 4.5 – 5.0 m
+and goes *negative* past 7.5 m. Those are regions where the hood is doing the
+work (11.35 → 17.46 rotations across 4.5 – 5.0 m), so the flywheel map's slope is
+a calibration path rather than a sensitivity, and inverting it there is not
+valid. Getting a tolerance for those distances needs either real projectile
+physics or more video points.
+
 ### What a tighter gate would cost
 
 Fraction of time the wheel was within a given tolerance of its goal. Debounce is
