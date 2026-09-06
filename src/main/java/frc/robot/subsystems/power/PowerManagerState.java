@@ -27,13 +27,13 @@ public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
   DEFAULT(45, 120, 60, 90),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 120, 20),
+  SHOOTING(20, 160, 105, 20),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 110, 90);
+  SHOOTING_AND_INTAKING(20, 160, 105, 90);
 
   /** Per drive motor, supply. Four of them. */
   public final double driveSupplyCurrent;
@@ -62,8 +62,17 @@ public enum PowerManagerState {
     this.intakeSupplyCurrent = intakeSupplyCurrent;
   }
 
-  /** Total supply current this state permits across every managed motor. */
-  public double totalBudget() {
-    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent + 2 * intakeSupplyCurrent;
+  /**
+   * Supply current this state permits across the mechanisms that actually draw
+   * meaningful current while shooting.
+   *
+   * <p>
+   * The intake is excluded on purpose. Its allowance is set above what it uses
+   * so that it is never clamped, which means counting it would show a large
+   * saving whenever that allowance is lowered even though the intake was drawing
+   * 2.2 A either way. Including it hides whether the real draw went up or down.
+   */
+  public double drawCeiling() {
+    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent;
   }
 }
