@@ -98,7 +98,7 @@ public class PowerManager extends VirtualSubsystem {
     PowerManagerState inForce = applied;
     Logger.recordOutput("Power/Requested State", state.toString());
     Logger.recordOutput("Power/Applied State", inForce == null ? "NONE" : inForce.toString());
-    Logger.recordOutput("Power/Budget (A)", state.totalBudget());
+    Logger.recordOutput("Power/Draw Ceiling (A)", state.drawCeiling());
 
     if (inForce == state) {
       divergentSince = Double.NaN;

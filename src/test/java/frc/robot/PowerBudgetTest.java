@@ -26,17 +26,18 @@ public class PowerBudgetTest {
     // DEFAULT reproduces the limits each subsystem sets for itself, so it is the
     // behaviour the match logs were recorded under. The manager is meant to move
     // current between mechanisms, never to hand out more of it.
-    double baseline = PowerManagerState.DEFAULT.totalBudget();
+    double baseline = PowerManagerState.DEFAULT.drawCeiling();
     for (PowerManagerState state : PowerManagerState.values()) {
       System.out.printf("%-22s drive %3.0fA x4  flywheel %3.0f stator %3.0f supply x2  "
-          + "intake %3.0fA x2  total %4.0fA%n",
+          + "intake %3.0fA x2  draw ceiling %4.0fA%n",
           state, state.driveSupplyCurrent, state.flywheelStatorCurrent,
-          state.flywheelSupplyCurrent, state.intakeSupplyCurrent, state.totalBudget());
+          state.flywheelSupplyCurrent, state.intakeSupplyCurrent, state.drawCeiling());
       assertTrue(state.driveSupplyCurrent > 0 && state.flywheelSupplyCurrent > 0
           && state.intakeSupplyCurrent > 0,
           state + " has a non-positive limit, which would stop the mechanism entirely");
-      assertTrue(state.totalBudget() <= baseline,
-          state + " permits " + state.totalBudget() + "A against a " + baseline + "A baseline");
+      assertTrue(state.drawCeiling() <= baseline,
+          state + " permits " + state.drawCeiling() + "A against a " + baseline
+              + "A baseline, so it would let the robot draw more than it already does");
     }
   }
 
@@ -57,7 +58,7 @@ public class PowerBudgetTest {
     // balls is what makes shots fall short as the battery sags.
     assertTrue(PowerManagerState.SHOOTING.flywheelSupplyCurrent > PowerManagerState.DEFAULT.flywheelSupplyCurrent,
         "SHOOTING must give the flywheel more headroom than DEFAULT");
-    assertTrue(PowerManagerState.SHOOTING.totalBudget() <= PowerManagerState.DEFAULT.totalBudget(),
+    assertTrue(PowerManagerState.SHOOTING.drawCeiling() < PowerManagerState.DEFAULT.drawCeiling(),
         "SHOOTING must pay for the flywheel out of the drivetrain, not out of the battery");
   }
 }
