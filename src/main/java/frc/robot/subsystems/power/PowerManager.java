@@ -95,6 +95,7 @@ public class PowerManager extends VirtualSubsystem {
   private final Alert divergenceAlert = new Alert("Power limits did not apply; check CAN", AlertType.kWarning);
   private double divergentSince = Double.NaN;
   private double shotHeldUntil = Double.NEGATIVE_INFINITY;
+  private volatile boolean turboOverride = false;
 
   /**
    * One mechanism's share of a budget. {@code supplyLimit} is only used to order
@@ -125,7 +126,8 @@ public class PowerManager extends VirtualSubsystem {
     Logger.recordOutput("Power/Applied State", inForce == null ? "NONE" : inForce.toString());
     Logger.recordOutput("Power/Draw Ceiling (A)", state.drawCeiling());
     Logger.recordOutput("Power/Driver Override",
-        !RobotContainer.state.joysticksFree(ESCAPE_DEMAND));
+        turboOverride || !RobotContainer.state.joysticksFree(ESCAPE_DEMAND));
+    Logger.recordOutput("Power/Turbo Override", turboOverride);
 
     if (inForce == state) {
       divergentSince = Double.NaN;
@@ -134,6 +136,26 @@ public class PowerManager extends VirtualSubsystem {
     }
     divergenceAlert.set(
         !Double.isNaN(divergentSince) && Timer.getTimestamp() - divergentSince > DIVERGENCE_ALERT_TIME);
+  }
+
+  /**
+   * Forces the full drivetrain budget while held, for a driver who needs to move
+   * more than they need the next shot.
+   *
+   * <p>
+   * The stick threshold above covers this automatically, but a threshold is a
+   * guess about intent and a button is not — under defense the driver knows
+   * better than 0.7 of deflection does. Nothing binds this yet; it wants a spare
+   * control, and binding it is one line:
+   *
+   * <pre>
+   * someButton.whileTrue(Commands.startEnd(
+   *     () -&gt; RobotContainer.powerManager.setTurboOverride(true),
+   *     () -&gt; RobotContainer.powerManager.setTurboOverride(false)));
+   * </pre>
+   */
+  public void setTurboOverride(boolean turbo) {
+    turboOverride = turbo;
   }
 
   /**
@@ -159,7 +181,7 @@ public class PowerManager extends VirtualSubsystem {
     // the sticks hands the drivetrain straight back. A shot taken while moving
     // gently still gets the budget; one taken while fighting to escape does not,
     // which is the right way round.
-    if (!RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
+    if (turboOverride || !RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
       return PowerManagerState.DEFAULT;
     }
     if (RobotContainer.state.isShooting()) {
