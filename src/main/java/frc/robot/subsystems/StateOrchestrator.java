@@ -59,6 +59,15 @@ public class StateOrchestrator extends VirtualSubsystem {
       }
     }
 
+    // A robot that does not know where it is cannot aim, so point the turret
+    // where a tag should be and let vision find it. Only while the driver is not
+    // asking to shoot: they may well be able to see the goal perfectly well, and
+    // taking the turret off them mid-cycle is worse than a pose that is a metre
+    // out. Releases the instant either condition clears.
+    if (RobotContainer.vision.poseLikelyLost() && !Controls.shootButton.getAsBoolean()) {
+      state = ShooterState.RECOVER_POSE;
+    }
+
     if (Controls.beachButton.getAsBoolean()) {
       state = ShooterState.HANDLE_BEACHED;
     }

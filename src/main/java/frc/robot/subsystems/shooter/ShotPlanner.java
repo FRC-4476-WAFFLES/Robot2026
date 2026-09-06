@@ -25,6 +25,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
+import edu.wpi.first.wpilibj.Timer;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.utils.lib.EpochTimer;
@@ -56,6 +57,8 @@ public class ShotPlanner {
   public static final double SOTM_LOOKAHEAD = 1;
 
   private static Rotation2d lastTurretAngle;
+  /** When the current pose recovery attempt began, or -1 if none is running. */
+  private static double recoveryStartedAt = -1;
 
   // private static final LoggedNetworkNumber hoodAngleTuner = new
   // LoggedNetworkNumber("/Tuning/");
@@ -90,9 +93,10 @@ public class ShotPlanner {
       Translation2d adjustedPose = turretPose.getTranslation();
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
-          && RobotContainer.state.shooterState != ShooterState.TARGET_TAG // Do not SOTM when aiming at a tag or on bump
-                                                                          // (so turret sees tags)
-      ) {
+      // Do not lead the shot when the turret is being used as a camera mount
+      // rather than a gun: aiming at a tag, or hunting for one.
+          && RobotContainer.state.shooterState != ShooterState.TARGET_TAG
+          && RobotContainer.state.shooterState != ShooterState.RECOVER_POSE) {
 
         ChassisSpeeds robotVelocity = RobotContainer.state.getFieldVelocity();
         double robotAngle = robotPose.getRotation().getRadians();
@@ -199,6 +203,68 @@ public class ShotPlanner {
     }
 
     return parameters;
+  }
+
+  /**
+   * Points the turret where an AprilTag should be, so vision can find one and put
+   * the pose back.
+   *
+   * <p>
+   * Aimed rather than swept, because a lost pose is usually wrong by a metre or
+   * two rather than by half a field — the nearest tag by the current bad estimate
+   * is very often still the nearest tag in reality, and pointing straight at it
+   * finds it far faster than sweeping. If that fails to produce an agreeing
+   * estimate within {@code POSE_RECOVERY_AIM_TIME}, the turret sweeps instead,
+   * because at that point the estimate clearly cannot be trusted to aim with.
+   *
+   * <p>
+   * The flywheel and hood are left at zero. This is not a shot.
+   */
+  public static ShootingParameters aimToRecoverPose() {
+    if (recoveryStartedAt < 0) {
+      recoveryStartedAt = Timer.getTimestamp();
+    }
+    double elapsed = Timer.getTimestamp() - recoveryStartedAt;
+    Logger.recordOutput("Turret/Pose Recovery Elapsed", elapsed);
+
+    if (elapsed > CodeConstants.POSE_RECOVERY_AIM_TIME) {
+      // Sweep. A triangle wave across the turret's travel, slow enough that a
+      // camera at 50 Hz gets many frames of any tag it crosses.
+      double period = CodeConstants.POSE_RECOVERY_SWEEP_PERIOD;
+      double phase = ((elapsed - CodeConstants.POSE_RECOVERY_AIM_TIME) % period) / period;
+      double fraction = phase < 0.5 ? phase * 2 : 2 - phase * 2;
+      double degrees = -CodeConstants.POSE_RECOVERY_SWEEP_DEGREES
+          + fraction * 2 * CodeConstants.POSE_RECOVERY_SWEEP_DEGREES;
+      Logger.recordOutput("Turret/Pose Recovery Sweeping", true);
+      return new ShootingParameters(
+          new TurretSetpoint(Rotation2d.fromDegrees(degrees), 0), 0, 0, 0);
+    }
+
+    Logger.recordOutput("Turret/Pose Recovery Sweeping", false);
+    var aimed = aimAtField(nearestTagTranslation());
+    return new ShootingParameters(aimed.turretSetpoint(), 0, 0, aimed.distanceToTarget());
+  }
+
+  /** Clears the recovery timer so the next attempt aims before it sweeps. */
+  public static void resetPoseRecovery() {
+    recoveryStartedAt = -1;
+  }
+
+  /** The closest AprilTag to where the robot currently believes it is. */
+  private static Translation2d nearestTagTranslation() {
+    Translation2d robot = RobotContainer.state.getPose().getTranslation();
+    Translation2d best = robot;
+    double bestDistance = Double.MAX_VALUE;
+    for (var tag : FieldConstants.AprilTagLayoutType.OFFICIAL.getLayout().getTags()) {
+      Translation2d position = tag.pose.getTranslation().toTranslation2d();
+      double distance = position.getDistance(robot);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = position;
+      }
+    }
+    Logger.recordOutput("Turret/Pose Recovery Target", new Pose2d(best, Rotation2d.kZero));
+    return best;
   }
 
   public static ShootingParameters aimBeached() {

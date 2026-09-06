@@ -70,6 +70,18 @@ public final class Constants {
 
   /* Code */
   public static class CodeConstants {
+    /**
+     * How long the turret aims at where a tag should be before giving up and
+     * sweeping. A lost pose is usually wrong by a metre or two, so the nearest
+     * tag by the bad estimate is normally the right one; if that has not worked
+     * within this long, the estimate is too far out to aim with.
+     */
+    public static final double POSE_RECOVERY_AIM_TIME = 1.5; // seconds
+    /** How long a full sweep across the turret's travel takes. */
+    public static final double POSE_RECOVERY_SWEEP_PERIOD = 3.0; // seconds
+    /** How far either side of straight ahead the sweep goes. */
+    public static final double POSE_RECOVERY_SWEEP_DEGREES = 100.0;
+
     public static final double PERIODIC_LOOP_TIME = 0.02;
     public static final double TELEMETRY_LOOKBACK_TIME = 1; // s
 

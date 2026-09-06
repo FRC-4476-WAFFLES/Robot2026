@@ -37,6 +37,7 @@ public class RobotState {
     TARGET_PASS,
     TARGET_HUB,
     TARGET_TAG, // Look at tag after crossing bump
+    RECOVER_POSE, // Vision and odometry disagree; hunt for a tag with the turret
     HANDLE_BEACHED,
     DISABLED
   }
@@ -343,6 +344,11 @@ public class RobotState {
 
   public Trigger shooterTargetsHub() {
     return new Trigger(() -> shooterState == ShooterState.TARGET_HUB).and(normalMode());
+  }
+
+  /** The turret is hunting for a tag because the robot does not know where it is. */
+  public Trigger shooterRecoverPose() {
+    return new Trigger(() -> shooterState == ShooterState.RECOVER_POSE).and(normalMode());
   }
 
   public Trigger shooterHandleBeached() {

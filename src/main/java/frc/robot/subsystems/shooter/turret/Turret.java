@@ -150,6 +150,12 @@ public class Turret extends ExpandedSubsystem {
     goalVelocity = velocity;
   }
 
+  /** The heading the turret is being asked to hold. */
+  @AutoLogOutput(key = "Turret/Goal Heading")
+  public Rotation2d getGoalHeading() {
+    return goalHeading;
+  }
+
   public TurretState getState() {
     return state;
   }

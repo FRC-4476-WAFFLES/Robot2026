@@ -491,6 +491,17 @@ public class RobotContainer {
       hood.runSetpoint(parms.hoodAngle());
     }).withName("Shooter Tag"));
 
+    // The turret becomes a camera mount until the robot knows where it is again.
+    // resetPoseRecovery on entry so each attempt aims before it sweeps.
+    state.shooterRecoverPose()
+        .onTrue(Commands.runOnce(ShotPlanner::resetPoseRecovery))
+        .whileTrue(Commands.run(() -> {
+          var parms = ShotPlanner.aimToRecoverPose();
+          turret.runSetpoint(parms.turretSetpoint(), false);
+          flywheel.runSetpoint(parms.flywheelSpeed());
+          hood.runSetpoint(parms.hoodAngle());
+        }).withName("Shooter Recover Pose"));
+
     state.shooterHandleBeached().whileTrue(Commands.run(() -> {
       var parms = ShotPlanner.aimBeached();
       turret.runSetpoint(parms.turretSetpoint(), false);
