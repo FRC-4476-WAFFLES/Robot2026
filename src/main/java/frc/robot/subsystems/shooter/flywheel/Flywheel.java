@@ -127,6 +127,11 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
         FlywheelConstants.MIN_VELOCITY_TOLERANCE, FlywheelConstants.MAX_VELOCITY_TOLERANCE);
   }
 
+  /** The speed the flywheel is being asked for, or 0 if it is not being used. */
+  public double getGoalVelocity() {
+    return flywheelGoalVelocity;
+  }
+
   /**
    * Runs on the PowerManager thread, not the main loop — the IO layer's write is
    * a blocking CAN call.
