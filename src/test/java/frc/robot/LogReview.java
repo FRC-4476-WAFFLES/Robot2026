@@ -65,6 +65,8 @@ public final class LogReview {
   private static final double POSE_AGREEMENT_EPSILON = 0.20;
   private static final int POSE_STABLE_UPDATE_THRESHOLD = 100;
   private static final double POSE_AGREEMENT_STALE_TIME = 0.5;
+  private static final String ON_BUMP = "/RealOutputs/RobotState/On Bump";
+  private static final String LEVEL_ON_GROUND = "/Inputs/Drive/Gyro/LevelOnGround";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
   private static final String ENABLED = "/DriverStation/Enabled";
 
@@ -116,6 +118,7 @@ public final class LogReview {
       case "brownout" -> reviewBrownout(logs);
       case "wiring" -> reviewWiring(logs);
       case "pose" -> reviewPose(logs);
+      case "bump" -> reviewBump(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -2543,6 +2546,165 @@ public final class LogReview {
       }
     }
     return samples;
+  }
+
+  /**
+   * Looks at what a bump crossing does to the pose, and at how the two ways of
+   * detecting one disagree.
+   *
+   * <p>
+   * {@code determineOnBump} decides from the robot's X position first and from
+   * the gyro's level reading second. Those are not equivalent: the X test reads
+   * the very pose the bump corrupts, so once odometry has drifted it can place
+   * the robot on the bump when it is not, or worse, miss it when it is. The
+   * tilt reading does not depend on the pose at all.
+   *
+   * <p>
+   * The columns to read are how far the agreement error grows across a crossing,
+   * and how often the two detectors disagree.
+   */
+  private static void reviewBump(List<File> logs) throws IOException {
+    List<double[]> crossings = new ArrayList<>();
+    double disagreeTime = 0;
+    double enabledTime = 0;
+    long tiltOnlyEvents = 0;
+    long[] bumpFallingEdges = { 0 };
+    long[] levelRisingEdges = { 0 };
+    long[] missedByPosition = { 0 };
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int bumpEntry = -1;
+      int levelEntry = -1;
+      int odometryEntry = -1;
+      int visionEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      boolean onBump = false;
+      boolean level = true;
+      boolean wasTiltOnly = false;
+      double odometryX = Double.NaN;
+      double odometryY = Double.NaN;
+      double odometryTime = -1;
+      double lastError = Double.NaN;
+      double errorBefore = Double.NaN;
+      double bumpStart = -1;
+      double lastStep = -1;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case ON_BUMP -> bumpEntry = start.entry;
+              case LEVEL_ON_GROUND -> levelEntry = start.entry;
+              case FIELD_POSE -> odometryEntry = start.entry;
+              case VALIDATED -> visionEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          double now = record.getTimestamp() / 1e6;
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+            lastStep = -1;
+          } else if (entry == levelEntry) {
+            boolean nowLevel = record.getBoolean();
+            if (nowLevel && !level && enabled) {
+              levelRisingEdges[0]++;
+              if (onBump) {
+                // The gyro says the crossing is over but the position test
+                // still thinks we are on the bump, so nothing arms recovery.
+                missedByPosition[0]++;
+              }
+            }
+            level = nowLevel;
+          } else if (entry == odometryEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            odometryX = buf.getDouble(0);
+            odometryY = buf.getDouble(Double.BYTES);
+            odometryTime = now;
+            if (enabled && lastStep > 0) {
+              double step = Math.min(0.1, now - lastStep);
+              enabledTime += step;
+              // The two detectors disagreeing: tilted but not called on bump,
+              // or called on bump while sitting perfectly level.
+              if (onBump != !level) {
+                disagreeTime += step;
+              }
+            }
+            if (enabled) {
+              lastStep = now;
+            }
+          } else if (entry == visionEntry && enabled && !Double.isNaN(odometryX)
+              && now - odometryTime <= FRESH_PAIR_WINDOW) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            lastError = Math.hypot(buf.getDouble(0) - odometryX,
+                buf.getDouble(Double.BYTES) - odometryY);
+          } else if (entry == bumpEntry) {
+            boolean nowOnBump = record.getBoolean();
+            if (nowOnBump && !onBump && enabled) {
+              bumpStart = now;
+              errorBefore = lastError;
+              wasTiltOnly = level;
+            } else if (!nowOnBump && onBump && enabled && bumpStart > 0) {
+              bumpFallingEdges[0]++;
+              crossings.add(new double[] { now - bumpStart, errorBefore, lastError,
+                  wasTiltOnly ? 0 : 1 });
+              if (wasTiltOnly) {
+                tiltOnlyEvents++;
+              }
+            }
+            onBump = nowOnBump;
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (crossings.isEmpty()) {
+      System.out.println("no bump crossings found");
+      return;
+    }
+
+    System.out.printf("%d bump crossings across %d logs%n%n", crossings.size(), logs.size());
+    System.out.printf("  %-16s %8s %14s %14s %12s%n",
+        "duration", "count", "error before", "error after", "grew by");
+    double[][] bands = { { 0, 0.5 }, { 0.5, 1.0 }, { 1.0, 2.0 }, { 2.0, 4.0 }, { 4.0, 1e9 } };
+    String[] names = { "under 0.5s", "0.5 - 1s", "1 - 2s", "2 - 4s", "over 4s" };
+    for (int band = 0; band < bands.length; band++) {
+      final double low = bands[band][0];
+      final double high = bands[band][1];
+      var inBand = crossings.stream()
+          .filter(c -> c[0] >= low && c[0] < high && !Double.isNaN(c[1]) && !Double.isNaN(c[2]))
+          .toList();
+      if (inBand.isEmpty()) {
+        continue;
+      }
+      double before = inBand.stream().mapToDouble(c -> c[1]).average().orElse(0);
+      double after = inBand.stream().mapToDouble(c -> c[2]).average().orElse(0);
+      System.out.printf("  %-16s %8d %11.3fm %13.3fm %11.3fm%n",
+          names[band], inBand.size(), before, after, after - before);
+    }
+
+    System.out.printf("%n  arming events: %d from onBump going false, %d from the robot becoming level%n",
+        bumpFallingEdges[0], levelRisingEdges[0]);
+    System.out.printf("  %d times the robot became level while onBump stayed true --%n"
+        + "  a crossing the position test never noticed ending%n", missedByPosition[0]);
+
+    long positionOnly = crossings.stream().filter(c -> c[3] == 1).count();
+    System.out.printf("%n  %d of %d crossings began from the position test while the robot was level%n",
+        positionOnly, crossings.size());
+    System.out.printf("  %d began from tilt%n", tiltOnlyEvents);
+    System.out.printf("  the two detectors disagreed for %.0f%% of enabled time%n",
+        100 * disagreeTime / Math.max(1, enabledTime));
   }
 
   private static Draw[] newBuckets() {
