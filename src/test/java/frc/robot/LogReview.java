@@ -45,6 +45,7 @@ public final class LogReview {
   private static final String FLYWHEEL_GOAL = "/RealOutputs/Flywheel/Flywheel Goal Velocity";
   private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
   private static final String FLYWHEEL_MOTOR = "/Inputs/Flywheel/FlywheelMotorData0";
+  private static final String FEEDER_MOTOR = "/Inputs/Indexer/FeederMotorData0";
   private static final String FIRE_SHOT = "/RealOutputs/Commands/Fire shot";
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
@@ -743,11 +744,14 @@ public final class LogReview {
     List<Double> deficits = new ArrayList<>();
     List<double[]> hubShots = new ArrayList<>();
     List<Double> dips = new ArrayList<>();
+    List<double[]> feederVsDip = new ArrayList<>();
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
       int goalEntry = -1;
       int motorEntry = -1;
+      int feederEntry = -1;
+      double feederSpeed = 0;
       int batteryEntry = -1;
       int matchTimeEntry = -1;
       int stateEntry = -1;
@@ -776,6 +780,7 @@ public final class LogReview {
               case FIRE_SHOT -> fireEntry = start.entry;
               case FLYWHEEL_GOAL -> goalEntry = start.entry;
               case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case FEEDER_MOTOR -> feederEntry = start.entry;
               case BATTERY_VOLTAGE -> batteryEntry = start.entry;
               case MATCH_TIME -> matchTimeEntry = start.entry;
               case SHOOTER_STATE -> stateEntry = start.entry;
@@ -799,6 +804,9 @@ public final class LogReview {
             distance = record.getDouble();
           } else if (entry == stateEntry) {
             state = record.getString();
+          } else if (entry == feederEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            feederSpeed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
           } else if (entry == motorEntry) {
             ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
             speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
@@ -833,7 +841,7 @@ public final class LogReview {
               if (state.contains("HUB")) {
                 hubShots.add(new double[] { distance, Math.abs(goal - speed), battery });
               }
-              pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0 };
+              pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0, feederSpeed };
               pendingState = state;
             }
             if (firing && !nowFiring && pending != null) {
@@ -841,6 +849,7 @@ public final class LogReview {
               // dragged. This is what a readiness gate has to tolerate without
               // closing, since the ball causing it has already gone.
               dips.add(Math.max(0, pending[3] - pending[5]));
+              feederVsDip.add(new double[] { pending[8], Math.max(0, pending[3] - pending[5]) });
               recovering = pending;
               recoverFrom = record.getTimestamp() / 1e6;
               // goal, speed at the command, min and last during the window
@@ -871,6 +880,26 @@ public final class LogReview {
       }
       System.out.printf("  median %.1f rps, 90th percentile %.1f rps%n",
           deficits.get(deficits.size() / 2), deficits.get(deficits.size() * 9 / 10));
+    }
+
+    if (!feederVsDip.isEmpty()) {
+      // Does a faster feeder mean a smaller flywheel dip? A ball entering with
+      // more speed of its own takes less energy out of the wheel, since the wheel
+      // only has to supply the difference.
+      System.out.printf("%nflywheel dip against feeder speed at the shot%n");
+      System.out.printf("  %-16s %8s %14s%n", "feeder speed", "shots", "median dip");
+      for (double low = 0; low < 45; low += 5) {
+        final double lo = low;
+        List<Double> inBucket = new ArrayList<>(feederVsDip.stream()
+            .filter(shot -> shot[0] >= lo && shot[0] < lo + 5)
+            .map(shot -> shot[1]).toList());
+        if (inBucket.size() < 5) {
+          continue;
+        }
+        Collections.sort(inBucket);
+        System.out.printf("  %4.0f-%4.0f rps    %8d %11.1f rps%n",
+            low, low + 5, inBucket.size(), inBucket.get(inBucket.size() / 2));
+      }
     }
 
     if (!dips.isEmpty()) {
