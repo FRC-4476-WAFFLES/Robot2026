@@ -119,6 +119,8 @@ public final class LogReview {
   private static final String CHANNEL_CURRENT = "/PowerDistribution/ChannelCurrent";
   /** Total current at or above which a sample counts as a spike, in amps. */
   private static final double SPIKE_AMPS = 250;
+  /** Range error the goal is assumed to accept, in metres either side. */
+  private static final double ACCEPTED_RANGE_ERROR = 0.5;
   /** Speed tolerance used when measuring how long the flywheel takes to recover. */
   private static final double RECOVERY_TOLERANCE = 2.5;
   /** The supply current limit ModuleIOTalonFX configures on each drive motor. */
@@ -740,6 +742,7 @@ public final class LogReview {
     List<Double> recoveries = new ArrayList<>();
     List<Double> deficits = new ArrayList<>();
     List<double[]> hubShots = new ArrayList<>();
+    List<Double> dips = new ArrayList<>();
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
@@ -834,6 +837,10 @@ public final class LogReview {
               pendingState = state;
             }
             if (firing && !nowFiring && pending != null) {
+              // How far below the speed at the fire command the wheel was
+              // dragged. This is what a readiness gate has to tolerate without
+              // closing, since the ball causing it has already gone.
+              dips.add(Math.max(0, pending[3] - pending[5]));
               recovering = pending;
               recoverFrom = record.getTimestamp() / 1e6;
               // goal, speed at the command, min and last during the window
@@ -866,12 +873,25 @@ public final class LogReview {
           deficits.get(deficits.size() / 2), deficits.get(deficits.size() * 9 / 10));
     }
 
+    if (!dips.isEmpty()) {
+      Collections.sort(dips);
+      System.out.printf("%nhow far the wheel drops during a shot, %d shots%n", dips.size());
+      for (double bound : new double[] { 2, 4, 6, 10, 15, 25 }) {
+        long inside = dips.stream().filter(d -> d < bound).count();
+        System.out.printf("  drop under %4.1f rps: %3d of %d (%3.0f%%)%n",
+            bound, inside, dips.size(), 100.0 * inside / dips.size());
+      }
+      System.out.printf("  median %.1f rps, 75th %.1f rps, 90th %.1f rps, worst %.1f rps%n",
+          dips.get(dips.size() / 2), dips.get(dips.size() * 3 / 4),
+          dips.get(dips.size() * 9 / 10), dips.get(dips.size() - 1));
+    }
+
     if (!hubShots.isEmpty()) {
       hubShots.sort((a, b) -> Double.compare(a[0], b[0]));
       System.out.printf("%n%d hub shots, from %.2fm to %.2fm%n",
           hubShots.size(), hubShots.get(0)[0], hubShots.get(hubShots.size() - 1)[0]);
-      System.out.printf("  %-12s %8s %12s %14s %14s%n",
-          "distance", "shots", "med deficit", "within 4 rps", "med battery");
+      System.out.printf("  %-12s %8s %12s %14s %10s %10s %11s%n",
+          "distance", "shots", "med deficit", "within 4 rps", "scaled", "within", "med battery");
       for (double low = 1.0; low < 7.0; low += 0.5) {
         final double lo = low;
         List<double[]> inBucket = hubShots.stream()
@@ -883,9 +903,18 @@ public final class LogReview {
         List<Double> batteries = new ArrayList<>(inBucket.stream().map(shot -> shot[2]).toList());
         Collections.sort(bucketDeficits);
         Collections.sort(batteries);
-        long good = bucketDeficits.stream().filter(d -> d < 4.0).count();
-        System.out.printf("  %4.1f-%4.1fm %8d %11.1f %12.0f%% %13.2fV%n",
+        // A fixed rps tolerance is the wrong yardstick: range error is
+        // v * dv / (2 * R), so the same speed error costs far less range up
+        // close than it does far out. Score each shot against the speed error
+        // that would move it by ACCEPTED_RANGE_ERROR at its own distance.
+        double distance = lo + 0.25;
+        double speed = 45 + 5 * distance;
+        double scaled = speed * ACCEPTED_RANGE_ERROR / (2 * distance);
+        long fixed = bucketDeficits.stream().filter(d -> d < 4.0).count();
+        long good = bucketDeficits.stream().filter(d -> d < scaled).count();
+        System.out.printf("  %4.1f-%4.1fm %8d %11.1f %12.0f%% %10.1f %9.0f%% %10.2fV%n",
             low, low + 0.5, inBucket.size(), bucketDeficits.get(bucketDeficits.size() / 2),
+            100.0 * fixed / inBucket.size(), scaled,
             100.0 * good / inBucket.size(), batteries.get(batteries.size() / 2));
       }
     }
@@ -919,106 +948,122 @@ public final class LogReview {
    * tolerance.
    */
   private static void reviewGate(List<File> logs) throws IOException {
-    double[] tolerances = { 2.0, 2.5, 4.0, 20.0 };
-    System.out.printf("%-26s %6s %8s %9s %10s %12s %10s%n",
-        "log", "tol", "opens", "closes", "open %", "med closed", "brief");
+    // The proposed gate: a tolerance that scales with distance, because the same
+    // speed error costs far less range up close, plus a falling debounce so the
+    // dip a ball causes on its way out does not shut the gate behind it.
+    final double fallingDebounce = 0.25;
+    final double risingDebounce = 0.25;
+    final double minTolerance = 3.0;
+    final double maxTolerance = 8.0;
+
+    // Buckets of 0.5m from 1.0m.
+    int buckets = 10;
+    double[] openTime = new double[buckets];
+    double[] wantedTime = new double[buckets];
+    double[] toleranceSum = new double[buckets];
+    int[] opens = new int[buckets];
 
     for (File log : logs) {
-      for (double tolerance : tolerances) {
-        int goalEntry = -1;
-        int motorEntry = -1;
-        int enabledEntry = -1;
-        int shootingEntry = -1;
-        boolean enabled = false;
-        boolean shooting = false;
-        double goal = 0;
-        double trueSince = -1;
-        boolean open = false;
-        int opens = 0;
-        double openTime = 0;
-        double wantedTime = 0;
-        double closedAt = -1;
-        double last = -1;
-        List<Double> closedDurations = new ArrayList<>();
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int goalEntry = -1;
+      int motorEntry = -1;
+      int enabledEntry = -1;
+      int shootingEntry = -1;
+      int distanceEntry = -1;
+      boolean enabled = false;
+      boolean shooting = false;
+      double goal = 0;
+      double distance = 0;
+      double trueSince = -1;
+      double outsideSince = -1;
+      boolean open = false;
+      double last = -1;
 
-        DataLogReader reader = new DataLogReader(log.getAbsolutePath());
-        try {
-          for (DataLogRecord record : reader) {
-            if (record.isStart()) {
-              var start = record.getStartData();
-              switch (start.name) {
-                case FLYWHEEL_GOAL -> goalEntry = start.entry;
-                case FLYWHEEL_MOTOR -> motorEntry = start.entry;
-                case ENABLED -> enabledEntry = start.entry;
-                case SHOOTING -> shootingEntry = start.entry;
-                default -> {
-                }
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              case SHOOTING -> shootingEntry = start.entry;
+              case DISTANCE_TO_TARGET -> distanceEntry = start.entry;
+              default -> {
               }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == shootingEntry) {
+            shooting = record.getBoolean();
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == distanceEntry) {
+            distance = record.getDouble();
+          } else if (entry == motorEntry) {
+            double now = record.getTimestamp() / 1e6;
+            double step = last < 0 ? 0 : Math.min(0.1, now - last);
+            last = now;
+            if (!enabled || !shooting || goal <= 1.0 || distance < 1.0) {
+              trueSince = -1;
+              outsideSince = -1;
+              open = false;
               continue;
             }
-            if (record.isControl()) {
-              continue;
-            }
-            int entry = record.getEntry();
-            if (entry == enabledEntry) {
-              enabled = record.getBoolean();
-            } else if (entry == shootingEntry) {
-              shooting = record.getBoolean();
-            } else if (entry == goalEntry) {
-              goal = record.getDouble();
-            } else if (entry == motorEntry) {
-              double now = record.getTimestamp() / 1e6;
-              double step = last < 0 ? 0 : Math.min(0.1, now - last);
-              last = now;
-              if (!enabled || !shooting || goal <= 1.0) {
-                trueSince = -1;
-                open = false;
-                continue;
-              }
-              wantedTime += step;
-              ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
-              double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
-              boolean within = Math.abs(goal - speed) < tolerance;
+            int bucket = Math.min(buckets - 1, (int) ((distance - 1.0) * 2));
+            double tolerance = Math.max(minTolerance,
+                Math.min(maxTolerance, goal * ACCEPTED_RANGE_ERROR / (2 * distance)));
+            wantedTime[bucket] += step;
+            toleranceSum[bucket] += tolerance * step;
 
-              if (!within) {
-                if (open) {
-                  closedAt = now;
-                }
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+            if (Math.abs(goal - speed) < tolerance) {
+              outsideSince = -1;
+              if (trueSince < 0) {
+                trueSince = now;
+              }
+              if (!open && now - trueSince >= risingDebounce) {
+                open = true;
+                opens[bucket]++;
+              }
+            } else {
+              trueSince = -1;
+              if (outsideSince < 0) {
+                outsideSince = now;
+              }
+              if (open && now - outsideSince >= fallingDebounce) {
                 open = false;
-                trueSince = -1;
-              } else {
-                if (trueSince < 0) {
-                  trueSince = now;
-                }
-                if (!open && now - trueSince >= 0.25) {
-                  open = true;
-                  opens++;
-                  if (closedAt > 0) {
-                    closedDurations.add(now - closedAt);
-                  }
-                }
               }
-              if (open) {
-                openTime += step;
-              }
+            }
+            if (open) {
+              openTime[bucket] += step;
             }
           }
-        } catch (RuntimeException e) {
-          // truncated log; keep what was read
         }
-
-        if (wantedTime < 1.0) {
-          continue;
-        }
-        Collections.sort(closedDurations);
-        long brief = closedDurations.stream().filter(d -> d < 0.5).count();
-        System.out.printf("%-26s %6.1f %8d %9d %9.0f%% %11s %9d%n",
-            log.getName().replace("akit_26-04-11_", "").replace(".wpilog", ""),
-            tolerance, opens, closedDurations.size(), 100 * openTime / wantedTime,
-            closedDurations.isEmpty() ? "-"
-                : String.format("%.2fs", closedDurations.get(closedDurations.size() / 2)),
-            brief);
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
       }
+    }
+
+    System.out.printf("gate open by distance: tolerance = goal * %.2fm / (2 * distance), "
+        + "clamped %.0f-%.0f rps, falling debounce %.2fs%n%n",
+        ACCEPTED_RANGE_ERROR, minTolerance, maxTolerance, fallingDebounce);
+    System.out.printf("  %-12s %10s %12s %10s %10s%n",
+        "distance", "time spent", "tolerance", "opens", "open %");
+    for (int i = 0; i < buckets; i++) {
+      if (wantedTime[i] < 1.0) {
+        continue;
+      }
+      System.out.printf("  %4.1f-%4.1fm %9.0fs %10.1f rps %9d %9.0f%%%n",
+          1.0 + i * 0.5, 1.5 + i * 0.5, wantedTime[i], toleranceSum[i] / wantedTime[i],
+          opens[i], 100 * openTime[i] / wantedTime[i]);
     }
   }
 
