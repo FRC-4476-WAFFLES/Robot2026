@@ -128,8 +128,12 @@ public final class LogReview {
   private static final String CHANNEL_CURRENT = "/PowerDistribution/ChannelCurrent";
   /** Total current at or above which a sample counts as a spike, in amps. */
   private static final double SPIKE_AMPS = 250;
-  /** Range error the goal is assumed to accept, in metres either side. */
-  private static final double ACCEPTED_RANGE_ERROR = 0.5;
+  /**
+   * The flywheel's share of the range error budget, in metres either side.
+   * Matches {@code FlywheelConstants.ACCEPTABLE_RANGE_ERROR} so this analysis
+   * scores shots the way the robot now gates them.
+   */
+  private static final double ACCEPTED_RANGE_ERROR = 0.35;
   /** Battery internal resistance, fitted from 63k logged samples in battery mode. */
   private static final double BATTERY_RESISTANCE = 0.0155;
   /** Volts of flywheel back-EMF per rps, implied by measured current at two speeds. */
@@ -972,7 +976,8 @@ public final class LogReview {
         // that would move it by ACCEPTED_RANGE_ERROR at its own distance.
         double distance = lo + 0.25;
         double speed = 45 + 5 * distance;
-        double scaled = speed * ACCEPTED_RANGE_ERROR / (2 * distance);
+        double scaled = Math.max(2.0,
+            Math.min(8.0, speed * ACCEPTED_RANGE_ERROR / (2 * distance)));
         long fixed = bucketDeficits.stream().filter(d -> d < 4.0).count();
         long good = bucketDeficits.stream().filter(d -> d < scaled).count();
         System.out.printf("  %4.1f-%4.1fm %8d %11.1f %12.0f%% %10.1f %9.0f%% %10.2fV%n",
@@ -1016,7 +1021,7 @@ public final class LogReview {
     // dip a ball causes on its way out does not shut the gate behind it.
     final double fallingDebounce = 0.25;
     final double risingDebounce = 0.25;
-    final double minTolerance = 3.0;
+    final double minTolerance = 2.0;
     final double maxTolerance = 8.0;
 
     // Buckets of 0.5m from 1.0m.
@@ -1698,7 +1703,8 @@ public final class LogReview {
     // capping the ball path on top of it would add.
     double[][] candidates = {
         { 45, 99, 99 }, { 20, 99, 99 }, { 10, 99, 99 },
-        { 10, 20, 20 }, { 10, 15, 15 }, { 10, 10, 10 }, { 10, 6, 6 },
+        { 10, 20, 20 }, { 5, 20, 20 }, { 0, 20, 20 },
+        { 10, 15, 15 }, { 10, 10, 10 }, { 10, 6, 6 },
         // The ceiling: nothing else on the robot drawing anything at all.
         { 0, 0, 0 },
     };
@@ -1724,7 +1730,7 @@ public final class LogReview {
             + Math.max(0, shot[6] - 2 * candidate[2]);
         double recovered = saved * BATTERY_RESISTANCE;
         gainSum += recovered;
-        double tolerance = Math.max(3.0,
+        double tolerance = Math.max(2.0,
             Math.min(8.0, goal * ACCEPTED_RANGE_ERROR / (2 * distance)));
         double deficit = Math.abs(goal - speed);
         double headroomNow = Math.max(0.1, battery - BACK_EMF_PER_RPS * speed);

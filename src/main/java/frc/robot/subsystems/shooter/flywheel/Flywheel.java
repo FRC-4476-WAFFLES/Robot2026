@@ -13,7 +13,10 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import frc.robot.RobotContainer;
+import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.subsystems.PowerManaged;
@@ -29,9 +32,28 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
   private static final double RECOVERY_ENTER_THRESHOLD = 3.0;
   private static final double RECOVERY_EXIT_THRESHOLD = 2.0;
   private boolean inRecovery = false;
-  private final Trigger flywheelAtSetpoint = new Trigger(() -> Math
+  /**
+   * Ready to put a ball through, for a shot that has to land in the goal.
+   *
+   * <p>
+   * Tight to open and slow to close. The wheel must hold its tolerance for
+   * {@code READY_RISING_DEBOUNCE} before this goes true, and must be outside it
+   * for {@code READY_FALLING_DEBOUNCE} before it goes false again — so the dip a
+   * ball causes on its way out, which happens after the ball has gone, does not
+   * shut the gate behind it.
+   */
+  private final Trigger flywheelAtSetpoint = new Trigger(
+      () -> Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < velocityTolerance())
+      .debounce(FlywheelConstants.READY_RISING_DEBOUNCE, DebounceType.kRising)
+      .debounce(FlywheelConstants.READY_FALLING_DEBOUNCE, DebounceType.kFalling);
+
+  /**
+   * Ready enough to pass with. Passing aims at a region of floor rather than a
+   * goal, so it keeps the old fixed 20 rps window.
+   */
+  private final Trigger flywheelAtLooseSetpoint = new Trigger(() -> Math
       .abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0))
-      .debounce(0.25);
+      .debounce(FlywheelConstants.READY_RISING_DEBOUNCE);
 
   public Flywheel(FlywheelIO io) {
     this.io = io;
@@ -74,8 +96,35 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
 
   @AutoLogOutput(key = "Flywheel/At Setpoint")
   public boolean atSetpoint() {
-    // return true;
     return flywheelAtSetpoint.getAsBoolean();
+  }
+
+  /** The looser check, for passing. */
+  @AutoLogOutput(key = "Flywheel/At Loose Setpoint")
+  public boolean atLooseSetpoint() {
+    return flywheelAtLooseSetpoint.getAsBoolean();
+  }
+
+  /**
+   * How far off its goal the wheel may be and still land the shot, in rotations
+   * per second.
+   *
+   * <p>
+   * Derived rather than fixed, because range error is
+   * {@code 2 * distance * speedError / speed}: the same speed error costs far
+   * less range up close than it does far out, so one number is wrong at both
+   * ends. Validated against event video — at 3.5 m a 4.3 rps deficit landed
+   * 0.65 m short and 22 rps landed 3 to 4 m short, both as this predicts.
+   */
+  @AutoLogOutput(key = "Flywheel/Velocity Tolerance")
+  public double velocityTolerance() {
+    double distance = ShotPlanner.distanceToTarget();
+    if (distance < 1.0 || flywheelGoalVelocity < 1.0) {
+      return FlywheelConstants.MAX_VELOCITY_TOLERANCE;
+    }
+    return MathUtil.clamp(
+        flywheelGoalVelocity * FlywheelConstants.ACCEPTABLE_RANGE_ERROR / (2 * distance),
+        FlywheelConstants.MIN_VELOCITY_TOLERANCE, FlywheelConstants.MAX_VELOCITY_TOLERANCE);
   }
 
   /** The speed the flywheel is being asked for, or 0 if it is not being used. */
