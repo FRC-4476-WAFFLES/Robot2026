@@ -735,6 +735,8 @@ public final class LogReview {
    */
   private static void reviewShots(List<File> logs) throws IOException {
     List<Double> recoveries = new ArrayList<>();
+    List<Double> deficits = new ArrayList<>();
+    List<double[]> hubShots = new ArrayList<>();
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
@@ -821,6 +823,10 @@ public final class LogReview {
                 printedHeader = true;
               }
               shots++;
+              deficits.add(Math.abs(goal - speed));
+              if (state.contains("HUB")) {
+                hubShots.add(new double[] { distance, Math.abs(goal - speed), battery });
+              }
               pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0 };
               pendingState = state;
             }
@@ -841,6 +847,43 @@ public final class LogReview {
       }
       if (shots > 0) {
         System.out.printf("  %d shots%n", shots);
+      }
+    }
+
+    if (!deficits.isEmpty()) {
+      Collections.sort(deficits);
+      System.out.printf("%n%d shots, how far the flywheel was from its goal when the shot went out%n",
+          deficits.size());
+      for (double tolerance : new double[] { 1, 2, 2.5, 4, 10, 20 }) {
+        long inside = deficits.stream().filter(d -> d < tolerance).count();
+        System.out.printf("  within %4.1f rps: %3d of %d (%3.0f%%)%n",
+            tolerance, inside, deficits.size(), 100.0 * inside / deficits.size());
+      }
+      System.out.printf("  median %.1f rps, 90th percentile %.1f rps%n",
+          deficits.get(deficits.size() / 2), deficits.get(deficits.size() * 9 / 10));
+    }
+
+    if (!hubShots.isEmpty()) {
+      hubShots.sort((a, b) -> Double.compare(a[0], b[0]));
+      System.out.printf("%n%d hub shots, from %.2fm to %.2fm%n",
+          hubShots.size(), hubShots.get(0)[0], hubShots.get(hubShots.size() - 1)[0]);
+      System.out.printf("  %-12s %8s %12s %14s %14s%n",
+          "distance", "shots", "med deficit", "within 4 rps", "med battery");
+      for (double low = 1.0; low < 7.0; low += 0.5) {
+        final double lo = low;
+        List<double[]> inBucket = hubShots.stream()
+            .filter(shot -> shot[0] >= lo && shot[0] < lo + 0.5).toList();
+        if (inBucket.isEmpty()) {
+          continue;
+        }
+        List<Double> bucketDeficits = new ArrayList<>(inBucket.stream().map(shot -> shot[1]).toList());
+        List<Double> batteries = new ArrayList<>(inBucket.stream().map(shot -> shot[2]).toList());
+        Collections.sort(bucketDeficits);
+        Collections.sort(batteries);
+        long good = bucketDeficits.stream().filter(d -> d < 4.0).count();
+        System.out.printf("  %4.1f-%4.1fm %8d %11.1f %12.0f%% %13.2fV%n",
+            low, low + 0.5, inBucket.size(), bucketDeficits.get(bucketDeficits.size() / 2),
+            100.0 * good / inBucket.size(), batteries.get(batteries.size() / 2));
       }
     }
 
