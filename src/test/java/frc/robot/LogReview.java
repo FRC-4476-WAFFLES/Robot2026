@@ -114,6 +114,7 @@ public final class LogReview {
   private static final int VELOCITY_OFFSET = 1 * Double.BYTES;
   private static final int STATOR_CURRENT_OFFSET = 5 * Double.BYTES;
   private static final int DUTY_CYCLE_OFFSET = 6 * Double.BYTES;
+  private static final int TEMPERATURE_OFFSET = 7 * Double.BYTES;
 
   /** Running peak/mean for one current source. */
   private static final class Draw {
@@ -376,6 +377,7 @@ public final class LogReview {
     Map<String, Draw[]> supply = new HashMap<>();
     Map<String, Draw[]> stator = new HashMap<>();
     Map<String, Draw[]> speed = new HashMap<>();
+    Map<String, Draw[]> temperature = new HashMap<>();
 
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
@@ -410,6 +412,8 @@ public final class LogReview {
                 .add(Math.abs(buf.getDouble(STATOR_CURRENT_OFFSET)), false);
             speed.computeIfAbsent(motor, k -> newBuckets())[bucket]
                 .add(Math.abs(buf.getDouble(VELOCITY_OFFSET)), false);
+            temperature.computeIfAbsent(motor, k -> newBuckets())[bucket]
+                .add(buf.getDouble(TEMPERATURE_OFFSET), false);
           }
         }
       } catch (RuntimeException e) {
@@ -424,8 +428,8 @@ public final class LogReview {
 
     // Summary first: "active" means commanded above 10% duty, so a motor that
     // spends the match idle is not averaged down to nothing.
-    System.out.printf("%-30s %10s %10s %10s %10s %10s%n",
-        "motor", "active", "supply", "supply pk", "stator", "stator pk");
+    System.out.printf("%-30s %10s %10s %10s %10s %10s %8s %8s%n",
+        "motor", "active", "supply", "supply pk", "stator", "stator pk", "temp", "temp pk");
     for (String motor : new TreeSet<>(supply.keySet())) {
       Draw[] amps = supply.get(motor);
       Draw[] stat = stator.get(motor);
@@ -445,10 +449,20 @@ public final class LogReview {
           active += amps[i].count;
         }
       }
-      System.out.printf("%-30s %9.1f%% %9.1fA %9.1fA %9.1fA %9.1fA%n",
+      Draw[] temp = temperature.get(motor);
+      double tempSum = 0;
+      double tempPeak = 0;
+      long tempCount = 0;
+      for (int i = 0; i < 10; i++) {
+        tempSum += temp[i].sum;
+        tempCount += temp[i].count;
+        tempPeak = Math.max(tempPeak, temp[i].peak);
+      }
+      System.out.printf("%-30s %9.1f%% %9.1fA %9.1fA %9.1fA %9.1fA %7.1fC %7.1fC%n",
           motor, 100.0 * active / Math.max(1, total),
           activeSum / Math.max(1, active), supplyPeak,
-          statorSum / Math.max(1, active), statorPeak);
+          statorSum / Math.max(1, active), statorPeak,
+          tempSum / Math.max(1, tempCount), tempPeak);
     }
 
     for (String motor : new TreeSet<>(supply.keySet())) {
