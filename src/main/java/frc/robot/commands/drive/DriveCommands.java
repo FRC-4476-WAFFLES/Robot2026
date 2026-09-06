@@ -68,8 +68,7 @@ public class DriveCommands {
 
           double omega = omegaSupplier.getAsDouble();
 
-          // Square rotation value for more precise control
-          omega = Math.copySign(omega * omega, omega);
+          omega = Controls.applyRotationCurve(omega);
 
           // Convert to field relative speeds & send command
           ChassisSpeeds speeds = new ChassisSpeeds(
@@ -139,8 +138,7 @@ public class DriveCommands {
 
           double omega = omegaSupplier.getAsDouble();
 
-          // Square rotation value for more precise control
-          omega = Math.copySign(omega * omega, omega);
+          omega = Controls.applyRotationCurve(omega);
 
           // Convert to field relative speeds & send command
           ChassisSpeeds speeds = new ChassisSpeeds(
