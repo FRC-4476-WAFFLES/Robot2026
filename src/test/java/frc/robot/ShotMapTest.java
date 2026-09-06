@@ -34,13 +34,19 @@ public class ShotMapTest {
 
     System.out.printf("flywheel ceiling %.1f rps (free speed / reduction %.1f)%n",
         flywheelCeiling, PhysicalConstants.FLYWHEEL_REDUCTION);
-    System.out.printf("%8s %10s %10s%n", "dist (m)", "rps", "hood");
+    System.out.printf("%8s %10s %10s %12s %14s%n",
+        "dist (m)", "rps", "hood", "rps per m", "rps for 0.3m");
 
     double worstDistance = 0;
     double worstSpeed = 0;
     for (double distance = 1.0; distance <= 16.0; distance += 0.5) {
       double speed = flywheel.interpolate(distance);
-      System.out.printf("%8.1f %10.1f %10.2f%n", distance, speed, hood.interpolate(distance));
+      // Local slope of the map: how many rps of flywheel error costs a metre of
+      // range. Validated against video for two shots at ~3.5m, where 4.3 rps of
+      // shortfall landed 0.65m short and 22 rps landed 3-4m short.
+      double slope = (flywheel.interpolate(distance + 0.05) - flywheel.interpolate(distance - 0.05)) / 0.1;
+      System.out.printf("%8.1f %10.1f %10.2f %12.1f %14.1f%n",
+          distance, speed, hood.interpolate(distance), slope, Math.abs(slope) * 0.3);
       if (speed > worstSpeed) {
         worstSpeed = speed;
         worstDistance = distance;
