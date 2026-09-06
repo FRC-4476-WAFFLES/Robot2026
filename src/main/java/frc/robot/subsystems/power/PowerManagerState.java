@@ -51,7 +51,20 @@ public enum PowerManagerState {
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(15, 160, 140, 50, 25, 90);
+  SHOOTING_AND_INTAKING(15, 160, 140, 50, 25, 90),
+  /**
+   * The driver needs to move more than they need the next shot — pinned, being
+   * defended, or getting out of somewhere.
+   *
+   * <p>
+   * The drivetrain keeps its ordinary allowance rather than being given a larger
+   * one, because its limit is not what stops it: in the logs the drivetrain was
+   * pulling 145 - 211 A at the worst point of every brownout, at or past what its
+   * limit already permits. What stops it is the bus collapsing underneath it. So
+   * everything that is not the drivetrain is starved instead, which frees the
+   * battery to deliver what the drivetrain is already allowed to draw.
+   */
+  TURBO(45, 120, 25, 20, 25, 20);
 
   /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
   public static final double FAR_SHOT_DISTANCE = 3.5;

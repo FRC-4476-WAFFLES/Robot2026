@@ -105,6 +105,8 @@ public final class LogReview {
       case "battery" -> reviewBattery(logs);
       case "predict" -> reviewPredict(logs);
       case "energy" -> reviewEnergy(logs);
+      case "ceiling" -> reviewCeiling(logs);
+      case "brownout" -> reviewBrownout(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -137,8 +139,26 @@ public final class LogReview {
   private static final double ACCEPTED_RANGE_ERROR = 0.35;
   /** Battery internal resistance, fitted from 63k logged samples in battery mode. */
   private static final double BATTERY_RESISTANCE = 0.0155;
-  /** Volts of flywheel back-EMF per rps, implied by measured current at two speeds. */
-  private static final double BACK_EMF_PER_RPS = 0.186;
+
+  /**
+   * The fastest the flywheel can turn at a given bus voltage, in rps.
+   *
+   * <p>
+   * Measured, not derived. The old passing bug commanded 100.5 rps, a speed that
+   * does not exist, so the wheel went flat out and the logs contain genuine
+   * saturation points: 69 rps at 7.75 V, 83 at 8.75 V, 86 at 9.75 V, 88 at
+   * 10.75 V. Below about 10 V it rises at 13.8 rps per volt; above that it
+   * flattens against the wheel's own aerodynamic drag near 88 rps.
+   *
+   * <p>
+   * What is left between this ceiling and the goal is the torque available to
+   * recover from a ball, which is why the same dip costs 0.07 s on a good bus
+   * and 0.59 s on a sagged one.
+   */
+  private static double speedCeiling(double battery) {
+    return Math.min(88.0, 13.8 * (battery - 2.72));
+  }
+
   /** Bus volts the drivetrain cap returns during a shot, from the predict mode. */
   private static final double DRIVE_CAP_VOLTS = 0.35;
   /** Speed tolerance used when measuring how long the flywheel takes to recover. */
@@ -1108,10 +1128,9 @@ public final class LogReview {
             // current is what is left of the bus above back-EMF, so both the
             // raised ceiling and the volts the drivetrain cap returns show up
             // here. A residual deficit shrinks in proportion.
-            double headroom = Math.max(0.1, battery - BACK_EMF_PER_RPS * speed);
-            double availableNow = Math.min(75, headroom / 0.064);
-            double availableNew = Math.min(140, (headroom + DRIVE_CAP_VOLTS) / 0.064);
-            double improvedDeficit = deficit * availableNow / availableNew;
+            double headroomNow = Math.max(0.5, speedCeiling(battery) - speed);
+            double headroomNew = Math.max(0.5, speedCeiling(battery + DRIVE_CAP_VOLTS) - speed);
+            double improvedDeficit = deficit * headroomNow / headroomNew;
 
             for (int variant = 0; variant < 2; variant++) {
               wantedTime[variant][bucket] += step;
@@ -1779,8 +1798,12 @@ public final class LogReview {
         double tolerance = Math.max(2.0,
             Math.min(8.0, goal * ACCEPTED_RANGE_ERROR / (2 * distance)));
         double deficit = Math.abs(goal - speed);
-        double headroomNow = Math.max(0.1, battery - BACK_EMF_PER_RPS * speed);
-        double improved = deficit * headroomNow / (headroomNow + recovered);
+        // Recovery rate scales with how far the wheel is below the fastest it
+        // could turn on this bus. More volts raises that ceiling, so a residual
+        // deficit shrinks in proportion.
+        double headroomNow = Math.max(0.5, speedCeiling(battery) - speed);
+        double headroomNew = Math.max(0.5, speedCeiling(battery + recovered) - speed);
+        double improved = deficit * headroomNow / headroomNew;
         if (improved < tolerance) {
           landed++;
         }
@@ -2023,6 +2046,214 @@ public final class LogReview {
     totals[0] += watts * step;
     if (idle) {
       totals[1] += watts * step;
+    }
+  }
+
+  /**
+   * Finds the fastest the flywheel was ever observed to turn at each bus
+   * voltage, and how hard it was being pushed to get there.
+   *
+   * <p>
+   * A Kraken X60 free-spins at 100 rps and the flywheel is direct driven, so the
+   * electrical ceiling is far above anything the shot map asks for. What matters
+   * is the speed at which the motor's torque is balanced by the wheel's own drag,
+   * which is a real ceiling with an entirely different fix. This separates the
+   * two: if the fastest observed speed rises with voltage the wheel is
+   * voltage-bound, and if it flattens off the wheel is drag-bound.
+   */
+  private static void reviewCeiling(List<File> logs) throws IOException {
+    // Buckets of 0.5V from 7.0V.
+    int buckets = 12;
+    double[] fastest = new double[buckets];
+    double[] fastestGoal = new double[buckets];
+    double[] currentAtFastest = new double[buckets];
+    long[] samples = new long[buckets];
+    double highestEver = 0;
+    double voltageAtHighest = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int goalEntry = -1;
+      int motorEntry = -1;
+      int batteryEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double goal = 0;
+      double battery = 12;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case BATTERY_VOLTAGE -> batteryEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (enabled && entry == motorEntry && battery > 7.0) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+            double stator = Math.abs(buf.getDouble(STATOR_CURRENT_OFFSET));
+            int bucket = Math.min(buckets - 1, (int) ((battery - 7.0) * 2));
+            samples[bucket]++;
+            if (speed > fastest[bucket]) {
+              fastest[bucket] = speed;
+              fastestGoal[bucket] = goal;
+              currentAtFastest[bucket] = stator;
+            }
+            if (speed > highestEver) {
+              highestEver = speed;
+              voltageAtHighest = battery;
+            }
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    System.out.printf("fastest the flywheel ever turned: %.1f rps, at %.2fV%n", highestEver,
+        voltageAtHighest);
+    System.out.printf("a Kraken X60 free-spins at 100 rps, and this is direct driven%n%n");
+    System.out.printf("  %-14s %10s %12s %14s %14s%n",
+        "battery", "samples", "fastest", "goal then", "stator then");
+    for (int i = 0; i < buckets; i++) {
+      if (samples[i] < 100) {
+        continue;
+      }
+      System.out.printf("  %4.1f-%4.1fV %10d %9.1f rps %11.1f rps %11.1f A%n",
+          7.0 + i * 0.5, 7.5 + i * 0.5, samples[i], fastest[i], fastestGoal[i],
+          currentAtFastest[i]);
+    }
+  }
+
+  /**
+   * Looks at every moment the bus fell far enough to matter, and asks what was
+   * drawing at the time and whether capping it would have kept the robot up.
+   *
+   * <p>
+   * This is the failure the drive team actually reports — browning out in the
+   * last thirty seconds and being unable to shoot — and it is not the same thing
+   * as a flywheel that recovers slowly. A shot fired slightly slow lands short; a
+   * brownout stops the robot doing anything at all. The accuracy model scores the
+   * first and is blind to the second.
+   */
+  private static void reviewBrownout(List<File> logs) throws IOException {
+    // Sag events, one per excursion below the threshold rather than per sample.
+    List<double[]> events = new ArrayList<>();
+    final double threshold = 6.5;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> driveSupply = new HashMap<>();
+      int voltageEntry = -1;
+      int enabledEntry = -1;
+      int matchTimeEntry = -1;
+      boolean enabled = false;
+      boolean sagging = false;
+      double matchTime = Double.NaN;
+      double battery = 12;
+      double worstThisEvent = 12;
+      double driveAtWorst = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(BATTERY_VOLTAGE)) {
+              voltageEntry = start.entry;
+            } else if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.name.equals(MATCH_TIME)) {
+              matchTimeEntry = start.entry;
+            } else if (start.name.endsWith("DriveCurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("DriveAppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == matchTimeEntry) {
+            matchTime = record.getDouble();
+          } else if (entry == voltageEntry) {
+            battery = record.getDouble();
+            if (!enabled || battery < 4.0) {
+              continue;
+            }
+            double drive = driveSupply.values().stream().mapToDouble(Double::doubleValue).sum();
+            if (battery < threshold) {
+              if (!sagging || battery < worstThisEvent) {
+                worstThisEvent = battery;
+                driveAtWorst = drive;
+              }
+              sagging = true;
+            } else if (sagging) {
+              events.add(new double[] { worstThisEvent, driveAtWorst, matchTime });
+              sagging = false;
+              worstThisEvent = 12;
+            }
+          } else if (statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          } else if (appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (events.isEmpty()) {
+      System.out.println("no sag events below " + threshold + "V");
+      return;
+    }
+    System.out.printf("%d excursions below %.1fV while enabled%n%n", events.size(), threshold);
+
+    long late = events.stream().filter(e -> !Double.isNaN(e[2]) && e[2] < 30).count();
+    long withMatchTime = events.stream().filter(e -> !Double.isNaN(e[2])).count();
+    System.out.printf("  %d of %d with a match clock happened in the last 30 seconds (%.0f%%)%n",
+        late, withMatchTime, 100.0 * late / Math.max(1, withMatchTime));
+
+    List<Double> drives = new ArrayList<>(events.stream().map(e -> e[1]).sorted().toList());
+    System.out.printf("  drivetrain draw at the worst point: median %.0fA, 75th %.0fA, peak %.0fA%n%n",
+        drives.get(drives.size() / 2), drives.get(drives.size() * 3 / 4),
+        drives.get(drives.size() - 1));
+
+    System.out.printf("  %-10s %14s %16s%n", "drive cap", "still below", "prevented");
+    for (double cap : new double[] { 45, 20, 10 }) {
+      long stillBelow = events.stream()
+          .filter(e -> e[0] + Math.max(0, e[1] - 4 * cap) * BATTERY_RESISTANCE < threshold)
+          .count();
+      System.out.printf("  %8.0fA %13d %15d%n", cap, stillBelow, events.size() - stillBelow);
     }
   }
 

@@ -143,10 +143,13 @@ public class PowerManager extends VirtualSubsystem {
    * more than they need the next shot.
    *
    * <p>
-   * The stick threshold above covers this automatically, but a threshold is a
-   * guess about intent and a button is not — under defense the driver knows
-   * better than 0.7 of deflection does. Nothing binds this yet; it wants a spare
-   * control, and binding it is one line:
+   * This goes further than the stick threshold, which only returns the drivetrain
+   * to its ordinary budget. Turbo also starves everything that is not the
+   * drivetrain, which is the part that matters: the drivetrain's own limit is not
+   * what holds it back when it is pinned, the bus voltage is.
+   *
+   * <p>
+   * Nothing binds this yet; it wants a spare control, and binding it is one line:
    *
    * <pre>
    * someButton.whileTrue(Commands.startEnd(
@@ -181,7 +184,10 @@ public class PowerManager extends VirtualSubsystem {
     // the sticks hands the drivetrain straight back. A shot taken while moving
     // gently still gets the budget; one taken while fighting to escape does not,
     // which is the right way round.
-    if (turboOverride || !RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
+    if (turboOverride) {
+      return PowerManagerState.TURBO;
+    }
+    if (!RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
       return PowerManagerState.DEFAULT;
     }
     if (RobotContainer.state.isShooting()) {
