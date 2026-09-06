@@ -161,6 +161,11 @@ public class PowerManager extends VirtualSubsystem {
     turboOverride = turbo;
   }
 
+  /** The budget actually in force, or null if none has fully applied yet. */
+  public PowerManagerState getAppliedState() {
+    return applied;
+  }
+
   /**
    * Picks the budget for what the robot is doing.
    *
