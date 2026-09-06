@@ -61,6 +61,10 @@ public final class LogReview {
   private static final String PDH_VOLTAGE = "/PowerDistribution/Voltage";
   /** How close in time two readings must be to be worth comparing, in seconds. */
   private static final double FRESH_PAIR_WINDOW = 0.10;
+  /* The pose agreement thresholds, mirrored from VisionConstants. */
+  private static final double POSE_AGREEMENT_EPSILON = 0.20;
+  private static final int POSE_STABLE_UPDATE_THRESHOLD = 100;
+  private static final double POSE_AGREEMENT_STALE_TIME = 0.5;
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
   private static final String ENABLED = "/DriverStation/Enabled";
 
@@ -111,6 +115,7 @@ public final class LogReview {
       case "ceiling" -> reviewCeiling(logs);
       case "brownout" -> reviewBrownout(logs);
       case "wiring" -> reviewWiring(logs);
+      case "pose" -> reviewPose(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -2406,6 +2411,138 @@ public final class LogReview {
           n, rejected, pdhResistance * 1000, rioResistance * 1000,
           (rioResistance - pdhResistance) * 1000, worstGap, currentAtWorstGap);
     }
+  }
+
+  /**
+   * Sweeps candidate "the robot does not know where it is" detectors over real
+   * matches, to find one that fires when the pose is genuinely lost and stays
+   * quiet otherwise.
+   *
+   * <p>
+   * The shipped {@code isPoseStable} is not that detector. It asks whether the
+   * last hundred estimates all landed within 20 cm, and since 19 % of estimates
+   * miss that, a clean run of a hundred essentially never happens — it reports
+   * the pose lost for about 79 % of a match. Anything automated on it would take
+   * the turret away from the driver almost continuously.
+   *
+   * <p>
+   * The detectors here ask the opposite question: has the error been <i>large</i>
+   * for a sustained time. A single bad estimate proves nothing; several seconds
+   * of them is a robot that has lost the plot.
+   */
+  private static void reviewPose(List<File> logs) throws IOException {
+    double[] thresholds = { 0.20, 0.50, 0.50, 1.00, 1.00, 1.00, 2.00 };
+    double[] durations = { 1.0, 0.5, 1.0, 0.5, 1.0, 2.0, 1.0 };
+
+    System.out.printf("how often each candidate would say the robot is lost%n%n");
+    System.out.printf("  %10s %10s %10s %12s %11s %10s%n",
+        "error over", "for", "episodes", "per match", "median", "longest");
+
+    List<double[]> samples = collectAgreement(logs);
+    long matches = logs.stream().filter(File::isFile).count();
+
+    for (int variant = 0; variant < thresholds.length; variant++) {
+      double threshold = thresholds[variant];
+      double duration = durations[variant];
+      List<Double> episodes = new ArrayList<>();
+      double badSince = -1;
+      double lostFrom = -1;
+
+      for (double[] sample : samples) {
+        double error = sample[0];
+        double now = sample[1];
+        if (error > threshold) {
+          if (badSince < 0) {
+            badSince = now;
+          } else if (lostFrom < 0 && now - badSince >= duration) {
+            lostFrom = badSince;
+          }
+        } else {
+          if (lostFrom > 0) {
+            episodes.add(now - lostFrom);
+          }
+          badSince = -1;
+          lostFrom = -1;
+        }
+      }
+
+      Collections.sort(episodes);
+      System.out.printf("  %9.2fm %9.1fs %10d %12.1f %10s %10s%n",
+          threshold, duration, episodes.size(),
+          episodes.size() / (double) Math.max(1, matches),
+          episodes.isEmpty() ? "-" : String.format("%.1fs", episodes.get(episodes.size() / 2)),
+          episodes.isEmpty() ? "-" : String.format("%.1fs", episodes.get(episodes.size() - 1)));
+    }
+
+    List<Double> errors = new ArrayList<>(samples.stream().map(sample -> sample[0]).sorted().toList());
+    System.out.printf("%n%d comparable estimates. agreement error:%n", errors.size());
+    System.out.printf("  median %.3fm, 75th %.3fm, 90th %.3fm, 99th %.2fm, worst %.2fm%n",
+        errors.get(errors.size() / 2), errors.get(errors.size() * 3 / 4),
+        errors.get(errors.size() * 9 / 10), errors.get(errors.size() * 99 / 100),
+        errors.get(errors.size() - 1));
+  }
+
+  /** {agreement error, timestamp, running enabled time} for every comparable estimate. */
+  private static List<double[]> collectAgreement(List<File> logs) throws IOException {
+    List<double[]> samples = new ArrayList<>();
+    double enabledTime = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int odometryEntry = -1;
+      int visionEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double odometryX = Double.NaN;
+      double odometryY = Double.NaN;
+      double odometryTime = -1;
+      double lastStep = -1;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FIELD_POSE -> odometryEntry = start.entry;
+              case VALIDATED -> visionEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          double now = record.getTimestamp() / 1e6;
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+            lastStep = -1;
+          } else if (entry == odometryEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            odometryX = buf.getDouble(0);
+            odometryY = buf.getDouble(Double.BYTES);
+            odometryTime = now;
+            if (enabled && lastStep > 0) {
+              enabledTime += Math.min(0.1, now - lastStep);
+            }
+            if (enabled) {
+              lastStep = now;
+            }
+          } else if (entry == visionEntry && enabled && !Double.isNaN(odometryX)
+              && now - odometryTime <= FRESH_PAIR_WINDOW) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            samples.add(new double[] {
+                Math.hypot(buf.getDouble(0) - odometryX, buf.getDouble(Double.BYTES) - odometryY),
+                now, enabledTime });
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+    return samples;
   }
 
   private static Draw[] newBuckets() {

@@ -53,6 +53,8 @@ public class Vision extends VirtualSubsystem {
    */
   @AutoLogOutput(key = "Vision/Pose Stable Updates")
   private int poseStableUpdates = 0;
+  /** When the agreement error last became large, or -1 if it is not. */
+  private double poseBadSince = -1;
 
   private double lastAgreementTimestamp = -1;
   public final Trigger onGround = new Trigger(() -> {
@@ -216,8 +218,47 @@ public class Vision extends VirtualSubsystem {
       poseStableUpdates = 0;
     }
 
+    // Separately, track how long the error has been large. This is the signal
+    // worth acting on; see poseLikelyLost.
+    if (error > VisionConstants.POSE_LOST_DISTANCE) {
+      if (poseBadSince < 0) {
+        poseBadSince = Timer.getTimestamp();
+      }
+    } else {
+      poseBadSince = -1;
+    }
+
     lastAgreementTimestamp = Timer.getTimestamp();
     Logger.recordOutput("Vision/Pose Agreement Error", error);
+  }
+
+  /**
+   * Whether the robot has probably lost track of where it is.
+   *
+   * <p>
+   * True once accepted vision estimates have disagreed with odometry by more
+   * than {@code POSE_LOST_DISTANCE} continuously for {@code POSE_LOST_TIME}. A
+   * single bad estimate proves nothing — 19 % of them miss by 20 cm in normal
+   * operation — but a metre sustained for a second does not happen to a robot
+   * that knows where it is.
+   *
+   * <p>
+   * <b>This is the one to act on, not {@link #isPoseStable}.</b> That asks
+   * whether the last hundred estimates were all good, which replaying the match
+   * logs is false for about 79 % of a match and would have had the robot
+   * believing itself lost almost continuously. Replaying the same logs, this
+   * fires about once every two matches for a couple of seconds, which is what
+   * the drive team actually reports.
+   *
+   * <p>
+   * Nothing but driver feedback consumes this yet, on purpose. It wants watching
+   * across a few practice matches before anything is allowed to move the turret
+   * on the strength of it.
+   */
+  @AutoLogOutput(key = "Vision/Pose Likely Lost")
+  public boolean poseLikelyLost() {
+    return poseBadSince > 0
+        && Timer.getTimestamp() - poseBadSince >= VisionConstants.POSE_LOST_TIME;
   }
 
   /** How many consecutive accepted estimates have agreed with odometry. */

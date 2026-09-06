@@ -223,6 +223,26 @@ public final class Constants {
     // Agreement goes stale if no estimate has been accepted for this long
     public static final double POSE_AGREEMENT_STALE_TIME = 0.5; // seconds
 
+    /**
+     * How far vision and odometry must disagree, and for how long, before the
+     * robot is taken to have lost track of where it is.
+     *
+     * <p>
+     * Replaying the ONWEL logs, a metre held for a second fires about once every
+     * two matches, lasts a couple of seconds, and occasionally runs to sixteen.
+     * That matches what the drive team reports. It is also defensible against the
+     * distribution: the 99th percentile agreement error is 1.64 m, so a full
+     * metre sustained is genuinely abnormal rather than the usual tail.
+     *
+     * <p>
+     * Note this asks the opposite question to {@link #POSE_STABLE_UPDATE_THRESHOLD},
+     * and deliberately. "Have the last hundred estimates all been good" is
+     * unreachable when 19 % of estimates miss by 20 cm, and reports the pose lost
+     * for most of a match. "Has it been badly wrong for a while" does not.
+     */
+    public static final double POSE_LOST_DISTANCE = 1.0; // meters
+    public static final double POSE_LOST_TIME = 1.0; // seconds
+
     // Used to read from the raw stddevs array returned by a limelight
     public static final int MEGATAG_1_XStdDevIndex = 0;
     public static final int MEGATAG_1_YStdDevIndex = 1;

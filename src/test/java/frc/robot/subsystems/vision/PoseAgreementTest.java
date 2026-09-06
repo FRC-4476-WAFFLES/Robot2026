@@ -100,4 +100,59 @@ public class PoseAgreementTest {
     SimHarness.stepSeconds(VisionConstants.POSE_AGREEMENT_STALE_TIME + 0.3);
     assertFalse(vision.isPoseStable(), "stale agreement should not still read as stable");
   }
+
+  /** An estimate a given distance from where odometry thinks the robot is. */
+  private static Pose2d offsetBy(double metres) {
+    return new Pose2d(ROBOT_POSE.getX() + metres, ROBOT_POSE.getY(), Rotation2d.kZero);
+  }
+
+  @Test
+  void aSingleBadEstimateDoesNotMeanTheRobotIsLost() {
+    // About 19 % of accepted estimates miss by more than 20 cm in normal
+    // operation, so a detector that trips on one of them fires constantly. This
+    // is the mistake that made isPoseStable unusable for anything automatic.
+    Vision vision = atKnownPose();
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    assertFalse(vision.poseLikelyLost(),
+        "one estimate a long way out must not be enough to declare the pose lost");
+  }
+
+  @Test
+  void aDisagreementHeldPastTheTimeoutDoes() throws InterruptedException {
+    Vision vision = atKnownPose();
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    Thread.sleep((long) (VisionConstants.POSE_LOST_TIME * 1000) + 200);
+    SimHarness.step(1);
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    assertTrue(vision.poseLikelyLost(),
+        "an error past the threshold, held past the timeout, should declare the pose lost");
+  }
+
+  @Test
+  void oneAgreeingEstimateClearsItImmediately() throws InterruptedException {
+    // Recovery must not lag. Whatever ends up acting on this has to hand control
+    // back the moment the robot knows where it is again.
+    Vision vision = atKnownPose();
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    Thread.sleep((long) (VisionConstants.POSE_LOST_TIME * 1000) + 200);
+    SimHarness.step(1);
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    assertTrue(vision.poseLikelyLost(), "setup: should be lost first");
+
+    vision.updatePoseAgreement(offsetBy(0.0));
+    assertFalse(vision.poseLikelyLost(), "an agreeing estimate should clear it at once");
+  }
+
+  @Test
+  void anErrorInsideTheThresholdNeverTripsIt() throws InterruptedException {
+    // The everyday tail. The 90th percentile agreement error in the match logs
+    // is 0.33 m, so errors of this size are normal and must never be reported.
+    Vision vision = atKnownPose();
+    for (int i = 0; i < 5; i++) {
+      vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 0.5));
+      Thread.sleep(100);
+    }
+    assertFalse(vision.poseLikelyLost(),
+        "an error inside the threshold must never declare the pose lost, however long it lasts");
+  }
 }

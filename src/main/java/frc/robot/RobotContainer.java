@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotState.AutoWinnerOverride;
@@ -522,13 +523,25 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> state.setRumbleOperator(true)))
         .onFalse(Commands.runOnce(() -> state.setRumbleOperator(false)));
 
-    // Tell the driver when the gate is holding fire, or a robot that is
-    // correctly refusing a bad shot is indistinguishable from a broken one.
+    // Two things the driver needs to feel, on the two rumble motors so they stay
+    // distinguishable. The lights are disabled, so this is the only channel.
+    //
+    // Left: the gate is holding fire. A robot correctly refusing a bad shot is
+    // otherwise indistinguishable from a broken one.
     state.holdingFire()
         .onTrue(Commands.runOnce(
-            () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 1)))
+            () -> Controls.driverController.setRumble(RumbleType.kLeftRumble, 1)))
         .onFalse(Commands.runOnce(
-            () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 0)));
+            () -> Controls.driverController.setRumble(RumbleType.kLeftRumble, 0)));
+
+    // Right: the robot has lost track of where it is. Feedback only for now --
+    // nothing moves the turret on the strength of this until it has been watched
+    // across a few practice matches.
+    new Trigger(() -> vision.poseLikelyLost()).and(() -> state.robotEnabled())
+        .onTrue(Commands.runOnce(
+            () -> Controls.driverController.setRumble(RumbleType.kRightRumble, 1)))
+        .onFalse(Commands.runOnce(
+            () -> Controls.driverController.setRumble(RumbleType.kRightRumble, 0)));
 
     // Auto winner override
     RobotModeTriggers.teleop().onTrue(Commands.runOnce(HubShiftUtil::initialize));
