@@ -748,6 +748,9 @@ public final class LogReview {
       double distance = 0;
       String state = "?";
       int shots = 0;
+      double[] pending = null;
+      String pendingState = "?";
+      double fireStart = 0;
       boolean printedHeader = false;
 
       try {
@@ -784,18 +787,31 @@ public final class LogReview {
           } else if (entry == motorEntry) {
             ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
             speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+            if (pending != null) {
+              pending[5] = Math.min(pending[5], speed);
+              pending[6] = speed;
+              pending[7] = record.getTimestamp() / 1e6 - fireStart;
+            }
           } else if (entry == fireEntry) {
             boolean nowFiring = record.getBoolean();
             if (nowFiring && !firing) {
+              fireStart = record.getTimestamp() / 1e6;
               if (!printedHeader) {
                 System.out.printf("%n%s%n", log.getName());
-                System.out.printf("  %-8s %8s %9s %8s %8s %10s  %s%n",
-                    "match t", "dist", "goal", "actual", "short", "battery", "state");
+                System.out.printf("  %-8s %8s %9s %8s %8s %8s %8s %9s  %s%n",
+                    "match t", "dist", "goal", "at cmd", "min", "at end", "window", "battery", "state");
                 printedHeader = true;
               }
               shots++;
-              System.out.printf("  %7.1fs %7.2fm %8.1f %7.1f %7.1f %9.2fV  %s%n",
-                  matchTime, distance, goal, speed, goal - speed, battery, state);
+              pending = new double[] { matchTime, distance, goal, speed, battery, speed, speed, 0 };
+              pendingState = state;
+            }
+            if (firing && !nowFiring && pending != null) {
+              // goal, speed at the command, min and last during the window
+              System.out.printf("  %7.1fs %7.2fm %8.1f %7.1f %7.1f %7.1f %6.0fms %8.2fV  %s%n",
+                  pending[0], pending[1], pending[2], pending[3], pending[5], pending[6],
+                  pending[7] * 1000, pending[4], pendingState);
+              pending = null;
             }
             firing = nowFiring;
           }
