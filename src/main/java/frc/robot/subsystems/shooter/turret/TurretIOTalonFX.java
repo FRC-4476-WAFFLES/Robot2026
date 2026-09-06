@@ -206,7 +206,7 @@ public class TurretIOTalonFX implements TurretIO {
       // setPosition(calculateTurretStartupPosition(true));
       turretZeroed = true;
     }
-    // inputs.motorData = turret.getSignalData();
+    inputs.turretMotor = turret.getSignalData();
     // Logger.recordOutput("Turret/Zeroing Diagnostic",
     // calculateTurretStartupPosition(false));
 

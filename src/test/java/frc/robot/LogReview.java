@@ -2156,6 +2156,7 @@ public final class LogReview {
   private static void reviewBrownout(List<File> logs) throws IOException {
     // Sag events, one per excursion below the threshold rather than per sample.
     List<double[]> events = new ArrayList<>();
+    Map<String, Double> mechanismTotals = new HashMap<>();
     final double threshold = 6.5;
 
     for (File log : logs) {
@@ -2165,6 +2166,8 @@ public final class LogReview {
       Map<String, Double> stator = new HashMap<>();
       Map<String, Double> volts = new HashMap<>();
       Map<String, Double> driveSupply = new HashMap<>();
+      Map<Integer, String> talons = new HashMap<>();
+      Map<String, Double> mechanismSupply = new HashMap<>();
       int voltageEntry = -1;
       int enabledEntry = -1;
       int matchTimeEntry = -1;
@@ -2174,6 +2177,7 @@ public final class LogReview {
       double battery = 12;
       double worstThisEvent = 12;
       double driveAtWorst = 0;
+      Map<String, Double> mechanismsAtWorst = new HashMap<>();
 
       try {
         for (DataLogRecord record : reader) {
@@ -2185,10 +2189,15 @@ public final class LogReview {
               enabledEntry = start.entry;
             } else if (start.name.equals(MATCH_TIME)) {
               matchTimeEntry = start.entry;
-            } else if (start.name.endsWith("DriveCurrentAmps")) {
+            } else if (start.name.endsWith("CurrentAmps")) {
+              // Both drive and steer. Steer was missing from this accounting at
+              // first, which understated the drivetrain's share of a brownout.
               statorAmps.put(start.entry, shortName(start.name));
-            } else if (start.name.endsWith("DriveAppliedVolts")) {
+            } else if (start.name.endsWith("AppliedVolts")) {
               appliedVolts.put(start.entry, shortName(start.name));
+            } else if (start.type.equals("struct:TalonFXIOData")) {
+              talons.put(start.entry, shortName(start.name).replaceAll("[0-9]*$", "")
+                  .replaceAll("MotorData$|Motor$", "").replaceAll("^[A-Za-z]+/", ""));
             }
             continue;
           }
@@ -2200,6 +2209,10 @@ public final class LogReview {
             enabled = record.getBoolean();
           } else if (entry == matchTimeEntry) {
             matchTime = record.getDouble();
+          } else if (talons.containsKey(entry)) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            mechanismSupply.merge(talons.get(entry) + "@" + entry,
+                Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET)), (a, b) -> b);
           } else if (entry == voltageEntry) {
             battery = record.getDouble();
             if (!enabled || battery < 4.0) {
@@ -2210,10 +2223,17 @@ public final class LogReview {
               if (!sagging || battery < worstThisEvent) {
                 worstThisEvent = battery;
                 driveAtWorst = drive;
+                mechanismsAtWorst.clear();
+                for (var e : mechanismSupply.entrySet()) {
+                  mechanismsAtWorst.merge(e.getKey().split("@")[0], e.getValue(), Double::sum);
+                }
               }
               sagging = true;
             } else if (sagging) {
               events.add(new double[] { worstThisEvent, driveAtWorst, matchTime });
+              for (var e : mechanismsAtWorst.entrySet()) {
+                mechanismTotals.merge(e.getKey(), e.getValue(), Double::sum);
+              }
               sagging = false;
               worstThisEvent = 12;
             }
@@ -2247,6 +2267,19 @@ public final class LogReview {
     System.out.printf("  drivetrain draw at the worst point: median %.0fA, 75th %.0fA, peak %.0fA%n%n",
         drives.get(drives.size() / 2), drives.get(drives.size() * 3 / 4),
         drives.get(drives.size() - 1));
+
+    System.out.printf("  what else was drawing at the worst point, averaged over the %d events:%n",
+        events.size());
+    double drivetrainMean = drives.stream().mapToDouble(Double::doubleValue).sum() / events.size();
+    System.out.printf("    %-22s %8.0fA%n", "drivetrain, drive+steer", drivetrainMean);
+    mechanismTotals.entrySet().stream()
+        .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+        .forEach(e -> System.out.printf("    %-22s %8.0fA%n", e.getKey(),
+            e.getValue() / events.size()));
+    double mechanismMean = mechanismTotals.values().stream().mapToDouble(Double::doubleValue).sum()
+        / events.size();
+    System.out.printf("    %-22s %8.0fA  (%.0f%% of it is drivetrain)%n%n", "everything above",
+        drivetrainMean + mechanismMean, 100 * drivetrainMean / (drivetrainMean + mechanismMean));
 
     System.out.printf("  %-10s %14s %16s%n", "drive cap", "still below", "prevented");
     for (double cap : new double[] { 45, 20, 10 }) {
