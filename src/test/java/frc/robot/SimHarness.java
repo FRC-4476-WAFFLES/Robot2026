@@ -13,6 +13,7 @@ import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import frc.robot.data.Constants.CodeConstants;
+import frc.robot.subsystems.drive.GyroIOSim;
 
 /**
  * Boots the real robot headlessly and steps it a loop at a time, so tests can
@@ -144,6 +145,35 @@ public final class SimHarness {
     robot = null;
   }
 
+  /**
+   * Advances the clock without running the robot.
+   *
+   * <p>
+   * For testing logic that is driven directly rather than through the robot
+   * loop. Simulated vision derives its estimates from the drive's own pose, so
+   * they agree with odometry perfectly and by construction — which means any
+   * state machine fed by pose agreement is reset on every loop and can never be
+   * observed timing out. Stepping the clock without stepping the robot leaves
+   * the test in sole control of what the logic sees.
+   *
+   * <p>
+   * Only the AdvantageKit clock moves. No subsystem reads its inputs, no command
+   * runs, and no trigger is polled.
+   */
+  public static void advanceClockOnly(double seconds) {
+    long until = System.nanoTime() + (long) (seconds * 1e9);
+    while (System.nanoTime() < until) {
+      try {
+        Thread.sleep(2);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("clock advance interrupted", e);
+      }
+      loggerBeforeUser();
+      loggerAfterUser(0);
+    }
+  }
+
   /** Runs the robot for a number of seconds. Takes that long in real time. */
   public static void stepSeconds(double seconds) {
     step((int) Math.round(seconds / CodeConstants.PERIODIC_LOOP_TIME));
@@ -241,6 +271,38 @@ public final class SimHarness {
     }
     DriverStationSim.notifyNewData();
     step(1);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Physical situation */
+  /* ---------------------------------------------------------------------- */
+
+  /**
+   * Tilts the simulated robot, as the bump does.
+   *
+   * <p>
+   * Several behaviours read the gyro rather than the pose, precisely because a
+   * bump crossing corrupts the pose and cannot corrupt gravity. Before this they
+   * were unreachable in simulation: the gyro was a no-op that reported level
+   * forever.
+   *
+   * @param degrees tilt from flat; {@link #tiltOntoBump} for a value that counts
+   *     as being on the bump
+   */
+  public static void setTilt(double degrees) {
+    GyroIOSim.setTilt(degrees);
+    step(2);
+  }
+
+  /** Tilts far enough to count as being on the bump. */
+  public static void tiltOntoBump() {
+    setTilt(GyroIOSim.onBumpTilt() * 2);
+  }
+
+  /** Puts the robot back on the flat. */
+  public static void levelOut() {
+    GyroIOSim.reset();
+    step(2);
   }
 
   private static void setDs(boolean enabled, boolean autonomous) {
