@@ -115,6 +115,7 @@ public final class LogReview {
   private static final int STATOR_CURRENT_OFFSET = 5 * Double.BYTES;
   private static final int DUTY_CYCLE_OFFSET = 6 * Double.BYTES;
   private static final int TEMPERATURE_OFFSET = 7 * Double.BYTES;
+  private static final int TORQUE_CURRENT_OFFSET = 3 * Double.BYTES;
 
   /** Running peak/mean for one current source. */
   private static final class Draw {
@@ -378,6 +379,7 @@ public final class LogReview {
     Map<String, Draw[]> stator = new HashMap<>();
     Map<String, Draw[]> speed = new HashMap<>();
     Map<String, Draw[]> temperature = new HashMap<>();
+    Map<String, Draw[]> torque = new HashMap<>();
 
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
@@ -411,9 +413,11 @@ public final class LogReview {
             stator.computeIfAbsent(motor, k -> newBuckets())[bucket]
                 .add(Math.abs(buf.getDouble(STATOR_CURRENT_OFFSET)), false);
             speed.computeIfAbsent(motor, k -> newBuckets())[bucket]
-                .add(Math.abs(buf.getDouble(VELOCITY_OFFSET)), false);
+                .add(buf.getDouble(VELOCITY_OFFSET), false);
             temperature.computeIfAbsent(motor, k -> newBuckets())[bucket]
                 .add(buf.getDouble(TEMPERATURE_OFFSET), false);
+            torque.computeIfAbsent(motor, k -> newBuckets())[bucket]
+                .add(buf.getDouble(TORQUE_CURRENT_OFFSET), false);
           }
         }
       } catch (RuntimeException e) {
@@ -429,7 +433,7 @@ public final class LogReview {
     // Summary first: "active" means commanded above 10% duty, so a motor that
     // spends the match idle is not averaged down to nothing.
     System.out.printf("%-30s %10s %10s %10s %10s %10s %8s %8s%n",
-        "motor", "active", "supply", "supply pk", "stator", "stator pk", "temp", "temp pk");
+        "motor", "active", "supply", "stator", "stator pk", "torque", "temp", "temp pk");
     for (String motor : new TreeSet<>(supply.keySet())) {
       Draw[] amps = supply.get(motor);
       Draw[] stat = stator.get(motor);
@@ -437,11 +441,9 @@ public final class LogReview {
       double statorSum = 0;
       long active = 0;
       long total = 0;
-      double supplyPeak = 0;
       double statorPeak = 0;
       for (int i = 0; i < 10; i++) {
         total += amps[i].count;
-        supplyPeak = Math.max(supplyPeak, amps[i].peak);
         statorPeak = Math.max(statorPeak, stat[i].peak);
         if (i > 0) {
           activeSum += amps[i].sum;
@@ -458,10 +460,18 @@ public final class LogReview {
         tempCount += temp[i].count;
         tempPeak = Math.max(tempPeak, temp[i].peak);
       }
+      Draw[] torques = torque.get(motor);
+      double torqueSum = 0;
+      long torqueCount = 0;
+      for (int i = 1; i < 10; i++) {
+        torqueSum += torques[i].sum;
+        torqueCount += torques[i].count;
+      }
       System.out.printf("%-30s %9.1f%% %9.1fA %9.1fA %9.1fA %9.1fA %7.1fC %7.1fC%n",
           motor, 100.0 * active / Math.max(1, total),
-          activeSum / Math.max(1, active), supplyPeak,
+          activeSum / Math.max(1, active),
           statorSum / Math.max(1, active), statorPeak,
+          torqueSum / Math.max(1, torqueCount),
           tempSum / Math.max(1, tempCount), tempPeak);
     }
 
