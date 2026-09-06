@@ -35,7 +35,9 @@ public class ShotPlanner {
   public static record ShootingParameters(
       TurretSetpoint turretSetpoint,
       double hoodAngle,
-      double flywheelSpeed
+      double flywheelSpeed,
+      /** Distance the shot was planned for, used to size the flywheel tolerance. */
+      double distanceToTarget
   ) {}
 
   private static ShootingParameters parameters = null;
@@ -144,7 +146,8 @@ public class ShotPlanner {
       parameters = new ShootingParameters(
           new TurretSetpoint(turretAngle, turretVelocity),
           hoodAngle.interpolate(distanceToTarget),
-          flywheelSpeeds.interpolate(distanceToTarget)
+          flywheelSpeeds.interpolate(distanceToTarget),
+          distanceToTarget
       );
 
       // Logger.recordOutput("Turret/DEBUG ANGLE", turretAngle);
@@ -180,7 +183,8 @@ public class ShotPlanner {
       parameters = new ShootingParameters(
           new TurretSetpoint(Rotation2d.kZero, 0),
           SmartDashboard.getNumber("Hood Angle", 0),
-          SmartDashboard.getNumber("Shooter Speed", 0)
+          SmartDashboard.getNumber("Shooter Speed", 0),
+          0
       );
 
     } else {
@@ -189,7 +193,8 @@ public class ShotPlanner {
       parameters = new ShootingParameters(
           new TurretSetpoint(target.getTurretSetpoint(), 0),
           hoodAngle.interpolate(target.getDistance()),
-          flywheelSpeeds.interpolate(target.getDistance())
+          flywheelSpeeds.interpolate(target.getDistance()),
+          target.getDistance()
       );
     }
 
@@ -197,7 +202,7 @@ public class ShotPlanner {
   }
 
   public static ShootingParameters aimBeached() {
-    parameters = new ShootingParameters(new TurretSetpoint(Rotation2d.kZero, 0), 0, 0);
+    parameters = new ShootingParameters(new TurretSetpoint(Rotation2d.kZero, 0), 0, 0, 0);
     return parameters;
   }
 
@@ -229,5 +234,10 @@ public class ShotPlanner {
 
   public static DoubleSupplier hoodAngle() {
     return () -> parameters.hoodAngle;
+  }
+
+  /** Distance the current shot is planned for, or 0 if nothing is planned yet. */
+  public static double distanceToTarget() {
+    return parameters == null ? 0 : parameters.distanceToTarget;
   }
 }

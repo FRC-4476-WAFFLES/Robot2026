@@ -47,19 +47,21 @@ public class PhoenixHelpers {
    * @param maxAttempts The max number of attempts
    * @param task A supplier for the config function
    */
-  public static void tryConfig(int maxAttempts, Supplier<StatusCode> task) {
+  public static boolean tryConfig(int maxAttempts, Supplier<StatusCode> task) {
     for (int i = 0; i < maxAttempts; i++) {
       if (task.get().isOK())
-        return;
+        return true;
     }
     Robot.setCANConfigErrorFlag();
+    return false;
   }
 
   /** 
    * Attempts the desired task more than once if failed, up to 4 times
    * @param task A supplier for the config function
+   * @return whether the config eventually applied
    */
-  public static void tryConfig(Supplier<StatusCode> task) {
-    tryConfig(4, task);
+  public static boolean tryConfig(Supplier<StatusCode> task) {
+    return tryConfig(4, task);
   }
 }

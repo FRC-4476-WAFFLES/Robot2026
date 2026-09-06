@@ -59,6 +59,21 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     flywheel1.setControl(followerRequest);
   }
 
+  @Override
+  public boolean setSupplyCurrentLimit(double supplyCurrentLimit) {
+    // The stator limit is repeated because applying a CurrentLimitsConfigs
+    // replaces the whole group, not just the field being changed.
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+        .withStatorCurrentLimit(Constants.FlywheelConstants.MOTOR_STATOR_CURRENT_LIMIT)
+        .withStatorCurrentLimitEnable(true)
+        .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLimitEnable(true);
+
+    boolean first = PhoenixHelpers.tryConfig(() -> flywheel0.getConfigurator().apply(limits));
+    boolean second = PhoenixHelpers.tryConfig(() -> flywheel1.getConfigurator().apply(limits));
+    return first && second;
+  }
+
   /**
    * Configures the flywheel motor with current limits
    */

@@ -1,0 +1,171 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
+package frc.robot.subsystems.power;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.littletonrobotics.junction.Logger;
+
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.Timer;
+import frc.robot.RobotContainer;
+import frc.robot.utils.lib.subsystems.PowerManaged;
+import frc.robot.utils.lib.subsystems.VirtualSubsystem;
+
+/**
+ * Hands the battery's supply current to whichever mechanism needs it most for
+ * what the robot is doing right now.
+ *
+ * <p>
+ * Applying a Phoenix configuration is a <b>blocking CAN write</b> that can take
+ * tens of milliseconds and can fail, so this runs off the main loop. Three
+ * things follow from that, and they are the whole reason this class is more than
+ * a for-loop:
+ *
+ * <ul>
+ * <li><b>Writes are coalesced.</b> Only the most recently requested state is
+ * ever applied. Flipping between states faster than CAN can keep up leaves the
+ * robot at the latest state, not at whatever was queued three transitions ago.
+ * <li><b>Decreases are applied before increases.</b> A transition is not atomic,
+ * so it can be observed half-finished. Lowering first means every intermediate
+ * state draws <i>less</i> than either the old or the new budget — a partial
+ * application can never exceed what was asked for.
+ * <li><b>Unchanged limits are not written.</b> A mechanism whose limit is the
+ * same in both states is skipped entirely, which removes most of the CAN traffic
+ * and most of the chances to fail.
+ * </ul>
+ *
+ * <p>
+ * Failures are not silent: each write goes through {@code PhoenixHelpers.tryConfig},
+ * which retries and raises the CAN config error flag, and this class reports the
+ * state actually in force alongside the one requested. If they disagree for more
+ * than {@link #DIVERGENCE_ALERT_TIME} an alert is raised, because a drivetrain
+ * still at its shooting limit after the shot is over is a real performance loss
+ * that would otherwise go unnoticed.
+ */
+public class PowerManager extends VirtualSubsystem {
+  /** How long requested and applied may disagree before the driver is told. */
+  private static final double DIVERGENCE_ALERT_TIME = 1.0;
+  /** How often to retry a budget that did not fully apply. */
+  private static final double RETRY_PERIOD = 0.5;
+
+  private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+    Thread thread = new Thread(runnable, "PowerManager");
+    thread.setDaemon(true);
+    return thread;
+  });
+
+  private final AtomicReference<PowerManagerState> requested = new AtomicReference<>(PowerManagerState.DEFAULT);
+  private volatile PowerManagerState applied = null;
+  private double lastAttempt = Double.NEGATIVE_INFINITY;
+
+  private final Alert divergenceAlert = new Alert("Power limits did not apply; check CAN", AlertType.kWarning);
+  private double divergentSince = Double.NaN;
+
+  /** One mechanism's share of a budget. */
+  private record Share(
+      String name,
+      PowerManaged mechanism,
+      double limit
+  ) {}
+
+  @Override
+  public void periodic() {
+    PowerManagerState state = chooseState();
+    boolean changed = requested.getAndSet(state) != state;
+    // Retry as well as react: a write that failed leaves a mechanism at the
+    // previous state's limit, and without this it would stay there silently
+    // until the next transition happened to succeed.
+    boolean stale = applied != state && Timer.getTimestamp() - lastAttempt > RETRY_PERIOD;
+    if (changed || stale) {
+      lastAttempt = Timer.getTimestamp();
+      executor.execute(this::applyLatest);
+    }
+
+    PowerManagerState inForce = applied;
+    Logger.recordOutput("Power/Requested State", state.toString());
+    Logger.recordOutput("Power/Applied State", inForce == null ? "NONE" : inForce.toString());
+    Logger.recordOutput("Power/Budget (A)", state.totalBudget());
+
+    if (inForce == state) {
+      divergentSince = Double.NaN;
+    } else if (Double.isNaN(divergentSince)) {
+      divergentSince = Timer.getTimestamp();
+    }
+    divergenceAlert.set(
+        !Double.isNaN(divergentSince) && Timer.getTimestamp() - divergentSince > DIVERGENCE_ALERT_TIME);
+  }
+
+  /**
+   * Picks the budget for what the robot is doing. Shooting takes priority: a
+   * flywheel that cannot recover between balls is the difference between a shot
+   * that scores and one that falls short.
+   */
+  private PowerManagerState chooseState() {
+    if (RobotContainer.state.isShooting()) {
+      return PowerManagerState.SHOOTING;
+    }
+    return PowerManagerState.DEFAULT;
+  }
+
+  /**
+   * Applies whatever state was most recently requested, skipping any that were
+   * superseded while this was waiting on CAN. Runs on the executor thread.
+   */
+  private void applyLatest() {
+    try {
+      applyBudget();
+    } catch (RuntimeException e) {
+      // An exception here would kill the executor thread and silently end all
+      // future budget changes. Report it and stay alive.
+      DriverStation.reportError("PowerManager failed to apply limits: " + e.getMessage(), false);
+    }
+  }
+
+  private void applyBudget() {
+    PowerManagerState target = requested.get();
+    PowerManagerState previous = applied;
+    if (target == previous) {
+      return;
+    }
+
+    List<Share> shares = new ArrayList<>(List.of(
+        new Share("Drive", RobotContainer.drive, target.driveSupplyCurrent),
+        new Share("Flywheel", RobotContainer.flywheel, target.flywheelSupplyCurrent)));
+
+    // Write the reductions first so a half-applied transition is under budget
+    // rather than over it.
+    if (previous != null) {
+      shares.removeIf(share -> share.limit() == limitFor(previous, share.name()));
+      shares.sort(Comparator.comparingDouble(
+          share -> share.limit() < limitFor(previous, share.name()) ? 0 : 1));
+    }
+
+    boolean allApplied = true;
+    for (Share share : shares) {
+      allApplied &= share.mechanism().applyCurrentLimits(share.limit());
+    }
+    // Only claim the state is in force if every write actually landed, so the
+    // retry above keeps trying and the alert stays up until it is true.
+    if (allApplied) {
+      applied = target;
+    }
+  }
+
+  private static double limitFor(PowerManagerState state, String name) {
+    return switch (name) {
+      case "Drive" -> state.driveSupplyCurrent;
+      case "Flywheel" -> state.flywheelSupplyCurrent;
+      default -> throw new IllegalArgumentException("no budget column for " + name);
+    };
+  }
+}

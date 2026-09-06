@@ -46,4 +46,15 @@ public interface ModuleIO {
 
   /** Run the turn motor to the specified rotation. */
   public default void setTurnPosition(Rotation2d rotation) {}
+
+  /**
+   * Sets the supply current limit on this module's drive motor. Blocking CAN
+   * write — call it off the main loop.
+   *
+   * @param supplyCurrentLimit amps
+   * @return whether the motor accepted it
+   */
+  public default boolean setDriveSupplyCurrentLimit(double supplyCurrentLimit) {
+    return true;
+  }
 }

@@ -16,8 +16,9 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.FlywheelConstants;
 import frc.robot.utils.lib.EpochTimer;
+import frc.robot.utils.lib.subsystems.PowerManaged;
 
-public class Flywheel extends SubsystemBase {
+public class Flywheel extends SubsystemBase implements PowerManaged {
   private final FlywheelIO io;
   private final FlywheelIOInputsAutoLogged inputs = new FlywheelIOInputsAutoLogged();
 
@@ -75,6 +76,15 @@ public class Flywheel extends SubsystemBase {
   public boolean atSetpoint() {
     // return true;
     return flywheelAtSetpoint.getAsBoolean();
+  }
+
+  /**
+   * Runs on the PowerManager thread, not the main loop — the IO layer's write is
+   * a blocking CAN call.
+   */
+  @Override
+  public boolean applyCurrentLimits(double supplyCurrentLimit) {
+    return io.setSupplyCurrentLimit(supplyCurrentLimit);
   }
 
   public Command runSetpointCommand(DoubleSupplier velocity) {
