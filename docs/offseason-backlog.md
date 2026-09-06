@@ -23,53 +23,92 @@ here.
 
 ## CRITICAL — power
 
-Not a backlog item. Measured on the 2026 ONWEL event logs with
-`./gradlew logReview --args="power <dir>"`, across 9 matches:
+Not a backlog item. Measured on the 2026 ONWEL event logs across the 10 matches
+in them:
+
+```
+./gradlew logReview --args="power    <dir>"     per-match voltage, brownouts, peak draw
+./gradlew logReview --args="channels <dir>"     what the current is actually going to
+```
 
 | Measure | Value |
 |---|---|
-| Peak current draw | **242 – 508 A** |
-| Minimum battery voltage | **6.35 – 7.03 V** (our configured brownout threshold is 6.5 V) |
-| Brownout samples | **63 across 9 matches** |
+| Minimum battery voltage | **6.28 – 7.03 V** (our configured brownout threshold is 6.5 V) |
+| Brownout samples | **63 across 10 matches** |
 | Share of brownouts in the final 50 s | **65 %** |
-| Average voltage while enabled | ~10.0 – 11.0 V, declining only ~0.7 V across a match |
+| Average voltage while enabled | ~10 V, declining only ~0.7 V across a match |
+| Peak current draw | **242 – 472 A** (see the q5 caveat below) |
 
-**The end-of-match symptom is real, but the cause is peak current, not
-capacity.** Average voltage falls only about 0.7 V from start to end — the
-battery is not running empty. What happens is that 250–500 A spikes sag the pack
-to 6.3–7.0 V, and as state of charge drops the pack's internal resistance rises,
-so the same spike sags deeper. That is why brownouts cluster late.
+**The end-of-match symptom is real, and the cause is peak current, not
+capacity.** Average voltage falls only about 0.7 V from start to end, so the
+battery is not running empty. What happens is that spikes sag the pack to
+6.3–7.0 V, and as state of charge drops the pack's internal resistance rises, so
+the same spike sags deeper. That is why brownouts cluster late. It also matches
+the physics: at ~15 mΩ internal resistance a 400 A spike is a ~6 V sag, which is
+the sag we measure.
 
-Peak current tracks brownouts closely:
+Peak draw tracks brownouts:
 
-| Peak current | Brownouts that match |
+| Match | Peak | Brownout samples |
+|---|---|---|
+| q8 | 250 A | 0 |
+| q15 | 246 A | 1 |
+| q20 | 318 A | 1 |
+| q12 | 288 A | 5 |
+| p3 | 242 A | 6 |
+| q24 | 420 A | 3 |
+| p4 | 472 A | 9 |
+| q31 | 378 A | 19 |
+| 14-14-26 | 414 A | 35 |
+
+### Where the current goes
+
+From `channels`, which attributes draw to PDH channels and identifies each
+channel by correlating it against the motor supply currents we log. Means are
+over samples where total draw is high:
+
+| Source | Share of a spike |
 |---|---|
-| 250 A | 0 |
-| 246 A | 1 |
-| 318 A | 1 |
-| 288 A | 5 |
-| 242 A | 6 |
-| 420 A | 3 |
-| 472 A | 9 |
-| 378 A | 19 |
-| 508 A | 19 |
+| Drive (4 channels) | **~50 %** |
+| Flywheel (2 motors) | ~17 % |
+| Intake (2 motors) | ~13 % |
+| Feeder + indexer (4 motors) | ~12 % |
 
-The two worst matches (q5 at 508 A, q31 at 378 A) had 19 brownout samples each.
-The cleanest (q8 at 250 A) had none.
+**Supply current limits are being exceeded, or are missing entirely:**
+
+| Subsystem | Configured supply limit | Measured peak per motor |
+|---|---|---|
+| Drive | 45 A | 78 – 105 A |
+| Flywheel | 60 A | 90 – 96 A |
+| Intake | **commented out** in `IntakeIOTalonFX` | 75 – 84 A |
+| Indexer | 25 A on one motor only | 53 – 64 A |
+| Hood, turret, climber | **none** | small |
+
+Stator limits are set almost everywhere (120 A), but a stator limit does not
+bound what the battery supplies. Supply current is what sags the pack, and it is
+the limit we mostly do not set.
+
+### One caveat on the raw peaks
+
+Match q5 is bad data. For 29 s of it, PDH channels 0, 1, 18 and 19 all read
+exactly 71.875 A simultaneously — about 288 A of phantom draw, which is why its
+"peak" reads 508 A. No other match shows it. `channels` prints `SUM of channels`
+next to `TotalCurrent` for exactly this reason: when they disagree, the PDH
+reported something impossible. Exclude q5 by passing the other logs
+individually; `logReview` accepts a list of paths.
 
 ### What to do
 
 1. **Power manager** — the 581 pattern: define each robot state as a complete
    supply-current budget across every subsystem, and reapply limits on transition
    from a background thread. Capping supply current attacks the peak directly.
-   Current limits today are set once in `configure*()` and never change, mostly at
-   120 A stator.
-2. **Audit the existing limits against the data.** `/PowerDistribution/ChannelCurrent`
-   is logged per channel, so the biggest contributors to each spike can be
-   identified rather than guessed.
+   Limits today are set once in `configure*()` and never change.
+2. **Set the supply limits that are missing, before anything clever.** Intake's
+   is commented out; hood, turret and climber have none. This is a small change
+   with a measured justification.
 3. **Reconsider the lowered brownout threshold.** `Robot.java` sets 6.5 V, down
    from the 6.75 V default, "to give more headroom before outputs cut out". With
-   minimums measured at 6.35 V that is masking sags rather than preventing them,
+   minimums measured at 6.28 V that is masking sags rather than preventing them,
    and running the RIO closer to its limit has its own risks.
 
 Re-run the measurement after any change — the tooling exists.
