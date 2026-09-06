@@ -45,6 +45,9 @@ public final class LogReview {
   private static final String FLYWHEEL_GOAL = "/RealOutputs/Flywheel/Flywheel Goal Velocity";
   private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
   private static final String FLYWHEEL_MOTOR = "/Inputs/Flywheel/FlywheelMotorData0";
+  private static final String FIRE_SHOT = "/RealOutputs/Commands/Fire shot";
+  private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
+  private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
   private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
@@ -86,6 +89,7 @@ public final class LogReview {
       case "motor" -> reviewMotor(args[1], logs);
       case "bog" -> reviewBog(args[1], logs);
       case "shooter" -> reviewShooter(logs);
+      case "shots" -> reviewShots(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -717,6 +721,91 @@ public final class LogReview {
         System.out.printf("%8.0f%%", 100 * within[t][i].mean());
       }
       System.out.println();
+    }
+  }
+
+  /**
+   * Prints one row per shot, keyed to match time so the moment can be found on
+   * event video. The shortfall column is what the flywheel was actually missing
+   * its goal by when the shot went out.
+   */
+  private static void reviewShots(List<File> logs) throws IOException {
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int fireEntry = -1;
+      int goalEntry = -1;
+      int motorEntry = -1;
+      int batteryEntry = -1;
+      int matchTimeEntry = -1;
+      int stateEntry = -1;
+      int distanceEntry = -1;
+
+      boolean firing = false;
+      double goal = 0;
+      double speed = 0;
+      double battery = 12;
+      double matchTime = Double.NaN;
+      double distance = 0;
+      String state = "?";
+      int shots = 0;
+      boolean printedHeader = false;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FIRE_SHOT -> fireEntry = start.entry;
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case BATTERY_VOLTAGE -> batteryEntry = start.entry;
+              case MATCH_TIME -> matchTimeEntry = start.entry;
+              case SHOOTER_STATE -> stateEntry = start.entry;
+              case DISTANCE_TO_TARGET -> distanceEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (entry == matchTimeEntry) {
+            matchTime = record.getDouble();
+          } else if (entry == distanceEntry) {
+            distance = record.getDouble();
+          } else if (entry == stateEntry) {
+            state = record.getString();
+          } else if (entry == motorEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+          } else if (entry == fireEntry) {
+            boolean nowFiring = record.getBoolean();
+            if (nowFiring && !firing) {
+              if (!printedHeader) {
+                System.out.printf("%n%s%n", log.getName());
+                System.out.printf("  %-8s %8s %9s %8s %8s %10s  %s%n",
+                    "match t", "dist", "goal", "actual", "short", "battery", "state");
+                printedHeader = true;
+              }
+              shots++;
+              System.out.printf("  %7.1fs %7.2fm %8.1f %7.1f %7.1f %9.2fV  %s%n",
+                  matchTime, distance, goal, speed, goal - speed, battery, state);
+            }
+            firing = nowFiring;
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+      if (shots > 0) {
+        System.out.printf("  %d shots%n", shots);
+      }
     }
   }
 
