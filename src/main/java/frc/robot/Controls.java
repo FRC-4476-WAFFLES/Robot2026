@@ -1,5 +1,6 @@
 package frc.robot;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
@@ -46,6 +47,15 @@ public class Controls {
    */
   public static final double TRANSLATION_CURVE = 0.5;
   public static final double ROTATION_CURVE = 0.7;
+
+  /*
+   * Stick deflection past which the driver is taken to mean "all of it".
+   *
+   * A thumbstick often cannot quite reach 1.0 — least of all on a diagonal, and
+   * less so as it wears — so without this the driver can be pushing as hard as
+   * the stick goes and still not get full speed. Team 581 uses the same 0.95.
+   */
+  public static final double UPPER_DEADBAND = 0.95;
 
   /* Triggers */
   /*
@@ -110,8 +120,9 @@ public class Controls {
   }
 
   /**
-   * Blends the input between linear and cubic. Zero returns it unchanged, one
-   * cubes it, and anything between mixes the two.
+   * Blends the input between linear and cubic, after treating anything past
+   * {@link #UPPER_DEADBAND} as full deflection. Zero returns it unchanged
+   * (bar that rescaling), one cubes it, and anything between mixes the two.
    *
    * <p>
    * Cubic rather than squared because it keeps the sign without needing
@@ -121,7 +132,8 @@ public class Controls {
    * is given up.
    */
   public static double applyCurve(double input, double curve) {
-    return curve * input * input * input + (1 - curve) * input;
+    double scaled = MathUtil.clamp(input / UPPER_DEADBAND, -1.0, 1.0);
+    return curve * scaled * scaled * scaled + (1 - curve) * scaled;
   }
 
   /** Shapes a rotation stick input. Separate from translation so it can be tuned apart. */
@@ -134,7 +146,9 @@ public class Controls {
     Rotation2d linearDirection = new Rotation2d(Math.atan2(y, x));
 
     // Shape the magnitude rather than the axes, so the curve does not depend on
-    // which way the stick is pushed.
+    // which way the stick is pushed. The clamp matters: a square-gated stick
+    // reads 1.414 at full diagonal, and cubing that would ask for 2.4 times full
+    // speed.
     linearMagnitude = applyCurve(Math.min(1.0, linearMagnitude), TRANSLATION_CURVE);
 
     // Return new linear velocity
