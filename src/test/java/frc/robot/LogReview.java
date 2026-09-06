@@ -48,21 +48,24 @@ public final class LogReview {
 
   public static void main(String[] args) throws IOException {
     if (args.length < 2) {
-      System.out.println("usage: fields <log> | align <log|dir> | vision <log|dir> | power <log|dir>");
+      System.out
+          .println("usage: fields <log> | align <log|dir> | vision <log|dir> | power <log|dir> | channels <log|dir>");
       return;
     }
     String mode = args[0];
-    File target = new File(args[1]);
 
     List<File> logs = new ArrayList<>();
-    if (target.isDirectory()) {
-      File[] found = target.listFiles(f -> f.getName().endsWith(".wpilog") && f.length() > 1024);
-      if (found != null) {
-        Arrays.sort(found);
-        logs.addAll(Arrays.asList(found));
+    for (int i = 1; i < args.length; i++) {
+      File target = new File(args[i]);
+      if (target.isDirectory()) {
+        File[] found = target.listFiles(f -> f.getName().endsWith(".wpilog") && f.length() > 1024);
+        if (found != null) {
+          Arrays.sort(found);
+          logs.addAll(Arrays.asList(found));
+        }
+      } else {
+        logs.add(target);
       }
-    } else {
-      logs.add(target);
     }
 
     switch (mode) {
@@ -74,6 +77,7 @@ public final class LogReview {
           reviewPower(log);
         }
       }
+      case "channels" -> reviewChannels(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -93,6 +97,260 @@ public final class LogReview {
       }
       default -> System.out.println("unknown mode: " + mode);
     }
+  }
+
+  private static final String CHANNEL_CURRENT = "/PowerDistribution/ChannelCurrent";
+  /** Total current at or above which a sample counts as a spike, in amps. */
+  private static final double SPIKE_AMPS = 250;
+  /** The supply current limit ModuleIOTalonFX configures on each drive motor. */
+  private static final double DRIVE_SUPPLY_LIMIT = 45;
+  /** Byte offset of supplyCurrent within the packed TalonFXIOData struct. */
+  private static final int SUPPLY_CURRENT_OFFSET = 4 * Double.BYTES;
+
+  /** Running peak/mean for one current source. */
+  private static final class Draw {
+    double peak;
+    double sum;
+    long count;
+    double spikeSum;
+    long spikeCount;
+    long overLimit;
+
+    void add(double amps, boolean spike) {
+      peak = Math.max(peak, amps);
+      if (amps > DRIVE_SUPPLY_LIMIT) {
+        overLimit++;
+      }
+      sum += amps;
+      count++;
+      if (spike) {
+        spikeSum += amps;
+        spikeCount++;
+      }
+    }
+
+    double mean() {
+      return count == 0 ? 0 : sum / count;
+    }
+
+    double spikeMean() {
+      return spikeCount == 0 ? 0 : spikeSum / spikeCount;
+    }
+  }
+
+  /**
+   * Attributes total current draw to its sources, across every log given.
+   *
+   * <p>
+   * Three kinds of source are read: the PDH's per-channel array (the ground
+   * truth for what the battery is supplying), every {@code TalonFXIOData}
+   * struct's <b>supply</b> current (labelled, so a channel can be identified by
+   * matching numbers), and the drive modules' {@code CurrentAmps} — which are
+   * <b>stator</b>, not supply, so they read high at low duty cycle and are not
+   * battery draw. Compare them against the PDH channels rather than summing them
+   * in.
+   *
+   * <p>
+   * The "spike" column is the mean while total draw is at or above
+   * {@value #SPIKE_AMPS} A. That column, not the overall mean, is what browns the
+   * robot out.
+   */
+  private static void reviewChannels(List<File> logs) throws IOException {
+    Map<String, Draw> draws = new HashMap<>();
+    Map<String, Correlation> matches = new HashMap<>();
+    Map<String, Double> worstSnapshot = new HashMap<>();
+    double[] worstTotal = { 0 };
+    long enabledSamples = 0;
+    long spikeSamples = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> talons = new HashMap<>();
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      double battery = 12.0;
+      int batteryEntry = -1;
+      int channelEntry = -1;
+      int currentEntry = -1;
+      int enabledEntry = -1;
+      boolean enabled = false;
+      double total = 0;
+      Map<String, Double> latestSupply = new HashMap<>();
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(CHANNEL_CURRENT)) {
+              channelEntry = start.entry;
+            } else if (start.name.equals(TOTAL_CURRENT)) {
+              currentEntry = start.entry;
+            } else if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.type.equals("struct:TalonFXIOData")) {
+              talons.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("CurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("AppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            } else if (start.name.equals(BATTERY_VOLTAGE)) {
+              batteryEntry = start.entry;
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (entry == currentEntry) {
+            total = record.getDouble();
+          } else if (!enabled) {
+            continue;
+          } else if (entry == channelEntry) {
+            double[] channels = record.getDoubleArray();
+            boolean spike = total >= SPIKE_AMPS;
+            enabledSamples++;
+            double channelSum = 0;
+            for (double amps : channels) {
+              channelSum += amps;
+            }
+            draws.computeIfAbsent("SUM of channels", k -> new Draw()).add(channelSum, spike);
+            draws.computeIfAbsent("TotalCurrent", k -> new Draw()).add(total, spike);
+            if (total > worstTotal[0]) {
+              worstTotal[0] = total;
+              worstSnapshot.clear();
+              worstSnapshot.putAll(latestSupply);
+              for (int i = 0; i < channels.length; i++) {
+                worstSnapshot.put(String.format("PDH ch%02d", i), channels[i]);
+              }
+              worstSnapshot.put("__log " + log.getName(), total);
+            }
+            if (spike) {
+              spikeSamples++;
+            }
+            for (int i = 0; i < channels.length; i++) {
+              String channel = String.format("PDH ch%02d", i);
+              draws.computeIfAbsent(channel, k -> new Draw()).add(channels[i], spike);
+              for (var supply : latestSupply.entrySet()) {
+                matches.computeIfAbsent(channel + "@@" + supply.getKey(), k -> new Correlation())
+                    .add(channels[i], supply.getValue());
+              }
+            }
+          } else if (talons.containsKey(entry)) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double supply = Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET));
+            draws.computeIfAbsent(talons.get(entry), k -> new Draw()).add(supply, total >= SPIKE_AMPS);
+            latestSupply.put(talons.get(entry), supply);
+          } else if (statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            draws.computeIfAbsent(base + " stator", k -> new Draw())
+                .add(Math.abs(record.getDouble()), total >= SPIKE_AMPS);
+            recordSupplyEstimate(base, stator, volts, battery, total, draws, latestSupply);
+          } else if (appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+            recordSupplyEstimate(base, stator, volts, battery, total, draws, latestSupply);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    System.out.printf("%d enabled PDH samples, %d of them at or above %.0fA total%n%n",
+        enabledSamples, spikeSamples, SPIKE_AMPS);
+    System.out.printf("%-28s %8s %8s %8s %8s %8s%n",
+        "source", "mean", "spike", "peak", "samples", ">45A");
+    draws.entrySet().stream()
+        .filter(e -> e.getValue().peak >= 1.0)
+        .sorted((a, b) -> Double.compare(b.getValue().spikeMean(), a.getValue().spikeMean()))
+        .forEach(e -> System.out.printf("%-28s %7.1fA %7.1fA %7.1fA %8d %7.2f%%%n",
+            e.getKey(), e.getValue().mean(), e.getValue().spikeMean(), e.getValue().peak,
+            e.getValue().count, 100.0 * e.getValue().overLimit / Math.max(1, e.getValue().count)));
+
+    // SUM of channels should track TotalCurrent. Where it does not, the PDH
+    // reported something impossible and the total is not to be trusted.
+    System.out.printf("%nEverything drawing at the single highest-total sample (%.0fA):%n", worstTotal[0]);
+    worstSnapshot.entrySet().stream()
+        .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+        .filter(e -> e.getValue() >= 1.0)
+        .forEach(e -> System.out.printf("  %-32s %6.1fA%n", e.getKey(), e.getValue()));
+
+    // Nothing in the log says which mechanism is wired to which PDH channel, so
+    // identify each channel by which logged supply current its trace tracks. A
+    // channel whose best r is low is a motor that logs no supply current at all.
+    System.out.printf("%n%-12s %-32s %s%n", "channel", "best match", "r");
+    Map<String, String> best = new HashMap<>();
+    Map<String, Double> bestR = new HashMap<>();
+    for (var e : matches.entrySet()) {
+      String[] parts = e.getKey().split("@@");
+      double r = e.getValue().r();
+      if (r > bestR.getOrDefault(parts[0], Double.NEGATIVE_INFINITY)) {
+        bestR.put(parts[0], r);
+        best.put(parts[0], parts[1]);
+      }
+    }
+    bestR.entrySet().stream()
+        .sorted(Map.Entry.comparingByKey())
+        .forEach(e -> System.out.printf("%-12s %-32s %.2f%n",
+            e.getKey(), best.get(e.getKey()), e.getValue()));
+  }
+
+  /** Pearson correlation between two paired series, accumulated as they stream. */
+  private static final class Correlation {
+    private double sumX;
+    private double sumY;
+    private double sumXx;
+    private double sumYy;
+    private double sumXy;
+    private long n;
+
+    void add(double x, double y) {
+      sumX += x;
+      sumY += y;
+      sumXx += x * x;
+      sumYy += y * y;
+      sumXy += x * y;
+      n++;
+    }
+
+    double r() {
+      double covariance = n * sumXy - sumX * sumY;
+      double spread = Math.sqrt(n * sumXx - sumX * sumX) * Math.sqrt(n * sumYy - sumY * sumY);
+      return spread == 0 ? 0 : covariance / spread;
+    }
+  }
+
+  /**
+   * Estimates a motor's supply current from its stator current and applied
+   * voltage, for the drive modules, which log stator current only. A motor is a
+   * power converter: it draws {@code stator * appliedVolts / busVoltage} from the
+   * battery, so a motor stalled at low duty cycle pulls far less from the battery
+   * than its stator current suggests.
+   */
+  private static void recordSupplyEstimate(String base, Map<String, Double> stator,
+      Map<String, Double> volts, double battery, double total,
+      Map<String, Draw> draws, Map<String, Double> latestSupply) {
+    Double amps = stator.get(base);
+    Double applied = volts.get(base);
+    if (amps == null || applied == null || battery < 4.0) {
+      return;
+    }
+    double supply = amps * applied / battery;
+    draws.computeIfAbsent(base + " supply (est)", k -> new Draw()).add(supply, total >= SPIKE_AMPS);
+    latestSupply.put(base + " supply (est)", supply);
+  }
+
+  /** Turns "/Inputs/Flywheel/FlywheelMotorData0" into "Flywheel/FlywheelMotorData0". */
+  private static String shortName(String name) {
+    return name.replace("/Inputs/", "").replace("/Drive/", "").replace("Module", "M");
   }
 
   /** Prints every field name in a log, so you can see what the code of the day recorded. */
