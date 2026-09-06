@@ -107,6 +107,8 @@ public class RobotState {
   @Setter
   @AutoLogOutput(key = "RobotState/Rumble Operator")
   private boolean rumbleOperator = false;
+  /** How long the robot must be refusing to shoot before the driver is told. */
+  private static final double HOLDING_FIRE_DEBOUNCE = 0.25;
 
   /*                       */
   /* Latency Compensation */
@@ -389,6 +391,25 @@ public class RobotState {
 
   public Trigger shouldRumbleTrigger() {
     return new Trigger(() -> rumbleOperator);
+  }
+
+  /**
+   * True while the driver is asking to shoot and the robot is refusing.
+   *
+   * <p>
+   * The readiness gate holds fire until the flywheel is close enough that the
+   * shot should land, which past about 3.5 m means it is shut more often than it
+   * is open. Without something to feel, that is indistinguishable from a broken
+   * robot, and a driver who cannot tell the difference will keep pulling the
+   * trigger rather than driving closer.
+   *
+   * <p>
+   * Debounced so a gap of a few loops between shots does not buzz.
+   */
+  public Trigger holdingFire() {
+    return Controls.shootButton.and(canFire().negate()).and(normalMode())
+        .and(() -> robotEnabled())
+        .debounce(HOLDING_FIRE_DEBOUNCE);
   }
   // double expanderSetpoint = ExpanderPosition.STOWED.getDegrees();
   // if (expanderState == ExpanderState.EXTENDED) {
