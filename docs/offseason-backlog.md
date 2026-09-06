@@ -63,30 +63,41 @@ Peak draw tracks brownouts:
 
 ### Where the current goes
 
-From `channels`, which attributes draw to PDH channels and identifies each
-channel by correlating it against the motor supply currents we log. Means are
-over samples where total draw is high:
+Every Talon logs its own supply current in its `TalonFXIOData` struct, so this
+does not depend on knowing PDH wiring. Means are over all enabled samples
+(including while the mechanism is idle), so read the peak column for headroom
+and the "spike" column for what a mechanism contributes when draw is high:
 
-| Source | Share of a spike |
-|---|---|
-| Drive (4 channels) | **~50 %** |
-| Flywheel (2 motors) | ~17 % |
-| Intake (2 motors) | ~13 % |
-| Feeder + indexer (4 motors) | ~12 % |
+| Motor | Mean | While draw is high | Peak | Configured supply limit |
+|---|---|---|---|---|
+| Drive M0–M3 *(estimated)* | 11 – 15 A | 23 – 34 A | 117 – 206 A | 45 A |
+| Flywheel 0 | 11.5 A | 20.7 A | **90.1 A** | 60 A |
+| Flywheel 1 | 11.3 A | 16.9 A | **95.5 A** | 60 A |
+| Intake 0 | 6.9 A | 17.5 A | **84.2 A** | **none** |
+| Intake 1 | 5.5 A | 13.5 A | **75.4 A** | **none** |
+| Feeder 0 | 13.8 A | 11.4 A | 84.5 A | 25 A |
+| Feeder 1 | 14.0 A | 10.8 A | 86.0 A | 25 A |
+| Indexer 0 | 9.5 A | 8.2 A | 64.1 A | none |
+| Indexer 1 | 6.5 A | 5.3 A | 53.3 A | none |
+| Turn M0–M3 *(estimated)* | 1.7 A | ~2 A | 85 – 105 A | none |
+| Expander | 1.6 A | 1.0 A | 70.7 A | none |
+| Hood | 0.2 A | 0.4 A | 23.9 A | none |
+| Turret | **not logged** | | | none |
 
-**Supply current limits are being exceeded, or are missing entirely:**
+Roughly: **drive is about half of a spike, the mechanisms the other half**, with
+flywheel and intake the two biggest mechanism contributors.
 
-| Subsystem | Configured supply limit | Measured peak per motor |
-|---|---|---|
-| Drive | 45 A | 78 – 105 A |
-| Flywheel | 60 A | 90 – 96 A |
-| Intake | **commented out** in `IntakeIOTalonFX` | 75 – 84 A |
-| Indexer | 25 A on one motor only | 53 – 64 A |
-| Hood, turret, climber | **none** | small |
+**Two logging gaps.** `ModuleIOTalonFX` logs stator current only, so the drive
+numbers above are derived as `stator × appliedVolts ÷ busVoltage` and agree with
+the PDH channels to within about 25%. `TurretIOTalonFX` logs no motor data at
+all — the turret's draw is simply unknown.
 
-Stator limits are set almost everywhere (120 A), but a stator limit does not
-bound what the battery supplies. Supply current is what sags the pack, and it is
-the limit we mostly do not set.
+**Supply limits are exceeded where set, and missing where not.** Stator limits
+are set nearly everywhere (120 A), but a stator limit does not bound what the
+battery supplies: a motor stalled at 20% duty pulls 120 A stator and only ~24 A
+from the pack. Supply current is what sags the battery, and it is the limit we
+mostly do not set. Intake's is commented out in `IntakeIOTalonFX`; hood, turret,
+climber and the indexer rollers have none.
 
 ### One caveat on the raw peaks
 
