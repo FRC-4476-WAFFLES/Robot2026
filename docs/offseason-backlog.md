@@ -145,15 +145,6 @@ second. And the robot is moving *slower* while bogged, not faster, so the
 drivetrain is not outrunning the intake. Whatever causes beaching, this is not
 it. Caveat: these logs predate the current code.
 
-### One caveat on the raw peaks
-
-Match q5 is bad data. For 29 s of it, PDH channels 0, 1, 18 and 19 all read
-exactly 71.875 A simultaneously — about 288 A of phantom draw, which is why its
-"peak" reads 508 A. No other match shows it. `channels` prints `SUM of channels`
-next to `TotalCurrent` for exactly this reason: when they disagree, the PDH
-reported something impossible. Exclude q5 by passing the other logs
-individually; `logReview` accepts a list of paths.
-
 ### Why low voltage makes the shooter undershoot
 
 The flywheel runs `VelocityTorqueCurrentFOC`, and a motor's achievable speed
@@ -270,36 +261,6 @@ the tune only operates near setpoint where the demand is ~20 A. And there is
 nothing to tune for recovery — the only lever is the ceiling. That removes the
 need to simulate before changing it.
 
-### What a tighter gate would cost
-
-Fraction of time the wheel was within a given tolerance of its goal. Debounce is
-ignored, so these are upper bounds:
-
-| Battery | 2 rps | 3 rps | 5 rps | 10 rps | 20 rps *(today)* |
-|---|---|---|---|---|---|
-| 12.0 – 12.5 V | 88 % | 92 % | 95 % | 97 % | 99 % |
-| 11.0 – 11.5 V | 79 % | 87 % | 94 % | 97 % | 99 % |
-| 10.0 – 10.5 V | 68 % | 78 % | 87 % | 94 % | 96 % |
-| 9.0 – 9.5 V | 44 % | 54 % | 67 % | 90 % | 96 % |
-| 8.0 – 8.5 V | 25 % | 33 % | 48 % | 80 % | 94 % |
-| below 8.0 V | 16 % | 22 % | 31 % | 54 % | 84 % |
-
-On a healthy battery, tightening from 20 rps to 3 – 5 rps costs almost nothing:
-the wheel is within 5 rps about 94 % of the time. These are fractions of *time*,
-not of shot attempts, so the practical cost there is a few hundred milliseconds
-of waiting, not lost shots.
-
-Below 9 V it is a different story — a 3 rps gate would refuse most shots. That is
-the honest cost, and it is also the point: those were the shots that were missing
-anyway. It converts a silent miss into a visible refusal, which is why the power
-work matters rather than being optional.
-
-**Do not feed measured flywheel velocity into the shot solution.** During spin-up
-the wheel reads far below goal, and a solver that believes a transient
-measurement will compute a hood angle for a speed the wheel is about to leave,
-overshooting badly. The safe use of the measurement is timing only — hold fire
-until measured is close to commanded — which is the gate, not a second feature.
-
 ### The power manager, as built
 
 Landed on `offseason`. `PowerManager` is a `VirtualSubsystem` holding a
@@ -360,26 +321,154 @@ not getting the current it was already allowed. Raising a limit cannot help a
 motor with no voltage to push through it. That is what the drivetrain cap is for,
 and it is the more important half of the change.
 
-### What to do
+### The readiness gate, as built
 
-0. **Fix the readiness gate first.** It is the cheapest change and the one that
-   directly causes short shots: a ±38 % tolerance means we fire while slow. Pick
-   a real number from testing, and decide deliberately whether hub shots should
-   keep bypassing the check. Risk to weigh: a tight gate means the robot refuses
-   to shoot when it cannot reach speed, which is correct but changes what the
-   driver sees.
-1. ~~**Power manager**~~ — done, see above. Nothing has run on a robot: first
-   deployment should be on blocks, watching `Power/Requested State` against
-   `Power/Applied State` to confirm the CAN writes land.
-2. **Set the supply limits that are missing, before anything clever.** Intake's
-   is commented out; hood, turret and climber have none. This is a small change
-   with a measured justification.
-3. **Reconsider the lowered brownout threshold.** `Robot.java` sets 6.5 V, down
-   from the 6.75 V default, "to give more headroom before outputs cut out". With
-   minimums measured at 6.28 V that is masking sags rather than preventing them,
-   and running the RIO closer to its limit has its own risks.
+Landed on `offseason`. `Flywheel.atSetpoint()` no longer compares against a fixed
+window. The tolerance is derived from an acceptable range error, because range
+error is `2 * distance * speedError / speed` — the same speed error costs far
+less range up close than it does far out, so one number is wrong at both ends.
 
-Re-run the measurement after any change — the tooling exists.
+| Distance | Goal | Tolerance | Range error |
+|---|---|---|---|
+| 1.5 m | 41.0 rps | 4.8 rps | 0.35 m |
+| 2.5 m | 45.9 rps | 3.2 rps | 0.35 m |
+| 3.5 m | 53.3 rps | 2.7 rps | 0.35 m |
+| 4.5 m | 57.1 rps | 2.2 rps | 0.35 m |
+
+`ACCEPTABLE_RANGE_ERROR` is 0.35 m and is the number to tune, because it means
+something physical. The goal is about a metre across, so the whole budget is
+0.5 m either side; turret aim, pose, hood and the shoot-on-move correction all
+spend from the same metre, so the flywheel takes roughly two thirds and leaves
+the rest. The old `RPM_RANGE` of 1200 permitted **2.6 m** of range error at
+3.5 m.
+
+**Opens on 0.25 s inside tolerance, closes only after 0.25 s outside it.** The
+falling debounce is what makes it usable: a ball drags the wheel down a median of
+7.8 rps on its way out, *after* it has gone, and without the debounce that shuts
+the gate behind every shot. Replaying the logs, no falling debounce leaves the
+gate open 9 % of the time a shot is wanted; 0.20 s takes it to 64 %, and past
+0.30 s it stops improving and starts tolerating real sag.
+
+**Hub only.** `RobotState.canFire()` used to read
+`shooterState == TARGET_HUB ? true : atSetpoint()` — hub shots skipped the
+flywheel check entirely, which is why the logs are full of hub shots fired 20 rps
+slow. That is now reversed: hub gets the strict check, passing keeps the old
+loose window through `atLooseSetpoint()`, because passing aims at a region of
+floor rather than a goal.
+
+### What a brownout actually looks like
+
+13 excursions below 6.5 V while enabled, 46 % of them in the last 30 seconds.
+Averaged over those events, at the worst point of each:
+
+| Source | Draw | Share |
+|---|---|---|
+| Drivetrain, drive + steer | 140 A | **62 %** |
+| Flywheel | 27 A | 13 % |
+| Feeder | 22 A | 10 % |
+| Intake | 20 A | 9 % |
+| Spindexer | 12 A | 6 % |
+| **Total accounted** | **224 A** | |
+
+The whole robot is going at once and the drivetrain is most of it. Capping the
+drivetrain at 10 A would have prevented 10 of the 13.
+
+**But the power manager as built will not prevent them**, because it only caps
+the drivetrain while shooting, and these happen while driving. That is a
+deliberate choice, not an oversight — a voltage-triggered guard was considered
+and rejected, because capping the drivetrain when the driver is asking for it is
+the opposite of what a pinned robot needs. `TURBO` exists for that case.
+
+### Two claims made during this analysis that turned out to be wrong
+
+Recorded so they are not re-derived.
+
+**"The flywheel cannot reach far-shot goals."** Wrong. The wheel was observed at
+**87.8 rps at 10.8 V**, and the old passing bug commanding 100.5 rps gives
+genuine saturation points: 69 rps at 7.75 V, 83 at 8.75 V, 88 at 10.75 V.
+Far-shot goals of 57 – 65 rps are reachable at every voltage in the logs. The
+original claim came from reading shots that were sitting *at* setpoint, which
+says nothing about the ceiling. The real problem is headroom — a 57 rps goal
+against an 83 rps ceiling leaves little torque for recovery, and the ceiling
+falls with the bus.
+
+**"There is excess resistance in the robot's wiring."** No evidence. Fitting
+voltage against current gives 11 – 16 mΩ total, which is exactly what a healthy
+battery (10 – 13 mΩ) plus cable, main breaker and SB50 (2 – 4 mΩ) should read.
+An earlier figure near 25 mΩ came from pairing a voltage minimum with current
+samples from a different moment. Comparing the PDH's voltage against the RIO's
+to isolate the wiring does not work either: the difference comes out negative,
+which is physically impossible, so one of the two sensors is unreliable. If this
+needs settling it is a meter across the SB50 and the main breaker under load,
+not a log.
+
+### What to do next
+
+1. **Get it on a robot.** Neither the power manager nor the gate has ever
+   executed on hardware. First deploy on blocks: watch `Power/Requested State`
+   against `Power/Applied State` to confirm the CAN writes land, and
+   `Flywheel/Velocity Tolerance` and `Flywheel/At Setpoint` to watch the gate.
+2. **Bind a control to `PowerManager.setTurboOverride`.** The state exists and
+   nothing reaches it. Until then the only escape is a stick past 0.7 deflection,
+   which returns the drivetrain but does not free the battery for it.
+3. **Rank the batteries.** `logReview battery` fits internal resistance per
+   match, and across ONWEL they ranged 11.2 to 15.0 mΩ — worth 1.14 V of sag at
+   300 A, more than three times what the drivetrain cap buys. The last three
+   matches of the day had the worst packs. This is the largest single lever and
+   it is not a code change.
+4. **Set the supply limits that are still missing.** Hood and turret have none.
+   The intake's stays off deliberately.
+5. **Reconsider the lowered brownout threshold.** `Robot.java` sets 6.5 V against
+   a 6.75 V default. Worth knowing first what a RIO brownout actually costs this
+   robot: it cuts PWM, DIO and the 5 V/6 V rails, but CAN motor controllers keep
+   receiving commands, so on an all-CAN robot the answer may be "very little".
+
+### What the whole thing is worth
+
+Estimated from the logs, so treat as an order of magnitude:
+
+| | |
+|---|---|
+| Power manager, accuracy | **+2 points** (about 3 shots in 184) |
+| Power manager, brownouts | not modelled, and the caps do not fire during them |
+| Gate | prevents the ~40 % of hub shots fired outside tolerance from going out |
+| Battery selection | 1.14 V, more than three times the drivetrain cap |
+| Flywheel current ceiling | ~0, the battery caps it at 112 A before 160 matters |
+
+An earlier version of this section claimed the power manager was worth +9 points.
+That was computed with a back-EMF model that went negative at low voltage and
+got clamped, inflating the benefit roughly fivefold. The corrected model uses the
+measured speed ceiling instead.
+
+**The gate is the intervention that works.** The power manager makes the wait
+shorter; it does not make the shots better.
+
+### Tooling
+
+Every number in this section is reproducible:
+
+```
+./gradlew logReview --args="power    <dir>"   voltage, brownouts, peak draw per match
+./gradlew logReview --args="channels <dir>"   draw attributed to PDH channels
+./gradlew logReview --args="motor  <name> <dir>"  one motor by commanded duty
+./gradlew logReview --args="modes    <dir>"   supply current by what the robot is doing
+./gradlew logReview --args="shots    <dir>"   one row per shot, keyed to the match clock
+./gradlew logReview --args="shooter  <dir>"   flywheel shortfall against battery voltage
+./gradlew logReview --args="gate     <dir>"   replay a proposed gate over the logs
+./gradlew logReview --args="recovery <dir>"   identify acceleration per amp, re-run the dips
+./gradlew logReview --args="leadtime <dir>"   how much warning each trigger gives
+./gradlew logReview --args="battery  <dir>"   internal resistance per match
+./gradlew logReview --args="brownout <dir>"   what was drawing when the bus collapsed
+./gradlew logReview --args="ceiling  <dir>"   fastest the flywheel turns at each voltage
+./gradlew logReview --args="energy   <dir>"   where a match's energy goes
+./gradlew logReview --args="predict  <dir>"   estimate shots landed under different caps
+./gradlew logReview --args="wiring   <dir>"   battery resistance against wiring resistance
+```
+
+`logReview` takes a list of paths as well as a directory, which matters because
+**q5 is bad data** — for 29 s four PDH channels read exactly 71.875 A at once,
+about 288 A of phantom draw, which is why its peak reads 508 A. No other match
+shows it. Exclude it by passing the others individually.
 
 ---
 
@@ -600,10 +689,21 @@ because it isn't mine to delete.
 
 ## Verification outstanding
 
-**Nothing on `offseason` has run on a robot.** The `Ports` migration is the one to
-sanity-check on first deploy: enable, confirm every motor responds, and glance at
-CAN utilization. `PortsTest` proves the ID and bus of every device is unchanged
-from before the migration, but that is a test, not a robot.
+**Nothing on `offseason` has run on a robot.** In rough order of how much a first
+deploy should watch them:
+
+- **`PowerManager`** writes motor configurations over CAN from a background
+  thread, which nothing in this repo did before. On blocks, confirm
+  `Power/Applied State` follows `Power/Requested State` and that the divergence
+  alert stays down.
+- **The readiness gate** changes when the robot is willing to shoot. Expect it to
+  hold fire more than before, especially past 3.5 m — that is the intent, but the
+  drive team should see it before a match rather than during one.
+- **The `Ports` migration**: enable, confirm every motor responds, glance at CAN
+  utilization. `PortsTest` proves every ID and bus is unchanged, but that is a
+  test, not a robot.
+- **Turret motor logging** was uncommented, so `/Inputs/Turret/TurretMotor`
+  should appear and should show sensible current while aiming.
 
 ---
 
