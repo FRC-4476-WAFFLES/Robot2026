@@ -28,7 +28,24 @@ public class Controls {
                                                               // interpolated towards it's actual value
   public static final double AXIS_DEADBAND = 0.1; // Deadband for controller axes to prevent unintended activation
   public static final double MANUAL_ELEVATOR_CONTROL_MULTIPLIER = 2;
-  public static final boolean SQUARE_JOYSTICK_FILTER = false;
+
+  /*
+   * How much of the stick's travel is spent on fine control. Zero is linear, one
+   * is fully cubic; in between is a blend of the two. Full deflection always
+   * gives full speed whatever this is set to, so raising it costs precision at
+   * the top of the range rather than top speed.
+   *
+   * This matters more on a gamepad than it did on flight sticks. A thumbstick has
+   * perhaps a centimetre of travel where a flight stick had several, so the same
+   * fraction of output arrives in a much smaller movement of the hand.
+   *
+   * Rotation defaults higher because it is the twitchier of the two, and 0.7 is
+   * close to the squaring that was previously hard-coded into both drive
+   * commands — so rotation should feel unchanged and translation should feel
+   * calmer than before.
+   */
+  public static final double TRANSLATION_CURVE = 0.5;
+  public static final double ROTATION_CURVE = 0.7;
 
   /* Triggers */
   /*
@@ -92,14 +109,33 @@ public class Controls {
                 * Math.signum(input)));
   }
 
+  /**
+   * Blends the input between linear and cubic. Zero returns it unchanged, one
+   * cubes it, and anything between mixes the two.
+   *
+   * <p>
+   * Cubic rather than squared because it keeps the sign without needing
+   * {@code copySign}, and blended rather than switched so the amount of softening
+   * is a number somebody can turn rather than a choice between two behaviours.
+   * Both ends are fixed: zero maps to zero and one maps to one, so no top speed
+   * is given up.
+   */
+  public static double applyCurve(double input, double curve) {
+    return curve * input * input * input + (1 - curve) * input;
+  }
+
+  /** Shapes a rotation stick input. Separate from translation so it can be tuned apart. */
+  public static double applyRotationCurve(double input) {
+    return applyCurve(input, ROTATION_CURVE);
+  }
+
   public static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
     double linearMagnitude = Math.hypot(x, y);
     Rotation2d linearDirection = new Rotation2d(Math.atan2(y, x));
 
-    if (SQUARE_JOYSTICK_FILTER) {
-      // Square magnitude for more precise control
-      linearMagnitude = linearMagnitude * linearMagnitude;
-    }
+    // Shape the magnitude rather than the axes, so the curve does not depend on
+    // which way the stick is pushed.
+    linearMagnitude = applyCurve(Math.min(1.0, linearMagnitude), TRANSLATION_CURVE);
 
     // Return new linear velocity
     return new Pose2d(Translation2d.kZero, linearDirection)
