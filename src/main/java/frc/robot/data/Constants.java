@@ -378,6 +378,19 @@ public final class Constants {
     };
 
     public static final double RPM_RANGE = 1200; // Range before indexer will start
+
+    /**
+     * How close the flywheel must be to its goal before a shot counts as
+     * imminent, in rotations per second.
+     *
+     * <p>
+     * Only used to decide when to hand the battery to the shooter — it is not a
+     * firing tolerance. Picked from the match logs: the wheel reaches this state
+     * a median of 1.1 s before the ball leaves, where merely having a goal set
+     * happens 7 s before, which would hold the drivetrain weak for most of a
+     * match spent inside the shooting zone.
+     */
+    public static final double NEARLY_READY_TOLERANCE = 10.0;
   }
 
   public static class SpindexerConstants {
