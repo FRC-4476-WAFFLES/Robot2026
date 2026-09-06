@@ -25,6 +25,8 @@ import frc.robot.utils.lib.SplineMonotone1D;
 public class ShotMapTest {
   /** Kraken X60 free speed, 6000 RPM, in rotations per second at the rotor. */
   private static final double KRAKEN_FREE_SPEED_RPS = 100.0;
+  /** Half the goal's width, so a shot inside this lands in the goal. */
+  private static final double ACCEPTABLE_RANGE_ERROR = 0.35;
 
   @Test
   void shotMapNeverCommandsAboveFreeSpeed() {
@@ -34,8 +36,8 @@ public class ShotMapTest {
 
     System.out.printf("flywheel ceiling %.1f rps (free speed / reduction %.1f)%n",
         flywheelCeiling, PhysicalConstants.FLYWHEEL_REDUCTION);
-    System.out.printf("%8s %10s %10s %12s %14s%n",
-        "dist (m)", "rps", "hood", "rps per m", "rps for 0.3m");
+    System.out.printf("%8s %10s %10s %12s %14s %14s%n",
+        "dist (m)", "rps", "hood", "rps per m", "map: 0.35m", "physics: 0.35m");
 
     double worstDistance = 0;
     double worstSpeed = 0;
@@ -45,8 +47,13 @@ public class ShotMapTest {
       // range. Validated against video for two shots at ~3.5m, where 4.3 rps of
       // shortfall landed 0.65m short and 22 rps landed 3-4m short.
       double slope = (flywheel.interpolate(distance + 0.05) - flywheel.interpolate(distance - 0.05)) / 0.1;
-      System.out.printf("%8.1f %10.1f %10.2f %12.1f %14.1f%n",
-          distance, speed, hood.interpolate(distance), slope, Math.abs(slope) * 0.3);
+      // Two ways to turn an acceptable range error into a flywheel tolerance.
+      // The map slope is only valid where the hood is flat. Range goes as the
+      // square of launch speed, so dR/dv = 2R/v, which holds everywhere.
+      double fromMap = Math.abs(slope) * ACCEPTABLE_RANGE_ERROR;
+      double fromPhysics = speed * ACCEPTABLE_RANGE_ERROR / (2 * distance);
+      System.out.printf("%8.1f %10.1f %10.2f %12.1f %14.1f %14.1f%n",
+          distance, speed, hood.interpolate(distance), slope, fromMap, fromPhysics);
       if (speed > worstSpeed) {
         worstSpeed = speed;
         worstDistance = distance;
