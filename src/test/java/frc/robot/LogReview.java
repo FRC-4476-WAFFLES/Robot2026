@@ -114,6 +114,8 @@ public final class LogReview {
   private static final String CHANNEL_CURRENT = "/PowerDistribution/ChannelCurrent";
   /** Total current at or above which a sample counts as a spike, in amps. */
   private static final double SPIKE_AMPS = 250;
+  /** Speed tolerance used when measuring how long the flywheel takes to recover. */
+  private static final double RECOVERY_TOLERANCE = 2.5;
   /** The supply current limit ModuleIOTalonFX configures on each drive motor. */
   private static final double DRIVE_SUPPLY_LIMIT = 45;
   /** Byte offset of supplyCurrent within the packed TalonFXIOData struct. */
@@ -730,6 +732,7 @@ public final class LogReview {
    * its goal by when the shot went out.
    */
   private static void reviewShots(List<File> logs) throws IOException {
+    List<Double> recoveries = new ArrayList<>();
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
@@ -749,6 +752,8 @@ public final class LogReview {
       String state = "?";
       int shots = 0;
       double[] pending = null;
+      double[] recovering = null;
+      double recoverFrom = 0;
       String pendingState = "?";
       double fireStart = 0;
       boolean printedHeader = false;
@@ -792,6 +797,17 @@ public final class LogReview {
               pending[6] = speed;
               pending[7] = record.getTimestamp() / 1e6 - fireStart;
             }
+            if (recovering != null) {
+              double elapsed = record.getTimestamp() / 1e6 - recoverFrom;
+              if (Math.abs(recovering[2] - speed) < RECOVERY_TOLERANCE) {
+                recoveries.add(elapsed);
+                recovering = null;
+              } else if (elapsed > 3.0) {
+                // Never recovered within three seconds; count it at the cap.
+                recoveries.add(3.0);
+                recovering = null;
+              }
+            }
           } else if (entry == fireEntry) {
             boolean nowFiring = record.getBoolean();
             if (nowFiring && !firing) {
@@ -807,6 +823,8 @@ public final class LogReview {
               pendingState = state;
             }
             if (firing && !nowFiring && pending != null) {
+              recovering = pending;
+              recoverFrom = record.getTimestamp() / 1e6;
               // goal, speed at the command, min and last during the window
               System.out.printf("  %7.1fs %7.2fm %8.1f %7.1f %7.1f %7.1f %6.0fms %8.2fV  %s%n",
                   pending[0], pending[1], pending[2], pending[3], pending[5], pending[6],
@@ -822,6 +840,23 @@ public final class LogReview {
       if (shots > 0) {
         System.out.printf("  %d shots%n", shots);
       }
+    }
+
+    if (!recoveries.isEmpty()) {
+      Collections.sort(recoveries);
+      System.out.printf("%nrecovery to within %.1f rps of goal after a shot, %d samples%n",
+          RECOVERY_TOLERANCE, recoveries.size());
+      System.out.printf("  median %.2fs   75th %.2fs   90th %.2fs   worst %.2fs%n",
+          recoveries.get(recoveries.size() / 2),
+          recoveries.get(recoveries.size() * 3 / 4),
+          recoveries.get(recoveries.size() * 9 / 10),
+          recoveries.get(recoveries.size() - 1));
+      long instant = recoveries.stream().filter(r -> r < 0.05).count();
+      long never = recoveries.stream().filter(r -> r >= 3.0).count();
+      System.out.printf("  %d of %d (%.0f%%) were already within tolerance when firing stopped%n",
+          instant, recoveries.size(), 100.0 * instant / recoveries.size());
+      System.out.printf("  %d of %d (%.0f%%) never recovered within 3s -- the wheel could not reach its goal%n",
+          never, recoveries.size(), 100.0 * never / recoveries.size());
     }
   }
 
