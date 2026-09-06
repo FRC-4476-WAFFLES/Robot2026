@@ -48,6 +48,7 @@ public final class LogReview {
   private static final String FIRE_SHOT = "/RealOutputs/Commands/Fire shot";
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
+  private static final String SHOOTING = "/RealOutputs/RobotState/Shooting";
   private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
   private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
@@ -90,6 +91,7 @@ public final class LogReview {
       case "bog" -> reviewBog(args[1], logs);
       case "shooter" -> reviewShooter(logs);
       case "shots" -> reviewShots(logs);
+      case "gate" -> reviewGate(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -857,6 +859,120 @@ public final class LogReview {
           instant, recoveries.size(), 100.0 * instant / recoveries.size());
       System.out.printf("  %d of %d (%.0f%%) never recovered within 3s -- the wheel could not reach its goal%n",
           never, recoveries.size(), 100.0 * never / recoveries.size());
+    }
+  }
+
+  /**
+   * Replays a proposed flywheel readiness gate over the logs and counts how often
+   * it would have opened and closed, to see whether a tighter tolerance would
+   * make the shooter chatter. Only samples where a shot is actually wanted count.
+   *
+   * <p>
+   * The debounce matches {@code Flywheel}: the gate must hold true continuously
+   * for 0.25 s before it opens, and closes the instant the wheel falls outside
+   * tolerance.
+   */
+  private static void reviewGate(List<File> logs) throws IOException {
+    double[] tolerances = { 2.0, 2.5, 4.0, 20.0 };
+    System.out.printf("%-26s %6s %8s %9s %10s %12s %10s%n",
+        "log", "tol", "opens", "closes", "open %", "med closed", "brief");
+
+    for (File log : logs) {
+      for (double tolerance : tolerances) {
+        int goalEntry = -1;
+        int motorEntry = -1;
+        int enabledEntry = -1;
+        int shootingEntry = -1;
+        boolean enabled = false;
+        boolean shooting = false;
+        double goal = 0;
+        double trueSince = -1;
+        boolean open = false;
+        int opens = 0;
+        double openTime = 0;
+        double wantedTime = 0;
+        double closedAt = -1;
+        double last = -1;
+        List<Double> closedDurations = new ArrayList<>();
+
+        DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+        try {
+          for (DataLogRecord record : reader) {
+            if (record.isStart()) {
+              var start = record.getStartData();
+              switch (start.name) {
+                case FLYWHEEL_GOAL -> goalEntry = start.entry;
+                case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+                case ENABLED -> enabledEntry = start.entry;
+                case SHOOTING -> shootingEntry = start.entry;
+                default -> {
+                }
+              }
+              continue;
+            }
+            if (record.isControl()) {
+              continue;
+            }
+            int entry = record.getEntry();
+            if (entry == enabledEntry) {
+              enabled = record.getBoolean();
+            } else if (entry == shootingEntry) {
+              shooting = record.getBoolean();
+            } else if (entry == goalEntry) {
+              goal = record.getDouble();
+            } else if (entry == motorEntry) {
+              double now = record.getTimestamp() / 1e6;
+              double step = last < 0 ? 0 : Math.min(0.1, now - last);
+              last = now;
+              if (!enabled || !shooting || goal <= 1.0) {
+                trueSince = -1;
+                open = false;
+                continue;
+              }
+              wantedTime += step;
+              ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+              double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+              boolean within = Math.abs(goal - speed) < tolerance;
+
+              if (!within) {
+                if (open) {
+                  closedAt = now;
+                }
+                open = false;
+                trueSince = -1;
+              } else {
+                if (trueSince < 0) {
+                  trueSince = now;
+                }
+                if (!open && now - trueSince >= 0.25) {
+                  open = true;
+                  opens++;
+                  if (closedAt > 0) {
+                    closedDurations.add(now - closedAt);
+                  }
+                }
+              }
+              if (open) {
+                openTime += step;
+              }
+            }
+          }
+        } catch (RuntimeException e) {
+          // truncated log; keep what was read
+        }
+
+        if (wantedTime < 1.0) {
+          continue;
+        }
+        Collections.sort(closedDurations);
+        long brief = closedDurations.stream().filter(d -> d < 0.5).count();
+        System.out.printf("%-26s %6.1f %8d %9d %9.0f%% %11s %9d%n",
+            log.getName().replace("akit_26-04-11_", "").replace(".wpilog", ""),
+            tolerance, opens, closedDurations.size(), 100 * openTime / wantedTime,
+            closedDurations.isEmpty() ? "-"
+                : String.format("%.2fs", closedDurations.get(closedDurations.size() / 2)),
+            brief);
+      }
     }
   }
 
