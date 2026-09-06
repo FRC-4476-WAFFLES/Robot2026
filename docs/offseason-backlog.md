@@ -191,30 +191,17 @@ Note the goal column rises as voltage falls — the longest shots need the most
 flywheel, and spinning the flywheel is itself one of the largest current draws.
 The shooter is partly causing the sag that then starves it.
 
-### Passing shots command a speed the flywheel cannot reach
+### Passing: fixed since the logs were taken
 
-`./gradlew logReview --args="shots <log>"` prints one row per shot, keyed to
-match time so it can be found on event video. Every `TARGET_PASS` shot in the
-logs is short by the same amount, regardless of battery:
+Worth recording so it is not re-derived. In the ONWEL logs every `TARGET_PASS`
+shot commanded ~100.5 rps and delivered ~85, short by 15 rps at any battery
+voltage — `FLYWHEEL_REDUCTION` is 1, so the flywheel turns at rotor speed and a
+Kraken's 6000 RPM free speed is a hard 100 rps ceiling.
 
-| Match time | Distance | Goal | Actual | Short | Battery |
-|---|---|---|---|---|---|
-| 39.0 s | 13.73 m | 97.1 rps | 81.7 rps | 15.4 | 11.08 V |
-| 38.0 s | 13.28 m | 100.5 rps | 85.2 rps | 15.3 | 11.35 V |
-| 36.0 s | 12.30 m | 100.5 rps | 84.9 rps | 15.6 | 10.83 V |
-| 34.0 s | 14.19 m | 100.5 rps | 84.0 rps | 16.5 | 10.97 V |
-| 33.0 s | 13.24 m | 98.0 rps | 81.0 rps | 17.0 | 11.10 V |
-
-This is not battery sag — it happens at 11 V. `FLYWHEEL_REDUCTION` is **1**, so
-the flywheel turns at rotor speed, and a Kraken's free speed is 6000 RPM =
-**100 rps**. A commanded 100.5 rps is *at or above the motor's free speed*: it is
-unreachable under any load at any voltage. The wheel tops out near 85 rps and
-every pass falls short by 15.
-
-Where the 100.5 comes from is not yet traced. `FlywheelConstants.DistanceMap`
-tops out at 71.9 rps at 7.3 m and *decreases* to 65.5 rps at 12.5 m, so a pass at
-13 – 14 m is past the last node and the spline is extrapolating. That needs
-reading before anything is changed.
+**Current code does not do this.** `ShotMapTest` evaluates the live map and it
+clamps flat at 61.0 rps beyond 12.5 m. The fix landed after ONWEL. The test
+stays as a regression guard: it fails if the map ever commands above the
+flywheel's free speed again.
 
 ### What a tighter gate would cost
 
