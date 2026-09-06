@@ -38,10 +38,12 @@ public final class LogReview {
   private static final String FIELD_VELOCITY = "/RealOutputs/RobotState/FieldVelocity";
   private static final String FIELD_POSE = "/RealOutputs/RobotState/FieldPose";
   private static final String TARGET = "/RealOutputs/RobotState/Autopilot/Target";
+  private static final String SIM_TRUTH = "/RealOutputs/Vision/UnderlyingFieldPose";
+  private static final String VALIDATED = "/RealOutputs/Vision/Validated Pose";
 
   public static void main(String[] args) throws IOException {
     if (args.length < 2) {
-      System.out.println("usage: fields <log> | align <log|dir>");
+      System.out.println("usage: fields <log> | align <log|dir> | vision <log|dir>");
       return;
     }
     String mode = args[0];
@@ -60,6 +62,11 @@ public final class LogReview {
 
     switch (mode) {
       case "fields" -> listFields(logs.get(0));
+      case "vision" -> {
+        for (File log : logs) {
+          reviewVision(log);
+        }
+      }
       case "align" -> {
         int totalEnds = 0;
         int movingEnds = 0;
@@ -190,6 +197,87 @@ public final class LogReview {
           atTargetMovingEnds);
     }
     return new int[] { ends, movingEnds };
+  }
+
+  /**
+   * Compares the accepted vision estimate against both the simulation's ground
+   * truth pose (what SimVisionIO generates observations from) and the fused
+   * estimator pose. Tells you whether a disagreement is vision being inaccurate
+   * or the estimator having drifted.
+   */
+  private static void reviewVision(File log) throws IOException {
+    DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+    int truthEntry = -1;
+    int poseEntry = -1;
+    int validatedEntry = -1;
+    double[] truth = null;
+    double[] pose = null;
+    long truthTime = Long.MIN_VALUE;
+    long poseTime = Long.MIN_VALUE;
+    // WPILOG only records a value when it changes, so a stationary robot's pose
+    // can be minutes stale. Only compare against a recently recorded sample.
+    final long maxStaleUs = 100_000;
+    int skipped = 0;
+    List<Double> estimateVsTruth = new ArrayList<>();
+    List<Double> estimateVsPose = new ArrayList<>();
+
+    try {
+      for (DataLogRecord record : reader) {
+        if (record.isStart()) {
+          var start = record.getStartData();
+          if (SIM_TRUTH.equals(start.name)) {
+            truthEntry = start.entry;
+          } else if (FIELD_POSE.equals(start.name)) {
+            poseEntry = start.entry;
+          } else if (VALIDATED.equals(start.name)) {
+            validatedEntry = start.entry;
+          }
+          continue;
+        }
+        if (record.isControl()) {
+          continue;
+        }
+        int entry = record.getEntry();
+        if (entry == truthEntry) {
+          truth = xy(record);
+          truthTime = record.getTimestamp();
+        } else if (entry == poseEntry) {
+          pose = xy(record);
+          poseTime = record.getTimestamp();
+        } else if (entry == validatedEntry) {
+          double[] estimate = xy(record);
+          long now = record.getTimestamp();
+          boolean truthFresh = truth != null && now - truthTime <= maxStaleUs;
+          boolean poseFresh = pose != null && now - poseTime <= maxStaleUs;
+          if (estimate != null && truthFresh) {
+            estimateVsTruth.add(Math.hypot(estimate[0] - truth[0], estimate[1] - truth[1]));
+          } else {
+            skipped++;
+          }
+          if (estimate != null && poseFresh) {
+            estimateVsPose.add(Math.hypot(estimate[0] - pose[0], estimate[1] - pose[1]));
+          }
+        }
+      }
+    } catch (RuntimeException e) {
+      // truncated log; keep what was read
+    }
+
+    if (validatedEntry < 0) {
+      System.out.printf("%-46s no accepted vision estimates%n", log.getName());
+      return;
+    }
+    System.out.printf("%-46s comparable=%d skipped(stale)=%d  vs truth: %.2fm  vs fused: %.2fm%n",
+        log.getName(), estimateVsTruth.size(), skipped, median(estimateVsTruth), median(estimateVsPose));
+  }
+
+  private static double median(List<Double> values) {
+    if (values.isEmpty()) {
+      return Double.NaN;
+    }
+    List<Double> sorted = new ArrayList<>(values);
+    sorted.sort(Double::compare);
+    return sorted.get(sorted.size() / 2);
   }
 
   /** Pose2d serialises as x, y, theta little-endian doubles. */

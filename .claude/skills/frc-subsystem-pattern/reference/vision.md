@@ -138,18 +138,27 @@ Two things to keep in mind if you extend this:
 - The sentinel is currently unreachable. `calculateGyroEstimate()` — the only producer of a `LARGE_VARIANCE` heading — returns empty immediately because `VisionConstants.IGNORE_SINGLE_TAG` is `true`. Flipping that flag wakes the path up.
 - `numTags` sums across cameras, so a tag seen by two double-counts. Nothing reads it today, but don't start without fixing it.
 
-## Simulated vision does not currently agree with itself
+## Measuring simulated vision is easy to get wrong
 
-Measured, not theorised: in a sim run the turret camera produces accepted
-`MEGATAG` estimates, but `Vision/Pose Agreement Error` reads **~2.4 m** against the
-sim's own truth pose. Either the vision sim is misconfigured or a camera transform
-is wrong in sim — note that `RobotContainer` passes `Transform3d.kZero` as
-`SimVisionIO`'s `robotToCamera`.
+Simulated vision appears to work: with the robot parked where cameras can see
+tags, the fused pose tracks the simulation's ground truth to within about 5 cm.
 
-**Simulation therefore cannot validate a vision change.** Test vision logic
-directly rather than through simulated cameras — see `PoseAgreementTest`, which
-drives the agreement logic through a package-private seam for exactly this reason.
-Fixing this would make sim genuinely useful for vision work.
+Two things produced a false "sim vision is metres off" reading, both worth knowing
+before you trust a measurement:
+
+- **The harness must run the simulation callbacks.** `LoggedRobot.loopFunc()` calls
+  `HAL.simPeriodicBefore()`, `simulationPeriodic()` and `HAL.simPeriodicAfter()`
+  every loop, and those drive the vendor sim (CTRE, PhotonVision). An early version
+  of `SimHarness` skipped them; adding them moved the fused pose from 0.40 m off
+  truth to 0.05 m.
+- **WPILOG only records a value when it changes.** For a stationary robot, the
+  logged ground-truth pose can be many seconds stale, so naively pairing it with a
+  vision estimate compares against a pose from a completely different moment.
+  `LogReview`'s `vision` mode rejects samples older than 100 ms and reports how many
+  it skipped — a run with `comparable=0` measured nothing at all.
+
+Very few estimates are accepted in a short sim run, so a single sample is not
+evidence. Get many, or state that the measurement is inconclusive.
 
 ## Gotchas
 

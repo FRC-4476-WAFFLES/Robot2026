@@ -184,6 +184,7 @@ Pass **Windows-style paths**; a Git Bash `/c/...` path reaches Java as `C:\c\...
 
 Three things it exists to encode:
 
+- **Values are only recorded when they change.** Pairing two fields by "last seen value" silently compares across time — a stationary robot's pose can be seconds stale, and a comparison against it is meaningless. Check `record.getTimestamp()` and reject stale samples; `LogReview`'s `vision` mode reports how many it skipped.
 - **Stream, don't load.** A match log is 50-100MB. `SimLog` builds a map of boxed values and is fine for a short sim run but will thrash on a match log — `LogReview` keeps only the entry IDs it needs.
 - **Structs are raw bytes.** `Pose2d` and `ChassisSpeeds` serialise as consecutive little-endian doubles (x, y, theta / vx, vy, omega). Decode them directly; `SimLog` skips struct fields entirely.
 - **Logs are often truncated.** A robot that loses power mid-write leaves a partial final record, and `DataLogReader` throws part-way through iteration. Catch it and keep what you read, rather than losing the whole file.

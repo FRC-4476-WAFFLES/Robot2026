@@ -75,6 +75,14 @@ public final class SimHarness {
       long start = System.nanoTime();
       loggerBeforeUser();
       robot.robotPeriodic();
+
+      // LoggedRobot.loopFunc() runs these every loop in simulation, and they are
+      // what drives the vendor simulation callbacks (CTRE, PhotonVision). Skipping
+      // them leaves parts of the sim frozen.
+      HAL.simPeriodicBefore();
+      robot.simulationPeriodic();
+      HAL.simPeriodicAfter();
+
       loggerAfterUser(System.nanoTime() - start);
 
       // Sleep only the remainder of the period, so a loop costs 20 ms in total
