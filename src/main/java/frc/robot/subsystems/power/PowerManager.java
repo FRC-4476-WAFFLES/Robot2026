@@ -161,7 +161,10 @@ public class PowerManager extends VirtualSubsystem {
         new Share("Intake", target.intakeSupplyCurrent,
             () -> RobotContainer.intake.applyCurrentLimits(target.intakeSupplyCurrent)),
         new Share("Feeder", target.feederSupplyCurrent,
-            () -> RobotContainer.indexer.applyCurrentLimits(target.feederSupplyCurrent))));
+            () -> RobotContainer.indexer.applyCurrentLimits(target.feederSupplyCurrent)),
+        new Share("Spindexer", target.spindexerSupplyCurrent,
+            () -> RobotContainer.indexer.applySpindexerCurrentLimits(
+                target.spindexerSupplyCurrent))));
 
     // Write the reductions first so a half-applied transition is under budget
     // rather than over it.
@@ -188,6 +191,7 @@ public class PowerManager extends VirtualSubsystem {
       case "Flywheel" -> state.flywheelSupplyCurrent;
       case "Intake" -> state.intakeSupplyCurrent;
       case "Feeder" -> state.feederSupplyCurrent;
+      case "Spindexer" -> state.spindexerSupplyCurrent;
       default -> throw new IllegalArgumentException("no budget column for " + name);
     };
   }
