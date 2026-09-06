@@ -20,6 +20,12 @@ Robot.robotPeriodic()
 
 Anything ordering-sensitive belongs in `earlyPeriodic` (needs fresh sensor data before commands run) or `latePeriodic` (needs the setpoint commands just wrote). Plain `periodic()` is the default.
 
+## Keep all code running all the time
+
+Avoid work that only starts after some event — lazy initialisation, first-use construction, warmup that happens on the first press. It moves cost into the middle of a match, where a loop overrun is expensive, instead of into startup where nobody cares.
+
+`RobotContainer`'s constructor calls `ShotPlanner.aimManual()` purely to force static initialisation of the shot planner's splines before the match rather than on the first shot. Do the same for anything expensive and lazily built.
+
 ## Which base class
 
 | Base | Use for | Gets |

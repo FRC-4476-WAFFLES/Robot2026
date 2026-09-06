@@ -20,6 +20,8 @@ Team 4476 WAFFLES robot code — WPILib + AdvantageKit; `build.gradle` names the
 
 Older files under `utils/` had drifted to 4-space indentation; Spotless has since pulled them back. If you see indentation drift again, run `./gradlew spotlessApply` rather than matching it.
 
+*Why this is enforced by a tool rather than a rule:* `formatter.xml` specified 4-wide **tabs** for an entire season while every source file used 2 spaces, and nobody noticed — the editor's own settings masked it. A convention nothing checks is a convention that quietly stops being true.
+
 **Formatting is handled by a pre-commit hook.** It runs `./gradlew spotlessApply` and stages whatever Spotless changed, so committed code is always formatted regardless of editor — which matters because format-on-save never runs for an agent writing files directly. Costs about 4 seconds a commit.
 
 The hook stages **only** files Spotless modified, so unrelated unstaged work in progress is never swept into your commit. It lives in `scripts/pre-commit.sh` and is installed into `.git/hooks/` by a Gradle plugin on any Gradle run, so it needs no per-clone setup.
@@ -130,6 +132,16 @@ Inline `//` comments explain **why**, not what. Physical/tuning facts are exactl
 ```
 
 Do not add comments that restate the code.
+
+## Allocation
+
+This robot runs with a fixed 100 MB heap, `UseSerialGC` and `AlwaysPreTouch` (see `build.gradle`). Garbage collection pauses show up as loop overruns, so avoid allocating in code that runs every loop:
+
+- Construct control request objects, filters and controllers **once as fields**, never inside `periodic()` or a command's `execute`
+- Prefer a `double` over a fresh `Rotation2d`/`Translation2d` when the object is immediately unwrapped anyway
+- Reuse arrays rather than allocating a new one per loop — `Drive` keeps `odometryModulePositions` and `odometryModuleDeltas` as fields for this reason
+
+This is also the argument against adopting WPILib's `Angle`/`Distance` measure **types** for per-loop values: the type safety is real, but each operation allocates. Use the unit conventions above instead — they prevent the same bugs at no runtime cost.
 
 ## Hygiene
 
