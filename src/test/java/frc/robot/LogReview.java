@@ -46,6 +46,9 @@ public final class LogReview {
   private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
   private static final String FLYWHEEL_MOTOR = "/Inputs/Flywheel/FlywheelMotorData0";
   private static final String FEEDER_MOTOR = "/Inputs/Indexer/FeederMotorData0";
+  private static final String FEEDER_MOTOR_1 = "/Inputs/Indexer/FeederMotorData1";
+  private static final String SPINDEXER_MOTOR = "/Inputs/Indexer/IndexerMotorData0";
+  private static final String SPINDEXER_MOTOR_1 = "/Inputs/Indexer/IndexerMotorData1";
   private static final String FIRE_SHOT = "/RealOutputs/Commands/Fire shot";
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
@@ -99,6 +102,8 @@ public final class LogReview {
       case "modes" -> reviewModes(logs);
       case "recovery" -> reviewRecovery(logs);
       case "leadtime" -> reviewLeadTime(logs);
+      case "battery" -> reviewBattery(logs);
+      case "predict" -> reviewPredict(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -125,6 +130,10 @@ public final class LogReview {
   private static final double SPIKE_AMPS = 250;
   /** Range error the goal is assumed to accept, in metres either side. */
   private static final double ACCEPTED_RANGE_ERROR = 0.5;
+  /** Battery internal resistance, fitted from 63k logged samples in battery mode. */
+  private static final double BATTERY_RESISTANCE = 0.0155;
+  /** Volts of flywheel back-EMF per rps, implied by measured current at two speeds. */
+  private static final double BACK_EMF_PER_RPS = 0.186;
   /** Speed tolerance used when measuring how long the flywheel takes to recover. */
   private static final double RECOVERY_TOLERANCE = 2.5;
   /** The supply current limit ModuleIOTalonFX configures on each drive motor. */
@@ -1530,6 +1539,319 @@ public final class LogReview {
       return;
     }
     driveSupply.put(base, amps * applied / battery);
+  }
+
+  /**
+   * Identifies the battery's internal resistance from the logs, then predicts
+   * what the bus would have done with the drivetrain capped.
+   *
+   * <p>
+   * A battery under load reads {@code openCircuit - current * resistance}, so
+   * regressing every logged voltage against the total current at that moment
+   * recovers both numbers. Capping the drivetrain removes current, and the
+   * voltage that comes back is that removed current times the resistance. That
+   * is the entire benefit of the drivetrain cap, and this is the only way to size
+   * it without a robot.
+   */
+  private static void reviewBattery(List<File> logs) throws IOException {
+    long n = 0;
+    double sumI = 0;
+    double sumV = 0;
+    double sumII = 0;
+    double sumIV = 0;
+    // Voltage and estimated drivetrain draw at the moment of each shot.
+    List<double[]> shots = new ArrayList<>();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> driveSupply = new HashMap<>();
+      int voltageEntry = -1;
+      int currentEntry = -1;
+      int enabledEntry = -1;
+      int fireEntry = -1;
+      boolean enabled = false;
+      boolean firing = false;
+      double battery = 12;
+      double total = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(BATTERY_VOLTAGE)) {
+              voltageEntry = start.entry;
+            } else if (start.name.equals(TOTAL_CURRENT)) {
+              currentEntry = start.entry;
+            } else if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.name.equals(FIRE_SHOT)) {
+              fireEntry = start.entry;
+            } else if (start.name.endsWith("DriveCurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("DriveAppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == currentEntry) {
+            total = record.getDouble();
+          } else if (entry == voltageEntry) {
+            battery = record.getDouble();
+            // Skip the impossible readings the PDH produces during its stuck
+            // channel fault, which would drag the fit badly.
+            if (enabled && battery > 4.0 && total > 0 && total < 260) {
+              n++;
+              sumI += total;
+              sumV += battery;
+              sumII += total * total;
+              sumIV += total * battery;
+            }
+          } else if (entry == fireEntry) {
+            boolean nowFiring = record.getBoolean();
+            if (nowFiring && !firing && enabled) {
+              shots.add(new double[] {
+                  battery, driveSupply.values().stream().mapToDouble(Double::doubleValue).sum() });
+            }
+            firing = nowFiring;
+          } else if (statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          } else if (appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (n < 100 || shots.isEmpty()) {
+      System.out.println("not enough data");
+      return;
+    }
+    double slope = (n * sumIV - sumI * sumV) / (n * sumII - sumI * sumI);
+    double openCircuit = (sumV - slope * sumI) / n;
+    double resistance = -slope;
+    System.out.printf("fitted from %d samples: open circuit %.2fV, internal resistance %.1f mOhm%n",
+        n, openCircuit, resistance * 1000);
+    System.out.printf("  so every 100A of draw costs %.2fV of bus%n%n", 100 * resistance);
+
+    for (double cap : new double[] { 20, 10 }) {
+      List<Double> gains = new ArrayList<>();
+      List<Double> after = new ArrayList<>();
+      for (double[] shot : shots) {
+        double saved = Math.max(0, shot[1] - 4 * cap);
+        gains.add(saved * resistance);
+        after.add(shot[0] + saved * resistance);
+      }
+      Collections.sort(gains);
+      Collections.sort(after);
+      long helped = gains.stream().filter(g -> g > 0.25).count();
+      System.out.printf("drivetrain capped at %.0fA per motor, over %d shots:%n", cap, shots.size());
+      System.out.printf("  voltage recovered: median %.2fV, 75th %.2fV, 90th %.2fV, best %.2fV%n",
+          gains.get(gains.size() / 2), gains.get(gains.size() * 3 / 4),
+          gains.get(gains.size() * 9 / 10), gains.get(gains.size() - 1));
+      System.out.printf("  %d of %d shots (%.0f%%) gain more than 0.25V%n",
+          helped, shots.size(), 100.0 * helped / shots.size());
+      long lowBefore = shots.stream().filter(shot -> shot[0] < 9.0).count();
+      long lowAfter = after.stream().filter(v -> v < 9.0).count();
+      System.out.printf("  shots taken below 9V: %d before, %d after%n%n", lowBefore, lowAfter);
+    }
+  }
+
+  /**
+   * Estimates how many more shots would land with the drivetrain capped.
+   *
+   * <p>
+   * The chain is: capping the drivetrain removes current, removed current times
+   * the battery's 15.5 mOhm gives volts back, and the volts a motor has above its
+   * back-EMF is what it can turn into recovery current. A shot fired with the
+   * wheel a given distance below its goal would, with proportionally more
+   * recovery current, have been fired that much closer to it.
+   *
+   * <p>
+   * The assumptions, all of them: back-EMF is linear in wheel speed at the
+   * gradient the logs imply, recovery is proportional to available current, and
+   * the driver would have taken the same shot at the same moment. The last one is
+   * the weakest — a real driver whose robot accelerates less would drive
+   * differently. Treat the answer as an order of magnitude.
+   */
+  private static void reviewPredict(List<File> logs) throws IOException {
+
+    List<double[]> shots = collectShots(logs);
+
+    // Each candidate: drivetrain cap, feeder cap per motor, spindexer cap per
+    // motor. The drivetrain rows are what is already built; the rest ask what
+    // capping the ball path on top of it would add.
+    double[][] candidates = {
+        { 45, 99, 99 }, { 20, 99, 99 }, { 10, 99, 99 },
+        { 10, 20, 20 }, { 10, 15, 15 }, { 10, 10, 10 }, { 10, 6, 6 },
+        // The ceiling: nothing else on the robot drawing anything at all.
+        { 0, 0, 0 },
+    };
+
+    System.out.printf("%8s %8s %10s %14s %12s %12s%n",
+        "drive", "feeder", "spindexer", "volts back", "land", "vs today");
+    int baseline = -1;
+    for (double[] candidate : candidates) {
+      int landed = 0;
+      int total = 0;
+      double gainSum = 0;
+      for (double[] shot : shots) {
+        double distance = shot[0];
+        double goal = shot[1];
+        double speed = shot[2];
+        double battery = shot[3];
+        if (distance < 1.0 || goal < 1.0 || battery < 4.0) {
+          continue;
+        }
+        total++;
+        double saved = Math.max(0, shot[4] - 4 * candidate[0])
+            + Math.max(0, shot[5] - 2 * candidate[1])
+            + Math.max(0, shot[6] - 2 * candidate[2]);
+        double recovered = saved * BATTERY_RESISTANCE;
+        gainSum += recovered;
+        double tolerance = Math.max(3.0,
+            Math.min(8.0, goal * ACCEPTED_RANGE_ERROR / (2 * distance)));
+        double deficit = Math.abs(goal - speed);
+        double headroomNow = Math.max(0.1, battery - BACK_EMF_PER_RPS * speed);
+        double improved = deficit * headroomNow / (headroomNow + recovered);
+        if (improved < tolerance) {
+          landed++;
+        }
+      }
+      if (total == 0) {
+        System.out.println("no shots");
+        return;
+      }
+      if (baseline < 0) {
+        baseline = landed;
+      }
+      System.out.printf("%8.0f %8s %10s %11.2fV %8d %3.0f%% %8s%n",
+          candidate[0],
+          candidate[1] > 90 ? "-" : String.format("%.0f", candidate[1]),
+          candidate[2] > 90 ? "-" : String.format("%.0f", candidate[2]),
+          gainSum / total, landed, 100.0 * landed / total,
+          landed == baseline ? "-" : String.format("%+d", landed - baseline));
+    }
+  }
+
+  /**
+   * {distance, goal, speed, battery, drivetrain supply, feeder supply, spindexer
+   * supply} at the moment of each shot. The last two are measured directly, the
+   * drivetrain one estimated from stator current and applied voltage.
+   */
+  private static List<double[]> collectShots(List<File> logs) throws IOException {
+    List<double[]> shots = new ArrayList<>();
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> statorAmps = new HashMap<>();
+      Map<Integer, String> appliedVolts = new HashMap<>();
+      Map<String, Double> stator = new HashMap<>();
+      Map<String, Double> volts = new HashMap<>();
+      Map<String, Double> driveSupply = new HashMap<>();
+      int goalEntry = -1;
+      int motorEntry = -1;
+      int batteryEntry = -1;
+      int enabledEntry = -1;
+      int fireEntry = -1;
+      int distanceEntry = -1;
+      int[] ballPathEntries = { -1, -1, -1, -1 };
+      double[] ballPathDraw = new double[4];
+      boolean enabled = false;
+      boolean firing = false;
+      double goal = 0;
+      double speed = 0;
+      double battery = 12;
+      double distance = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case FLYWHEEL_MOTOR -> motorEntry = start.entry;
+              case BATTERY_VOLTAGE -> batteryEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              case FIRE_SHOT -> fireEntry = start.entry;
+              case DISTANCE_TO_TARGET -> distanceEntry = start.entry;
+              default -> {
+              }
+            }
+            switch (start.name) {
+              case FEEDER_MOTOR -> ballPathEntries[0] = start.entry;
+              case FEEDER_MOTOR_1 -> ballPathEntries[1] = start.entry;
+              case SPINDEXER_MOTOR -> ballPathEntries[2] = start.entry;
+              case SPINDEXER_MOTOR_1 -> ballPathEntries[3] = start.entry;
+              default -> {
+              }
+            }
+            if (start.name.endsWith("DriveCurrentAmps")) {
+              statorAmps.put(start.entry, shortName(start.name));
+            } else if (start.name.endsWith("DriveAppliedVolts")) {
+              appliedVolts.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == batteryEntry) {
+            battery = record.getDouble();
+          } else if (entry == distanceEntry) {
+            distance = record.getDouble();
+          } else if (entry == motorEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+          } else if (entry == fireEntry) {
+            boolean nowFiring = record.getBoolean();
+            if (nowFiring && !firing && enabled) {
+              shots.add(new double[] { distance, goal, speed, battery,
+                  driveSupply.values().stream().mapToDouble(Double::doubleValue).sum(),
+                  ballPathDraw[0] + ballPathDraw[1], ballPathDraw[2] + ballPathDraw[3] });
+            }
+            firing = nowFiring;
+          } else if (statorAmps.containsKey(entry)) {
+            String base = statorAmps.get(entry).replace("CurrentAmps", "");
+            stator.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          } else if (appliedVolts.containsKey(entry)) {
+            String base = appliedVolts.get(entry).replace("AppliedVolts", "");
+            volts.put(base, Math.abs(record.getDouble()));
+            updateDriveSupply(base, stator, volts, battery, driveSupply);
+          } else {
+            for (int i = 0; i < ballPathEntries.length; i++) {
+              if (entry == ballPathEntries[i]) {
+                ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+                ballPathDraw[i] = Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET));
+              }
+            }
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+    return shots;
   }
 
   private static Draw[] newBuckets() {
