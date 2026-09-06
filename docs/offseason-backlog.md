@@ -691,6 +691,20 @@ A model with those five numbers would reproduce the measured behaviour, and ever
 prediction in the power section above could then be tested before a robot exists
 rather than after.
 
+**Partly done.** `GyroIOSim` now exists and can be tilted, which unlocked the
+behaviours that key off the gyro rather than the pose — arming the post-bump
+vision recovery, forcing `TARGET_TAG` while tilted, and the turret's bump offset.
+Those are deliberately gyro-driven because a crossing corrupts the pose and
+cannot corrupt gravity, which had made them the one thing simulation could not
+reach. `SimHarness.tiltOntoBump()` and `levelOut()` drive it.
+
+`SimHarness.advanceClockOnly` was added alongside, for logic that has to be
+driven directly: simulated vision derives its estimates from the drive's own
+pose, so it agrees perfectly on every loop and resets any pose-agreement state
+machine as fast as a test can set it.
+
+**Still missing:** the flywheel and battery physics below.
+
 **Shape of it.** A shared battery model that every IO layer draws from, so bus
 voltage falls with total current the way it does on the robot; a flywheel model
 that converts commanded current into acceleration against that voltage and honours
