@@ -26,15 +26,16 @@ public class PowerBudgetTest {
    * passed roughly 250 A and the cleanest match peaked at 250 A with none, so
    * this is not a target — it is a guard against someone typing an extra digit.
    */
-  private static final double ABSOLUTE_CEILING = 400;
+  private static final double ABSOLUTE_CEILING = 500;
 
   @Test
   void everyStateStaysUnderTheAbsoluteCeiling() {
     for (PowerManagerState state : PowerManagerState.values()) {
       System.out.printf("%-22s drive %3.0fA x4  flywheel %3.0f stator %3.0f supply x2  "
-          + "intake %3.0fA x2  draw ceiling %4.0fA%n",
+          + "intake %3.0fA  feeder %3.0fA x2  draw ceiling %4.0fA%n",
           state, state.driveSupplyCurrent, state.flywheelStatorCurrent,
-          state.flywheelSupplyCurrent, state.intakeSupplyCurrent, state.drawCeiling());
+          state.flywheelSupplyCurrent, state.intakeSupplyCurrent, state.feederSupplyCurrent,
+          state.drawCeiling());
       assertTrue(state.driveSupplyCurrent > 0 && state.flywheelSupplyCurrent > 0
           && state.intakeSupplyCurrent > 0,
           state + " has a non-positive limit, which would stop the mechanism entirely");
@@ -68,6 +69,21 @@ public class PowerBudgetTest {
     // bus voltage can, and that comes off the drivetrain.
     assertTrue(PowerManagerState.SHOOTING_FAR.driveSupplyCurrent < PowerManagerState.SHOOTING.driveSupplyCurrent,
         "SHOOTING_FAR must cut the drivetrain harder than SHOOTING, which is where its benefit comes from");
+  }
+
+  @Test
+  void theFeederIsNeverCutWhileShooting() {
+    // The feeder holds 36-37 rps in the logs no matter the load, and a ball
+    // entering at an inconsistent speed makes the shot inconsistent however well
+    // the flywheel is holding. Slowing the feed would buy the flywheel recovery
+    // time at the cost of the thing it is recovering for.
+    for (PowerManagerState state : new PowerManagerState[] { PowerManagerState.SHOOTING,
+        PowerManagerState.SHOOTING_FAR, PowerManagerState.SHOOTING_AND_INTAKING }) {
+      assertTrue(state.feederSupplyCurrent >= PowerManagerState.DEFAULT.feederSupplyCurrent,
+          state + " must not cut the feeder below its default allowance");
+      assertTrue(state.feederSupplyCurrent > 35,
+          state + " must leave the feeder clear of the 27-35A it draws at high duty");
+    }
   }
 
   @Test
