@@ -83,6 +83,7 @@ and the "spike" column for what a mechanism contributes when draw is high:
 | Expander | 1.6 A | 1.0 A | 70.7 A | none |
 | Hood | 0.2 A | 0.4 A | 23.9 A | none |
 | Turret | **not logged** | | | none |
+| Climber | **never writes a value while enabled** — the mechanism does not exist | | | |
 
 Roughly: **drive is about half of a spike, the mechanisms the other half**, with
 flywheel and intake the two biggest mechanism contributors.
@@ -96,8 +97,53 @@ all — the turret's draw is simply unknown.
 are set nearly everywhere (120 A), but a stator limit does not bound what the
 battery supplies: a motor stalled at 20% duty pulls 120 A stator and only ~24 A
 from the pack. Supply current is what sags the battery, and it is the limit we
-mostly do not set. Intake's is commented out in `IntakeIOTalonFX`; hood, turret,
-climber and the indexer rollers have none.
+mostly do not set. Hood, turret and the indexer
+rollers have none. Intake's is commented out **deliberately** — see below.
+
+### Do not put the intake supply limit back
+
+`IntakeIOTalonFX` has `.withSupplyCurrentLimit(35)` commented out. It was removed
+because the intake bogged down while intaking, especially in autos. The logs say
+that was the right call:
+
+| Commanded duty | Samples | Mean supply | Mean stator | Mean speed |
+|---|---|---|---|---|
+| 0.9 – 1.0 (free) | 29 977 | **14.0 A** | 15.3 A | 24.7 rps |
+| 0.6 – 0.9 (loaded) | 676 | **54 – 64 A** | 74 – 87 A | 9 – 15 rps |
+
+The intake is run open-loop at full duty cycle, so supply current is close to
+stator current, and its draw peaks precisely when it is loaded. A 35 A supply
+limit would have clamped it in exactly the regime where torque is needed, and
+would barely have touched the free-spinning case that costs 14 A. Restoring it
+would recreate the bogging. If a limit is wanted, it belongs somewhere near
+70 A, and only alongside a state-based budget that raises it while intaking.
+
+`./gradlew logReview --args="motor Intake/IntakeMotor <logs>"` reproduces this.
+
+### The intake does recover — measured
+
+The related theory was that the intake, once dragged down by a pile of balls,
+recovers more slowly than the drivetrain moves, so the robot outruns it and
+beaches. The ONWEL logs do not support it:
+
+```
+./gradlew logReview --args="bog IntakeMotor0 <logs>"
+```
+
+| | Intake 0 | Intake 1 |
+|---|---|---|
+| Free speed | 29.5 rps | 29.4 rps |
+| Time below half free speed while commanded | **2.5 %** | 2.0 % |
+| Bog episodes | 263 | 216 |
+| Mean episode | **0.05 s** | 0.05 s |
+| Longest episode | 0.52 s | 0.52 s |
+| Robot speed while bogged | **1.34 m/s** | 1.40 m/s |
+| Robot speed while intaking overall | 1.74 m/s | 1.74 m/s |
+
+Bogs are real but brief — a typical one is one loop long, the worst half a
+second. And the robot is moving *slower* while bogged, not faster, so the
+drivetrain is not outrunning the intake. Whatever causes beaching, this is not
+it. Caveat: these logs predate the current code.
 
 ### One caveat on the raw peaks
 
