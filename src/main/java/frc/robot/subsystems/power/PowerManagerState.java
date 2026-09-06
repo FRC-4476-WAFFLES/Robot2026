@@ -29,11 +29,23 @@ public enum PowerManagerState {
   /** Flywheel priority: it needs headroom to recover between balls. */
   SHOOTING(20, 160, 140, 20),
   /**
+   * A long shot, where accuracy collapses in the logs. The flywheel allowance is
+   * the same as {@link #SHOOTING} because it cannot use any more: a long shot
+   * needs a higher wheel speed, which means more back-EMF and so less voltage
+   * left to drive recovery current. What actually helps is the bus voltage
+   * itself, so the drivetrain is cut harder here than anywhere else. Long shots
+   * in the logs were taken on a median 7.5 V bus, against 12 V up close.
+   */
+  SHOOTING_FAR(10, 160, 140, 20),
+  /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
   SHOOTING_AND_INTAKING(20, 160, 140, 90);
+
+  /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
+  public static final double FAR_SHOT_DISTANCE = 3.5;
 
   /** Per drive motor, supply. Four of them. */
   public final double driveSupplyCurrent;

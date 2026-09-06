@@ -51,14 +51,23 @@ public class PowerBudgetTest {
     // flywheel's allowance is an option it spends only while recovering from a
     // ball. Requiring the ceilings to net out below the default would force the
     // flywheel back down and defeat the point.
-    for (PowerManagerState state : new PowerManagerState[] {
-        PowerManagerState.SHOOTING, PowerManagerState.SHOOTING_AND_INTAKING }) {
+    for (PowerManagerState state : new PowerManagerState[] { PowerManagerState.SHOOTING,
+        PowerManagerState.SHOOTING_FAR, PowerManagerState.SHOOTING_AND_INTAKING }) {
       assertTrue(state.driveSupplyCurrent < PowerManagerState.DEFAULT.driveSupplyCurrent,
           state + " must cap the drivetrain, which is where the current comes from");
       assertTrue(state.flywheelSupplyCurrent > PowerManagerState.DEFAULT.flywheelSupplyCurrent
           && state.flywheelStatorCurrent > PowerManagerState.DEFAULT.flywheelStatorCurrent,
           state + " must give the flywheel more of both limits, or it cannot recover faster");
     }
+  }
+
+  @Test
+  void aLongShotCutsTheDrivetrainHardestOfAll() {
+    // A long shot needs a higher wheel speed, so there is less voltage left to
+    // drive recovery current. More flywheel allowance cannot be used; a higher
+    // bus voltage can, and that comes off the drivetrain.
+    assertTrue(PowerManagerState.SHOOTING_FAR.driveSupplyCurrent < PowerManagerState.SHOOTING.driveSupplyCurrent,
+        "SHOOTING_FAR must cut the drivetrain harder than SHOOTING, which is where its benefit comes from");
   }
 
   @Test

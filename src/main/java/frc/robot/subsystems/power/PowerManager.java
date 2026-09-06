@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
+import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.utils.lib.subsystems.VirtualSubsystem;
 
 /**
@@ -116,13 +117,18 @@ public class PowerManager extends VirtualSubsystem {
    */
   private PowerManagerState chooseState() {
     boolean shooting = RobotContainer.state.isShooting();
-    if (shooting && RobotContainer.state.isIntaking()) {
+    if (!shooting) {
+      return PowerManagerState.DEFAULT;
+    }
+    // Intaking outranks distance: being dragged down in a pile is the one case
+    // where the intake genuinely needs its full allowance.
+    if (RobotContainer.state.isIntaking()) {
       return PowerManagerState.SHOOTING_AND_INTAKING;
     }
-    if (shooting) {
-      return PowerManagerState.SHOOTING;
+    if (ShotPlanner.distanceToTarget() > PowerManagerState.FAR_SHOT_DISTANCE) {
+      return PowerManagerState.SHOOTING_FAR;
     }
-    return PowerManagerState.DEFAULT;
+    return PowerManagerState.SHOOTING;
   }
 
   /**
