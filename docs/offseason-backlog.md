@@ -648,6 +648,60 @@ Deliberately **not** using the typed measures: this robot runs a fixed 100 MB
 heap with `UseSerialGC`, and each measure operation allocates. The conventions
 prevent the same bugs at no runtime cost.
 
+### Give the simulation real physics — Open
+
+`PowerAndGateSimTest` proves the power manager and the shot gate are structurally
+sound: the background thread's CAN writes land, every state transition completes,
+turbo reaches the motors and releases, and nothing deadlocks against the odometry
+lock. What it cannot prove is that any of it *helps*, because the simulation has
+no physics to help with.
+
+**What is missing.** `FlywheelIOSim` is a second-order response driven straight
+from the setpoint:
+
+```java
+simState = new SecondOrderSim(2.5, 1, 0, 0);
+talonFXSim.setRotorVelocity(simState.Evaluate(setpointVel, ...));
+```
+
+No torque, no current limit, no load, no battery. The simulated wheel reaches any
+goal at a fixed rate regardless of what the motor could actually do. Three things
+follow, and each is a test we cannot write today:
+
+- **A current limit does nothing in sim.** `SHOOTING` and `SHOOTING_FAR` produce
+  identical behaviour, so the entire power manager is untestable beyond "the
+  writes landed".
+- **The gate closing on a wheel that cannot keep up is untestable.** The sim
+  wheel chases any setpoint faster than the 0.25 s falling debounce expires, so
+  the case that matters — a long shot on a sagged battery — never occurs.
+- **There is no bus voltage**, so nothing browns out and nothing sags.
+
+**Everything needed to build it has already been measured**, which is the reason
+this is worth doing rather than guessing at constants:
+
+| Parameter | Value | Where it came from |
+|---|---|---|
+| Flywheel acceleration | **2.311 rps/s per amp** of stator | fitted from 3918 accelerating samples, `logReview recovery` |
+| Speed ceiling | 13.8 rps per volt below ~10 V, flattening near 88 rps | saturation points in `logReview ceiling` |
+| Battery | 11 – 16 mΩ, open circuit 11.8 – 12.3 V | fitted from 63k samples, `logReview battery` |
+| Energy per ball | median 7.8 rps of speed drop, 90th percentile 18 rps | `logReview shots` |
+| Recovery time | 0.07 s for a normal dip, 0.59 s for a deep one | `logReview recovery` |
+
+A model with those five numbers would reproduce the measured behaviour, and every
+prediction in the power section above could then be tested before a robot exists
+rather than after.
+
+**Shape of it.** A shared battery model that every IO layer draws from, so bus
+voltage falls with total current the way it does on the robot; a flywheel model
+that converts commanded current into acceleration against that voltage and honours
+its own limits; and a ball disturbance that removes a calibrated amount of energy
+on command. Each piece is small; the value is in them being connected, because
+what makes the real robot hard is that the flywheel's own draw is what starves it.
+
+**Do not do this to make the simulation look realistic.** Do it so that a change
+to a current limit or a debounce can be judged without waiting for a field. That
+is the only reason it is worth the effort.
+
 ### Generic motor subsystem base — Open
 
 Homing is hand-rolled three times — `Intake`, `Hood`, `TurretIOTalonFX` — each
