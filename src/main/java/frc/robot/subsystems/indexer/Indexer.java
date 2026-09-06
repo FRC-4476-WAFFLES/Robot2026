@@ -35,6 +35,16 @@ public class Indexer extends SubsystemBase implements PowerManaged {
     return io.setFeederSupplyCurrentLimit(supplyCurrentLimit);
   }
 
+  /**
+   * Applies a supply current limit to the spindexer motors. Separate from the
+   * feeder because they are opposites in a budget: the feeder is in the shot
+   * path and only ever gets more, the spindexer is upstream of it and is the
+   * largest thing that can be capped while a long shot is taken.
+   */
+  public boolean applySpindexerCurrentLimits(double supplyCurrentLimit) {
+    return io.setSpindexerSupplyCurrentLimit(supplyCurrentLimit);
+  }
+
   public Indexer(IndexerIO io) {
     this.io = io;
   }

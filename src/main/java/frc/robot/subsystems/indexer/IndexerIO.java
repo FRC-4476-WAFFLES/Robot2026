@@ -32,4 +32,17 @@ public interface IndexerIO {
   default boolean setFeederSupplyCurrentLimit(double supplyCurrentLimit) {
     return true;
   }
+
+  /**
+   * Sets the supply current limit on both spindexer motors. Unlike the feeder,
+   * the spindexer is upstream of the shot rather than in it, so it can be capped
+   * while a long shot is being taken. Blocking CAN write — call it off the main
+   * loop.
+   *
+   * @param supplyCurrentLimit amps, per motor
+   * @return whether both motors accepted it
+   */
+  default boolean setSpindexerSupplyCurrentLimit(double supplyCurrentLimit) {
+    return true;
+  }
 }

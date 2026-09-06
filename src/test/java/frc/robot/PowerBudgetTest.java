@@ -26,16 +26,16 @@ public class PowerBudgetTest {
    * passed roughly 250 A and the cleanest match peaked at 250 A with none, so
    * this is not a target — it is a guard against someone typing an extra digit.
    */
-  private static final double ABSOLUTE_CEILING = 500;
+  private static final double ABSOLUTE_CEILING = 700;
 
   @Test
   void everyStateStaysUnderTheAbsoluteCeiling() {
     for (PowerManagerState state : PowerManagerState.values()) {
       System.out.printf("%-22s drive %3.0fA x4  flywheel %3.0f stator %3.0f supply x2  "
-          + "intake %3.0fA  feeder %3.0fA x2  draw ceiling %4.0fA%n",
+          + "intake %3.0f  feeder %3.0f  spindexer %3.0f  ceiling %4.0fA%n",
           state, state.driveSupplyCurrent, state.flywheelStatorCurrent,
           state.flywheelSupplyCurrent, state.intakeSupplyCurrent, state.feederSupplyCurrent,
-          state.drawCeiling());
+          state.spindexerSupplyCurrent, state.drawCeiling());
       assertTrue(state.driveSupplyCurrent > 0 && state.flywheelSupplyCurrent > 0
           && state.intakeSupplyCurrent > 0,
           state + " has a non-positive limit, which would stop the mechanism entirely");
@@ -83,6 +83,17 @@ public class PowerBudgetTest {
           state + " must not cut the feeder below its default allowance");
       assertTrue(state.feederSupplyCurrent > 35,
           state + " must leave the feeder clear of the 27-35A it draws at high duty");
+    }
+  }
+
+  @Test
+  void theSpindexerIsNeverCapped() {
+    // The spindexer governs shot rate and has never had a supply limit. Capping
+    // it during a long shot would free about 27A on average, which is not worth
+    // risking the rate on. Every state must stay above its measured 64A peak.
+    for (PowerManagerState state : PowerManagerState.values()) {
+      assertTrue(state.spindexerSupplyCurrent > 64,
+          state + " caps the spindexer below its measured peak, which would cost shot rate");
     }
   }
 

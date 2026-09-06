@@ -73,6 +73,23 @@ public class IndexerIOTalonFX implements IndexerIO {
     feeder1.setControl(feederFollowerRequest);
   }
 
+  @Override
+  public boolean setSpindexerSupplyCurrentLimit(double supplyCurrentLimit) {
+    // Applying a CurrentLimitsConfigs replaces the whole group, so the 150A
+    // stator limit is written alongside it. Stator is left alone deliberately:
+    // capping supply saves battery, while capping stator would cost the torque
+    // the spindexer needs to break a jam.
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+        .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLimitEnable(true)
+        .withStatorCurrentLimit(150)
+        .withStatorCurrentLimitEnable(true);
+
+    boolean first = PhoenixHelpers.tryConfig(() -> indexer0.getConfigurator().apply(limits));
+    boolean second = PhoenixHelpers.tryConfig(() -> indexer1.getConfigurator().apply(limits));
+    return first && second;
+  }
+
   private void configureIndexerMotors() {
     TalonFXConfiguration indexerConfigs = new TalonFXConfiguration();
     CurrentLimitsConfigs indexerCurrentLimit = new CurrentLimitsConfigs()

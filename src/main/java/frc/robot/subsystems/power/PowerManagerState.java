@@ -25,9 +25,9 @@ package frc.robot.subsystems.power;
  */
 public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
-  DEFAULT(45, 120, 60, 90, 25),
+  DEFAULT(45, 120, 60, 90, 25, 90),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 140, 20, 50),
+  SHOOTING(20, 160, 140, 20, 50, 90),
   /**
    * A long shot, where accuracy collapses in the logs. The flywheel allowance is
    * the same as {@link #SHOOTING} because it cannot use any more: a long shot
@@ -36,13 +36,13 @@ public enum PowerManagerState {
    * itself, so the drivetrain is cut harder here than anywhere else. Long shots
    * in the logs were taken on a median 7.5 V bus, against 12 V up close.
    */
-  SHOOTING_FAR(10, 160, 140, 20, 50),
+  SHOOTING_FAR(10, 160, 140, 20, 50, 90),
   /**
    * Shooting while intaking. The intake keeps its full allowance because being
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(20, 160, 140, 90, 50);
+  SHOOTING_AND_INTAKING(20, 160, 140, 90, 50, 90);
 
   /** Distance beyond which accuracy fell off a cliff in the logs, in metres. */
   public static final double FAR_SHOT_DISTANCE = 3.5;
@@ -76,13 +76,28 @@ public enum PowerManagerState {
    */
   public final double feederSupplyCurrent;
 
+  /**
+   * Per spindexer motor, supply. Two of them.
+   *
+   * <p>
+   * <b>Set above what it uses in every state, so nothing changes.</b> The
+   * spindexer governs shot rate, and it has never had a supply limit. Capping it
+   * during a long shot would free about 27 A on average, which is not worth
+   * risking the rate on. The column exists so the number can be tuned with a
+   * measurement behind it; 90 A is above its measured 64 A peak, so today it is
+   * a no-op. Its stator limit stays at 150 A either way.
+   */
+  public final double spindexerSupplyCurrent;
+
   PowerManagerState(double driveSupplyCurrent, double flywheelStatorCurrent,
-      double flywheelSupplyCurrent, double intakeSupplyCurrent, double feederSupplyCurrent) {
+      double flywheelSupplyCurrent, double intakeSupplyCurrent, double feederSupplyCurrent,
+      double spindexerSupplyCurrent) {
     this.driveSupplyCurrent = driveSupplyCurrent;
     this.flywheelStatorCurrent = flywheelStatorCurrent;
     this.flywheelSupplyCurrent = flywheelSupplyCurrent;
     this.intakeSupplyCurrent = intakeSupplyCurrent;
     this.feederSupplyCurrent = feederSupplyCurrent;
+    this.spindexerSupplyCurrent = spindexerSupplyCurrent;
   }
 
   /**
@@ -104,6 +119,7 @@ public enum PowerManagerState {
    * puts the shot on target.
    */
   public double drawCeiling() {
-    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent + 2 * feederSupplyCurrent;
+    return 4 * driveSupplyCurrent + 2 * flywheelSupplyCurrent + 2 * feederSupplyCurrent
+        + 2 * spindexerSupplyCurrent;
   }
 }
