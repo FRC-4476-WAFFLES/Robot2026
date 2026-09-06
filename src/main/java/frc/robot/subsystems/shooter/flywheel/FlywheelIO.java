@@ -22,13 +22,15 @@ public interface FlywheelIO {
   }
 
   /**
-   * Sets the supply current limit on both flywheel motors. Blocking CAN write —
-   * call it off the main loop.
+   * Sets both current limits on both flywheel motors. Blocking CAN write — call
+   * it off the main loop.
    *
-   * @param supplyCurrentLimit amps, per motor
+   * @param statorCurrentLimit amps through the windings, which is what sets the
+   *     torque available to accelerate the wheel back to speed
+   * @param supplyCurrentLimit amps drawn from the battery
    * @return whether both motors accepted it
    */
-  default boolean setSupplyCurrentLimit(double supplyCurrentLimit) {
+  default boolean setCurrentLimits(double statorCurrentLimit, double supplyCurrentLimit) {
     return true;
   }
 }

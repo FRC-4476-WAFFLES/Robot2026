@@ -47,6 +47,21 @@ public class IntakeIOTalonFX implements IntakeIO {
     setExpanderPosition(0);
   }
 
+  @Override
+  public boolean setSupplyCurrentLimit(double supplyCurrentLimit) {
+    // Applying a CurrentLimitsConfigs replaces the whole group, so the stator
+    // limit is written alongside it.
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+        .withStatorCurrentLimit(IntakeConstants.MOTOR_STATOR_CURRENT_LIMIT)
+        .withStatorCurrentLimitEnable(true)
+        .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLimitEnable(true);
+
+    boolean first = PhoenixHelpers.tryConfig(() -> intake0.getConfigurator().apply(limits));
+    boolean second = PhoenixHelpers.tryConfig(() -> intake1.getConfigurator().apply(limits));
+    return first && second;
+  }
+
   private void ConfigureIntake() {
     TalonFXConfiguration intakeConfigs = new TalonFXConfiguration();
 

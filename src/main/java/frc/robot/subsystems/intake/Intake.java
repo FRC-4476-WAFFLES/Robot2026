@@ -12,11 +12,21 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
+import frc.robot.utils.lib.subsystems.PowerManaged;
 import frc.robot.data.Constants.ExpanderConstants;
 import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
 import frc.robot.utils.lib.EpochTimer;
 
-public class Intake extends SubsystemBase {
+public class Intake extends SubsystemBase implements PowerManaged {
+  /**
+   * Runs on the PowerManager thread, not the main loop — the IO layer's write is
+   * a blocking CAN call.
+   */
+  @Override
+  public boolean applyCurrentLimits(double supplyCurrentLimit) {
+    return io.setSupplyCurrentLimit(supplyCurrentLimit);
+  }
+
   public static enum ExpanderState {
     STOWED,
     EXTENDED,
