@@ -168,8 +168,7 @@ public final class SimHarness {
   /* Controls */
   /* ---------------------------------------------------------------------- */
 
-  public static final int LEFT_JOYSTICK = Controls.DriverConstants.kLeftJoystickPort;
-  public static final int RIGHT_JOYSTICK = Controls.DriverConstants.kRightJoystickPort;
+  public static final int DRIVER = Controls.DriverConstants.kDriverControllerPort;
   public static final int OPERATOR = Controls.OperatorConstants.kOperatorControllerPort;
 
   /**
@@ -178,19 +177,19 @@ public final class SimHarness {
    * available" and no trigger binding can ever fire.
    */
   private static void attachControllers() {
-    for (int port : new int[] { LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR }) {
+    for (int port : new int[] { DRIVER, OPERATOR }) {
       DriverStationSim.setJoystickButtonCount(port, 16);
       DriverStationSim.setJoystickAxisCount(port, 6);
       DriverStationSim.setJoystickPOVCount(port, 1);
       DriverStationSim.setJoystickPOV(port, 0, -1); // -1 means "not pressed"
+      DriverStationSim.setJoystickIsXbox(port, true);
     }
-    DriverStationSim.setJoystickIsXbox(OPERATOR, true);
   }
 
   /**
    * Sets a button and runs one loop so the bound trigger sees it.
    *
-   * @param port one of {@link #LEFT_JOYSTICK}, {@link #RIGHT_JOYSTICK}, {@link #OPERATOR}
+   * @param port one of {@link #DRIVER}, {@link #OPERATOR}
    * @param button 1-based, matching {@code CommandJoystick.button(n)} and
    *     {@code XboxController.Button.kA.value}
    */
@@ -215,8 +214,8 @@ public final class SimHarness {
   /**
    * Sets an axis and runs one loop.
    *
-   * @param axis 0-based. On the joysticks 0 is X and 1 is Y; on the Xbox
-   *     controller 2 is the left trigger and 3 is the right trigger.
+   * @param axis 0-based, and both controllers are gamepads: 0 and 1 are the left
+   *     stick, 4 and 5 the right stick, 2 and 3 the left and right triggers.
    */
   public static void setAxis(int port, int axis, double value) {
     DriverStationSim.setJoystickAxis(port, axis, value);
@@ -233,7 +232,7 @@ public final class SimHarness {
 
   /** Releases every button, axis and D-pad on every controller. */
   public static void releaseAllControls() {
-    for (int port : new int[] { LEFT_JOYSTICK, RIGHT_JOYSTICK, OPERATOR }) {
+    for (int port : new int[] { DRIVER, OPERATOR }) {
       DriverStationSim.setJoystickButtons(port, 0);
       for (int axis = 0; axis < 6; axis++) {
         DriverStationSim.setJoystickAxis(port, axis, 0.0);
