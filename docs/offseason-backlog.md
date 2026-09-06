@@ -21,7 +21,62 @@ here.
 
 ---
 
-## Highest value
+## CRITICAL — power
+
+Not a backlog item. Measured on the 2026 ONWEL event logs with
+`./gradlew logReview --args="power <dir>"`, across 9 matches:
+
+| Measure | Value |
+|---|---|
+| Peak current draw | **242 – 508 A** |
+| Minimum battery voltage | **6.35 – 7.03 V** (our configured brownout threshold is 6.5 V) |
+| Brownout samples | **63 across 9 matches** |
+| Share of brownouts in the final 50 s | **65 %** |
+| Average voltage while enabled | ~10.0 – 11.0 V, declining only ~0.7 V across a match |
+
+**The end-of-match symptom is real, but the cause is peak current, not
+capacity.** Average voltage falls only about 0.7 V from start to end — the
+battery is not running empty. What happens is that 250–500 A spikes sag the pack
+to 6.3–7.0 V, and as state of charge drops the pack's internal resistance rises,
+so the same spike sags deeper. That is why brownouts cluster late.
+
+Peak current tracks brownouts closely:
+
+| Peak current | Brownouts that match |
+|---|---|
+| 250 A | 0 |
+| 246 A | 1 |
+| 318 A | 1 |
+| 288 A | 5 |
+| 242 A | 6 |
+| 420 A | 3 |
+| 472 A | 9 |
+| 378 A | 19 |
+| 508 A | 19 |
+
+The two worst matches (q5 at 508 A, q31 at 378 A) had 19 brownout samples each.
+The cleanest (q8 at 250 A) had none.
+
+### What to do
+
+1. **Power manager** — the 581 pattern: define each robot state as a complete
+   supply-current budget across every subsystem, and reapply limits on transition
+   from a background thread. Capping supply current attacks the peak directly.
+   Current limits today are set once in `configure*()` and never change, mostly at
+   120 A stator.
+2. **Audit the existing limits against the data.** `/PowerDistribution/ChannelCurrent`
+   is logged per channel, so the biggest contributors to each spike can be
+   identified rather than guessed.
+3. **Reconsider the lowered brownout threshold.** `Robot.java` sets 6.5 V, down
+   from the 6.75 V default, "to give more headroom before outputs cut out". With
+   minimums measured at 6.35 V that is masking sags rather than preventing them,
+   and running the RIO closer to its limit has its own risks.
+
+Re-run the measurement after any change — the tooling exists.
+
+---
+
+## Highest value (everything else)
 
 ### Collision detection and recovery in autos — Open
 
@@ -177,26 +232,6 @@ Mathematically more careful; possibly worse in practice for the same reason.
 
 `LogReview` can measure this from existing match logs. Read-only, and it could
 invalidate a design we currently rely on.
-
----
-
-## Power and electrical
-
-### Power manager — Open
-
-581 defines each robot state as a **complete supply-current budget** across every
-subsystem, and reapplies limits on transition from a background thread:
-
-```java
-AUTO_FIRST_SEGMENT(50, 80, 15, 40, 10, 10, 70),   // intake 80A, swerve 70A
-SCORING          (50, 20, 15, 40, 20, 20, 20),    // intake throttled
-TURBO_MODE       (30,  5, 18, 10, 10, 10, 70);    // everything to the drivetrain
-```
-
-We set limits once in `configure*()` and never change them. The tell that this
-matters here: `Robot.java` lowers the brownout threshold from 6.75 V to 6.5 V
-"to give more headroom before outputs cut out" — treating the symptom rather than
-managing the budget. Effort: ~1 day.
 
 ---
 

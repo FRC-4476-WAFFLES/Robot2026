@@ -40,10 +40,15 @@ public final class LogReview {
   private static final String TARGET = "/RealOutputs/RobotState/Autopilot/Target";
   private static final String SIM_TRUTH = "/RealOutputs/Vision/UnderlyingFieldPose";
   private static final String VALIDATED = "/RealOutputs/Vision/Validated Pose";
+  private static final String BATTERY_VOLTAGE = "/SystemStats/BatteryVoltage";
+  private static final String BROWNED_OUT = "/SystemStats/BrownedOut";
+  private static final String TOTAL_CURRENT = "/PowerDistribution/TotalCurrent";
+  private static final String MATCH_TIME = "/DriverStation/MatchTime";
+  private static final String ENABLED = "/DriverStation/Enabled";
 
   public static void main(String[] args) throws IOException {
     if (args.length < 2) {
-      System.out.println("usage: fields <log> | align <log|dir> | vision <log|dir>");
+      System.out.println("usage: fields <log> | align <log|dir> | vision <log|dir> | power <log|dir>");
       return;
     }
     String mode = args[0];
@@ -62,6 +67,13 @@ public final class LogReview {
 
     switch (mode) {
       case "fields" -> listFields(logs.get(0));
+      case "power" -> {
+        System.out.printf("%-42s %s%n", "log",
+            "  volts by match time remaining (>100 / 100-75 / 75-50 / 50-25 / <25)   min   brownouts  peakA");
+        for (File log : logs) {
+          reviewPower(log);
+        }
+      }
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -87,10 +99,14 @@ public final class LogReview {
   private static void listFields(File log) throws IOException {
     DataLogReader reader = new DataLogReader(log.getAbsolutePath());
     TreeSet<String> names = new TreeSet<>();
-    for (DataLogRecord record : reader) {
-      if (record.isStart()) {
-        names.add(record.getStartData().name + "  [" + record.getStartData().type + "]");
+    try {
+      for (DataLogRecord record : reader) {
+        if (record.isStart()) {
+          names.add(record.getStartData().name + "  [" + record.getStartData().type + "]");
+        }
       }
+    } catch (RuntimeException e) {
+      // Log cut off mid-write; keep the field names read so far.
     }
     System.out.println(log.getName() + " - " + names.size() + " fields");
     names.forEach(n -> System.out.println("  " + n));
@@ -197,6 +213,109 @@ public final class LogReview {
           atTargetMovingEnds);
     }
     return new int[] { ends, movingEnds };
+  }
+
+  private static int bucketFor(double matchTime) {
+    return matchTime > 100 ? 0 : matchTime > 75 ? 1 : matchTime > 50 ? 2 : matchTime > 25 ? 3 : 4;
+  }
+
+  /**
+   * Reports how battery voltage behaves across a match, bucketed by time
+   * remaining, so "we run out of battery near the end" can be checked rather than
+   * assumed. Only samples taken while enabled are counted.
+   */
+  private static void reviewPower(File log) throws IOException {
+    DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+    int voltageEntry = -1;
+    int brownedEntry = -1;
+    int currentEntry = -1;
+    int matchTimeEntry = -1;
+    int enabledEntry = -1;
+
+    double matchTime = Double.NaN;
+    boolean enabled = false;
+    double peakCurrent = 0;
+    double minVoltage = Double.MAX_VALUE;
+    int brownoutSamples = 0;
+    int[] brownoutsByBucket = new int[5];
+    double matchTimeAtMin = Double.NaN;
+    // Count deep sags (below the 6.5V brownout threshold we configure)
+    int deepSagSamples = 0;
+    // Buckets: >100s, 100-75, 75-50, 50-25, <25s remaining
+    double[] sums = new double[5];
+    int[] counts = new int[5];
+
+    try {
+      for (DataLogRecord record : reader) {
+        if (record.isStart()) {
+          var start = record.getStartData();
+          switch (start.name) {
+            case BATTERY_VOLTAGE -> voltageEntry = start.entry;
+            case BROWNED_OUT -> brownedEntry = start.entry;
+            case TOTAL_CURRENT -> currentEntry = start.entry;
+            case MATCH_TIME -> matchTimeEntry = start.entry;
+            case ENABLED -> enabledEntry = start.entry;
+            default -> {
+            }
+          }
+          continue;
+        }
+        if (record.isControl()) {
+          continue;
+        }
+        int entry = record.getEntry();
+        if (entry == matchTimeEntry) {
+          matchTime = record.getDouble();
+        } else if (entry == enabledEntry) {
+          enabled = record.getBoolean();
+        } else if (entry == brownedEntry) {
+          if (enabled && record.getBoolean()) {
+            brownoutSamples++;
+            if (!Double.isNaN(matchTime)) {
+              brownoutsByBucket[bucketFor(matchTime)]++;
+            }
+          }
+        } else if (entry == currentEntry) {
+          if (enabled) {
+            peakCurrent = Math.max(peakCurrent, record.getDouble());
+          }
+        } else if (entry == voltageEntry) {
+          double volts = record.getDouble();
+          if (enabled && volts > 4.0 && !Double.isNaN(matchTime)) {
+            if (volts < minVoltage) {
+              minVoltage = volts;
+              matchTimeAtMin = matchTime;
+            }
+            if (volts < 7.0) {
+              deepSagSamples++;
+            }
+            int bucket = bucketFor(matchTime);
+            sums[bucket] += volts;
+            counts[bucket]++;
+          }
+        }
+      }
+    } catch (RuntimeException e) {
+      // truncated log; keep what was read
+    }
+
+    if (voltageEntry < 0 || counts[0] + counts[1] + counts[2] + counts[3] + counts[4] == 0) {
+      System.out.printf("%-42s no enabled battery samples%n", log.getName());
+      return;
+    }
+
+    StringBuilder buckets = new StringBuilder();
+    for (int i = 0; i < 5; i++) {
+      buckets.append(counts[i] == 0 ? "   --  " : String.format(" %6.2f", sums[i] / counts[i]));
+    }
+    StringBuilder bo = new StringBuilder();
+    for (int i = 0; i < 5; i++) {
+      bo.append(String.format("%4d", brownoutsByBucket[i]));
+    }
+    System.out.printf("%-38s %s | min %.2f @t=%5.1f | sub7V %4d | brownouts%s | peak %4.0fA%n",
+        log.getName().replace("akit_26-04-11_", "").replace(".wpilog", ""),
+        buckets, minVoltage == Double.MAX_VALUE ? Double.NaN : minVoltage, matchTimeAtMin,
+        deepSagSamples, bo, peakCurrent);
   }
 
   /**
