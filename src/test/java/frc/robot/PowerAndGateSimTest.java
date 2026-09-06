@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -110,6 +111,16 @@ public class PowerAndGateSimTest {
 
     RobotContainer.flywheel.runSetpoint(0.0);
     SimHarness.stepSeconds(0.5);
+  }
+
+  @Test
+  void theDriverIsNotToldToHoldFireWhenNotAskingToShoot() {
+    // The rumble means "you asked and I refused". It must not fire simply
+    // because the flywheel is idle, or it would buzz for the whole match.
+    SimHarness.releaseAllControls();
+    SimHarness.stepSeconds(0.6);
+    assertFalse(RobotContainer.state.holdingFire().getAsBoolean(),
+        "holdingFire must be false when the driver is not asking to shoot");
   }
 
   @Test

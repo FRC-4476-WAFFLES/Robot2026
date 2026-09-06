@@ -522,6 +522,14 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> state.setRumbleOperator(true)))
         .onFalse(Commands.runOnce(() -> state.setRumbleOperator(false)));
 
+    // Tell the driver when the gate is holding fire, or a robot that is
+    // correctly refusing a bad shot is indistinguishable from a broken one.
+    state.holdingFire()
+        .onTrue(Commands.runOnce(
+            () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 1)))
+        .onFalse(Commands.runOnce(
+            () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 0)));
+
     // Auto winner override
     RobotModeTriggers.teleop().onTrue(Commands.runOnce(HubShiftUtil::initialize));
     RobotModeTriggers.autonomous().onTrue(Commands.runOnce(HubShiftUtil::initialize));
