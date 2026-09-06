@@ -625,6 +625,11 @@ public final class LogReview {
     Draw[] error = newBuckets();
     Draw[] atSetpoint = newBuckets();
     Draw[] goals = newBuckets();
+    // What fraction would have been called ready at a tighter tolerance than the
+    // 20 rps the robot uses. Debounce is ignored, so these are upper bounds.
+    double[] tolerances = { 2, 3, 5, 10, 20 };
+    Draw[][] within = new Draw[tolerances.length][];
+    Arrays.setAll(within, i -> newBuckets());
 
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
@@ -670,6 +675,9 @@ public final class LogReview {
             double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
             int bucket = Math.max(0, Math.min(9, (int) ((battery - 8.0) * 2) + 1));
             error[bucket].add(goal - speed, false);
+            for (int t = 0; t < tolerances.length; t++) {
+              within[t][bucket].add(Math.abs(goal - speed) < tolerances[t] ? 1 : 0, false);
+            }
             atSetpoint[bucket].add(at ? 1 : 0, false);
             goals[bucket].add(goal, false);
           }
@@ -690,6 +698,25 @@ public final class LogReview {
       System.out.printf("%-14s %10d %11.1f %11.2f %11.1f%%%n",
           label, error[i].count, goals[i].mean(), error[i].mean(),
           100 * atSetpoint[i].mean());
+    }
+
+    System.out.printf("%n%-14s %s%n", "battery", "fraction within tolerance, rps");
+    System.out.printf("%-14s", "");
+    for (double tolerance : tolerances) {
+      System.out.printf("%9.0f", tolerance);
+    }
+    System.out.println();
+    for (int i = 0; i < 10; i++) {
+      if (error[i].count == 0) {
+        continue;
+      }
+      String label = i == 0 ? "below 8.0V"
+          : String.format("%.1f-%.1fV", 8.0 + (i - 1) * 0.5, 8.0 + i * 0.5);
+      System.out.printf("%-14s", label);
+      for (int t = 0; t < tolerances.length; t++) {
+        System.out.printf("%8.0f%%", 100 * within[t][i].mean());
+      }
+      System.out.println();
     }
   }
 

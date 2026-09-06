@@ -191,6 +191,36 @@ Note the goal column rises as voltage falls — the longest shots need the most
 flywheel, and spinning the flywheel is itself one of the largest current draws.
 The shooter is partly causing the sag that then starves it.
 
+### What a tighter gate would cost
+
+Fraction of time the wheel was within a given tolerance of its goal. Debounce is
+ignored, so these are upper bounds:
+
+| Battery | 2 rps | 3 rps | 5 rps | 10 rps | 20 rps *(today)* |
+|---|---|---|---|---|---|
+| 12.0 – 12.5 V | 88 % | 92 % | 95 % | 97 % | 99 % |
+| 11.0 – 11.5 V | 79 % | 87 % | 94 % | 97 % | 99 % |
+| 10.0 – 10.5 V | 68 % | 78 % | 87 % | 94 % | 96 % |
+| 9.0 – 9.5 V | 44 % | 54 % | 67 % | 90 % | 96 % |
+| 8.0 – 8.5 V | 25 % | 33 % | 48 % | 80 % | 94 % |
+| below 8.0 V | 16 % | 22 % | 31 % | 54 % | 84 % |
+
+On a healthy battery, tightening from 20 rps to 3 – 5 rps costs almost nothing:
+the wheel is within 5 rps about 94 % of the time. These are fractions of *time*,
+not of shot attempts, so the practical cost there is a few hundred milliseconds
+of waiting, not lost shots.
+
+Below 9 V it is a different story — a 3 rps gate would refuse most shots. That is
+the honest cost, and it is also the point: those were the shots that were missing
+anyway. It converts a silent miss into a visible refusal, which is why the power
+work matters rather than being optional.
+
+**Do not feed measured flywheel velocity into the shot solution.** During spin-up
+the wheel reads far below goal, and a solver that believes a transient
+measurement will compute a hood angle for a speed the wheel is about to leave,
+overshooting badly. The safe use of the measurement is timing only — hold fire
+until measured is close to commanded — which is the gate, not a second feature.
+
 ### What to do
 
 0. **Fix the readiness gate first.** It is the cheapest change and the one that
@@ -199,8 +229,6 @@ The shooter is partly causing the sag that then starves it.
    keep bypassing the check. Risk to weigh: a tight gate means the robot refuses
    to shoot when it cannot reach speed, which is correct but changes what the
    driver sees.
-0b. **Use measured flywheel velocity in the shot, not the commanded value**, so a
-   wheel that is 8 rps down either aims for what it actually has or waits.
 1. **Power manager** — the 581 pattern: define each robot state as a complete
    supply-current budget across every subsystem, and reapply limits on transition
    from a background thread. Capping supply current attacks the peak directly.
