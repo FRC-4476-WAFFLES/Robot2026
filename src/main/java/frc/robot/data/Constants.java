@@ -377,6 +377,58 @@ public final class Constants {
         new NodePoint(12.5, 65.5 + OFFSET) // Super long passing
     };
 
+    /**
+     * The flywheel's share of the range error budget, in metres either side of
+     * the target.
+     *
+     * <p>
+     * The goal is about a metre across, so the whole budget is 0.5 m either side.
+     * The flywheel does not get all of it: turret aim, pose estimate, hood angle
+     * and the shoot-on-move correction all spend from the same metre. Splitting
+     * it evenly leaves 0.35 m each, which combine to about 0.49 m — right at the
+     * edge of the goal, and the most the flywheel can claim without the rest
+     * pushing shots out the back.
+     *
+     * <p>
+     * This is the number to tune, because it means something physical. Range
+     * error is {@code 2 * distance * speedError / speed}, so a tolerance derived
+     * from it scales correctly with distance instead of being wrong at both ends.
+     * Raise it if the gate holds fire more than the drive team can live with;
+     * lower it only if something else in the chain gets tighter first.
+     */
+    public static final double ACCEPTABLE_RANGE_ERROR = 0.35;
+    /**
+     * Bounds on the derived tolerance, in rotations per second.
+     *
+     * <p>
+     * The lower bound is set so it does not bind inside the range shots are taken
+     * from — at 5 m the derived value is 2.0 rps, so anything higher would quietly
+     * widen the range error rather than hold it. The consequence is that the gate
+     * is genuinely strict on long shots, which is the intent: those were landing
+     * 3 to 4 m short. The upper bound catches a missing or nonsense distance.
+     */
+    public static final double MIN_VELOCITY_TOLERANCE = 2.0;
+    public static final double MAX_VELOCITY_TOLERANCE = 8.0;
+    /**
+     * How long the wheel must be outside tolerance before the gate closes.
+     *
+     * <p>
+     * Without this the gate shuts after every ball, because a ball drags the
+     * wheel down a median of 7.8 rps on its way out — after it has already gone.
+     * Replaying the logs, a gate with no falling debounce is open 9 % of the time
+     * a shot is wanted; at 0.20 s it is open 64 %, and past 0.30 s it stops
+     * improving and starts tolerating genuine sag. Normal recovery is 0.07 s, so
+     * this ignores a ball dip and still catches a battery that cannot keep up.
+     */
+    public static final double READY_FALLING_DEBOUNCE = 0.25;
+    /** How long the wheel must be inside tolerance before the gate opens. */
+    public static final double READY_RISING_DEBOUNCE = 0.25;
+
+    /**
+     * The old fixed tolerance, 20 rps. Far too loose to gate a hub shot — it
+     * permits a 3.6 m range error at 3.5 m — but retained for passing, where the
+     * target is a region of floor rather than a goal.
+     */
     public static final double RPM_RANGE = 1200; // Range before indexer will start
 
     /**

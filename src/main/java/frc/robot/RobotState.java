@@ -362,7 +362,14 @@ public class RobotState {
         .and(normalMode())
         .and(() -> robotEnabled())
         .and(() -> RobotContainer.turret.atGoal())
-        .and(() -> shooterState == ShooterState.TARGET_HUB ? true : (RobotContainer.flywheel.atSetpoint()))
+        // A hub shot has to land in a goal, so it gets the tight distance-scaled
+        // check. Passing aims at a region of floor and keeps the loose one. This
+        // used to be the other way round: hub shots skipped the flywheel check
+        // entirely, which is why the logs are full of hub shots fired 20 rps
+        // slow and landing metres short.
+        .and(() -> shooterState == ShooterState.TARGET_HUB
+            ? RobotContainer.flywheel.atSetpoint()
+            : RobotContainer.flywheel.atLooseSetpoint())
         .and(() -> shooterState == ShooterState.TARGET_HUB ? hubEnabled() : true);
   }
 
