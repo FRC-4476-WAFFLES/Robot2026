@@ -175,6 +175,19 @@ public class ModuleIOTalonFX implements ModuleIO {
   }
 
   @Override
+  public boolean setDriveSupplyCurrentLimit(double supplyCurrentLimit) {
+    // The stator limit is repeated because applying a CurrentLimitsConfigs
+    // replaces the whole group, not just the field being changed.
+    var limits = new com.ctre.phoenix6.configs.CurrentLimitsConfigs()
+        .withStatorCurrentLimit(constants.SlipCurrent)
+        .withStatorCurrentLimitEnable(true)
+        .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLimitEnable(true);
+
+    return PhoenixHelpers.tryConfig(() -> driveTalon.getConfigurator().apply(limits));
+  }
+
+  @Override
   public void updateInputs(ModuleIOInputs inputs) {
     // Refresh all signals
     var driveStatus = BaseStatusSignal.refreshAll(drivePosition, driveVelocity, driveAppliedVolts,

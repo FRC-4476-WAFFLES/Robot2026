@@ -48,6 +48,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotContainer;
+import frc.robot.utils.lib.subsystems.PowerManaged;
 import frc.robot.data.Constants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.TunerConstants;
@@ -56,9 +57,24 @@ import frc.robot.utils.lib.WafflesUtilities;
 import frc.robot.utils.lib.subsystems.ExpandedSubsystem;
 import frc.robot.utils.vendor.LocalADStarAK;
 
-public class Drive extends ExpandedSubsystem {
+public class Drive extends ExpandedSubsystem implements PowerManaged {
   // TunerConstants doesn't include these constants, so they are declared locally
   static final double ODOMETRY_FREQUENCY = TunerConstants.kCANBus.isNetworkFD() ? 250.0 : 100.0;
+
+  /**
+   * Sets the supply current limit on all four drive motors. Runs on the
+   * PowerManager thread, not the main loop — each write is a blocking CAN call,
+   * and four of them would overrun the loop.
+   */
+  @Override
+  public boolean applyCurrentLimits(double supplyCurrentLimit) {
+    boolean allApplied = true;
+    for (var module : modules) {
+      allApplied &= module.setDriveSupplyCurrentLimit(supplyCurrentLimit);
+    }
+    return allApplied;
+  }
+
   public static final double DRIVE_BASE_RADIUS = Math.max(
       Math.max(
           Math.hypot(TunerConstants.FrontLeft.LocationX, TunerConstants.FrontLeft.LocationY),

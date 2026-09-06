@@ -87,6 +87,7 @@ import frc.robot.subsystems.shooter.turret.TurretIOTalonFX;
 import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
+import frc.robot.subsystems.power.PowerManager;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.utils.vendor.Elastic;
@@ -120,6 +121,7 @@ public class RobotContainer {
   public static final Hood hood;
   public static final Indexer indexer;
   public static final Flywheel flywheel;
+  public static final PowerManager powerManager;
   public static final Climber climber;
 
   /* Virtual Subsystems */
@@ -245,6 +247,7 @@ public class RobotContainer {
     telemetry = new Telemetry();
     mechanismPoses = new MechanismPoses();
     stateOrchestrator = new StateOrchestrator();
+    powerManager = new PowerManager();
   }
 
   /**

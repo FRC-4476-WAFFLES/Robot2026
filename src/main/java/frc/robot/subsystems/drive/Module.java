@@ -33,6 +33,15 @@ public class Module {
   private final Alert turnEncoderDisconnectedAlert;
   private SwerveModulePosition[] odometryPositions = new SwerveModulePosition[PhoenixOdometryThread.MaxQueueSize];
 
+  /**
+   * Sets this module's drive motor supply current limit. Blocking CAN write.
+   *
+   * @return whether it applied
+   */
+  public boolean setDriveSupplyCurrentLimit(double supplyCurrentLimit) {
+    return io.setDriveSupplyCurrentLimit(supplyCurrentLimit);
+  }
+
   public Module(
       ModuleIO io,
       int index,

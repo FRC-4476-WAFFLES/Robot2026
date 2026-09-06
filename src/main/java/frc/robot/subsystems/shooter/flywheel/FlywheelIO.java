@@ -20,4 +20,15 @@ public interface FlywheelIO {
   default void runFlywheelVelocity(double velocity, double feedForward) {
     runFlywheelVelocity(velocity);
   }
+
+  /**
+   * Sets the supply current limit on both flywheel motors. Blocking CAN write —
+   * call it off the main loop.
+   *
+   * @param supplyCurrentLimit amps, per motor
+   * @return whether both motors accepted it
+   */
+  default boolean setSupplyCurrentLimit(double supplyCurrentLimit) {
+    return true;
+  }
 }

@@ -295,6 +295,11 @@ public class RobotState {
     SmartDashboard.putBoolean("Manual", manualMode);
   }
 
+  /** True while the robot is trying to put balls through the shooter. */
+  public boolean isShooting() {
+    return isShooting;
+  }
+
   public boolean isManualMode() {
     return manualMode;
   }
