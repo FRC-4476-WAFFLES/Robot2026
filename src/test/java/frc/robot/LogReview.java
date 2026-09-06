@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,13 +50,14 @@ public final class LogReview {
   public static void main(String[] args) throws IOException {
     if (args.length < 2) {
       System.out
-          .println("usage: fields <log> | align <log|dir> | vision <log|dir> | power <log|dir> | channels <log|dir>");
+          .println(
+              "usage: fields <log> | align <log|dir> | vision <log|dir> | power <log|dir> | channels <log|dir> | motor <name> <log|dir>");
       return;
     }
     String mode = args[0];
 
     List<File> logs = new ArrayList<>();
-    for (int i = 1; i < args.length; i++) {
+    for (int i = mode.equals("motor") || mode.equals("bog") ? 2 : 1; i < args.length; i++) {
       File target = new File(args[i]);
       if (target.isDirectory()) {
         File[] found = target.listFiles(f -> f.getName().endsWith(".wpilog") && f.length() > 1024);
@@ -78,6 +80,8 @@ public final class LogReview {
         }
       }
       case "channels" -> reviewChannels(logs);
+      case "motor" -> reviewMotor(args[1], logs);
+      case "bog" -> reviewBog(args[1], logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -106,6 +110,10 @@ public final class LogReview {
   private static final double DRIVE_SUPPLY_LIMIT = 45;
   /** Byte offset of supplyCurrent within the packed TalonFXIOData struct. */
   private static final int SUPPLY_CURRENT_OFFSET = 4 * Double.BYTES;
+  /** Byte offsets of the other TalonFXIOData fields this file reads. */
+  private static final int VELOCITY_OFFSET = 1 * Double.BYTES;
+  private static final int STATOR_CURRENT_OFFSET = 5 * Double.BYTES;
+  private static final int DUTY_CYCLE_OFFSET = 6 * Double.BYTES;
 
   /** Running peak/mean for one current source. */
   private static final class Draw {
@@ -351,6 +359,227 @@ public final class LogReview {
   /** Turns "/Inputs/Flywheel/FlywheelMotorData0" into "Flywheel/FlywheelMotorData0". */
   private static String shortName(String name) {
     return name.replace("/Inputs/", "").replace("/Drive/", "").replace("Module", "M");
+  }
+
+  /**
+   * Buckets one motor's samples by commanded duty cycle and reports what it drew
+   * in each bucket. This is how you tell whether a supply current limit would
+   * bite: supply current is roughly stator current times duty cycle, so a motor
+   * run open-loop at full duty draws supply ~= stator and a supply limit becomes
+   * the binding constraint on its torque. A motor held at low duty draws far less
+   * supply than stator, and a supply limit barely touches it.
+   *
+   * @param filter matched against the logged field name, e.g. "Intake"
+   */
+  private static void reviewMotor(String filter, List<File> logs) throws IOException {
+    // Buckets of 0.1 commanded duty cycle, 0.0-0.1 through 0.9-1.0.
+    Map<String, Draw[]> supply = new HashMap<>();
+    Map<String, Draw[]> stator = new HashMap<>();
+    Map<String, Draw[]> speed = new HashMap<>();
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> talons = new HashMap<>();
+      int enabledEntry = -1;
+      boolean enabled = false;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            if (start.name.equals(ENABLED)) {
+              enabledEntry = start.entry;
+            } else if (start.type.equals("struct:TalonFXIOData") && start.name.contains(filter)) {
+              talons.put(start.entry, shortName(start.name));
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          if (record.getEntry() == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (enabled && talons.containsKey(record.getEntry())) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            double duty = Math.abs(buf.getDouble(DUTY_CYCLE_OFFSET));
+            int bucket = Math.min(9, (int) (duty * 10));
+            String motor = talons.get(record.getEntry());
+            supply.computeIfAbsent(motor, k -> newBuckets())[bucket]
+                .add(Math.abs(buf.getDouble(SUPPLY_CURRENT_OFFSET)), false);
+            stator.computeIfAbsent(motor, k -> newBuckets())[bucket]
+                .add(Math.abs(buf.getDouble(STATOR_CURRENT_OFFSET)), false);
+            speed.computeIfAbsent(motor, k -> newBuckets())[bucket]
+                .add(Math.abs(buf.getDouble(VELOCITY_OFFSET)), false);
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (supply.isEmpty()) {
+      System.out.println("no TalonFXIOData field matched " + filter);
+      return;
+    }
+
+    // Summary first: "active" means commanded above 10% duty, so a motor that
+    // spends the match idle is not averaged down to nothing.
+    System.out.printf("%-30s %10s %10s %10s %10s %10s%n",
+        "motor", "active", "supply", "supply pk", "stator", "stator pk");
+    for (String motor : new TreeSet<>(supply.keySet())) {
+      Draw[] amps = supply.get(motor);
+      Draw[] stat = stator.get(motor);
+      double activeSum = 0;
+      double statorSum = 0;
+      long active = 0;
+      long total = 0;
+      double supplyPeak = 0;
+      double statorPeak = 0;
+      for (int i = 0; i < 10; i++) {
+        total += amps[i].count;
+        supplyPeak = Math.max(supplyPeak, amps[i].peak);
+        statorPeak = Math.max(statorPeak, stat[i].peak);
+        if (i > 0) {
+          activeSum += amps[i].sum;
+          statorSum += stat[i].sum;
+          active += amps[i].count;
+        }
+      }
+      System.out.printf("%-30s %9.1f%% %9.1fA %9.1fA %9.1fA %9.1fA%n",
+          motor, 100.0 * active / Math.max(1, total),
+          activeSum / Math.max(1, active), supplyPeak,
+          statorSum / Math.max(1, active), statorPeak);
+    }
+
+    for (String motor : new TreeSet<>(supply.keySet())) {
+      System.out.printf("%n%s%n", motor);
+      System.out.printf("  %-10s %8s %10s %10s %10s %10s%n",
+          "duty", "samples", "supply", "supply pk", "stator", "speed");
+      for (int i = 0; i < 10; i++) {
+        Draw amps = supply.get(motor)[i];
+        if (amps.count == 0) {
+          continue;
+        }
+        System.out.printf("  %.1f-%.1f    %8d %9.1fA %9.1fA %9.1fA %8.1frps%n",
+            i / 10.0, (i + 1) / 10.0, amps.count, amps.mean(), amps.peak,
+            stator.get(motor)[i].mean(), speed.get(motor)[i].mean());
+      }
+    }
+  }
+
+  /**
+   * Finds episodes where a motor is commanded hard but has been dragged well
+   * below its free speed, and reports how long they last, how long recovery
+   * takes, and how fast the robot was driving through them. The question this
+   * answers is whether the drivetrain outruns the mechanism.
+   *
+   * @param filter matched against the logged field name, e.g. "IntakeMotor0"
+   */
+  private static void reviewBog(String filter, List<File> logs) throws IOException {
+    // Free speed is taken from the log rather than assumed, as the 95th
+    // percentile of speed while commanded above 90% duty.
+    List<Double> freeSpeeds = new ArrayList<>();
+    List<Double> episodes = new ArrayList<>();
+    double drivingWhileBogged = 0;
+    long boggedSamples = 0;
+    double drivingOverall = 0;
+    long commandedSamples = 0;
+
+    for (int pass = 0; pass < 2; pass++) {
+      double freeSpeed = 0;
+      if (pass == 1) {
+        Collections.sort(freeSpeeds);
+        if (freeSpeeds.isEmpty()) {
+          System.out.println("no TalonFXIOData field matched " + filter);
+          return;
+        }
+        freeSpeed = freeSpeeds.get((int) (freeSpeeds.size() * 0.95));
+        System.out.printf("free speed (95th percentile at full duty): %.1f rps%n", freeSpeed);
+      }
+
+      for (File log : logs) {
+        DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+        int motorEntry = -1;
+        int velocityEntry = -1;
+        int enabledEntry = -1;
+        boolean enabled = false;
+        double driveSpeed = 0;
+        double bogStart = -1;
+        double timestamp = 0;
+
+        try {
+          for (DataLogRecord record : reader) {
+            if (record.isStart()) {
+              var start = record.getStartData();
+              if (start.name.equals(ENABLED)) {
+                enabledEntry = start.entry;
+              } else if (start.name.equals(FIELD_VELOCITY)) {
+                velocityEntry = start.entry;
+              } else if (start.type.equals("struct:TalonFXIOData") && start.name.contains(filter)) {
+                motorEntry = start.entry;
+              }
+              continue;
+            }
+            if (record.isControl()) {
+              continue;
+            }
+            if (record.getEntry() == enabledEntry) {
+              enabled = record.getBoolean();
+            } else if (record.getEntry() == velocityEntry) {
+              ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+              driveSpeed = Math.hypot(buf.getDouble(0), buf.getDouble(Double.BYTES));
+            } else if (enabled && record.getEntry() == motorEntry) {
+              ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+              double duty = Math.abs(buf.getDouble(DUTY_CYCLE_OFFSET));
+              double speed = Math.abs(buf.getDouble(VELOCITY_OFFSET));
+              timestamp = record.getTimestamp() / 1e6;
+
+              if (pass == 0) {
+                if (duty > 0.9) {
+                  freeSpeeds.add(speed);
+                }
+                continue;
+              }
+              if (duty < 0.5) {
+                bogStart = -1;
+                continue;
+              }
+              commandedSamples++;
+              drivingOverall += driveSpeed;
+              if (speed < 0.5 * freeSpeed) {
+                boggedSamples++;
+                drivingWhileBogged += driveSpeed;
+                if (bogStart < 0) {
+                  bogStart = timestamp;
+                }
+              } else if (bogStart >= 0) {
+                episodes.add(timestamp - bogStart);
+                bogStart = -1;
+              }
+            }
+          }
+        } catch (RuntimeException e) {
+          // truncated log; keep what was read
+        }
+      }
+    }
+
+    System.out.printf("commanded above 50%% duty: %d samples, of which %d (%.1f%%) below half free speed%n",
+        commandedSamples, boggedSamples, 100.0 * boggedSamples / Math.max(1, commandedSamples));
+    System.out.printf("robot speed while commanded: %.2f m/s overall, %.2f m/s while bogged%n",
+        drivingOverall / Math.max(1, commandedSamples),
+        drivingWhileBogged / Math.max(1, boggedSamples));
+    episodes.sort(Collections.reverseOrder());
+    double totalTime = episodes.stream().mapToDouble(Double::doubleValue).sum();
+    System.out.printf("%d bog episodes, %.2f s total, %.2f s mean, %.2f s longest%n",
+        episodes.size(), totalTime, totalTime / Math.max(1, episodes.size()),
+        episodes.isEmpty() ? 0 : episodes.get(0));
+  }
+
+  private static Draw[] newBuckets() {
+    Draw[] buckets = new Draw[10];
+    Arrays.setAll(buckets, i -> new Draw());
+    return buckets;
   }
 
   /** Prints every field name in a log, so you can see what the code of the day recorded. */
