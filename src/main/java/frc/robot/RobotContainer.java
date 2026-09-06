@@ -343,20 +343,19 @@ public class RobotContainer {
    * Binds controls
    */
   private void configureBindings() {
-    Controls.rightJoystick.button(9).onTrue(Commands.runOnce(() -> {
+    // Start and Back carry the two actions that must never happen by accident.
+    Controls.driverController.start().onTrue(Commands.runOnce(() -> {
       drive.resetGyro();
     }));
 
-    // Bottom face button
-    Controls.rightJoystick.button(2).onTrue(Commands.runOnce(() -> state.toggleManualMode()));
+    Controls.driverController.back().onTrue(Commands.runOnce(() -> state.toggleManualMode()));
 
-    // Right face button
     // Manually toggles intake
-    Controls.leftJoystick.button(4).onTrue(intake.toggleExtended());
+    Controls.driverController.a().onTrue(intake.toggleExtended());
 
     // Pressing in any capacity will extend intake
     // Intake rollers run while pressed
-    Controls.leftJoystick.button(1).whileTrue(IntakeCommands.intakeCommand());
+    Controls.driverController.leftTrigger().whileTrue(IntakeCommands.intakeCommand());
 
     Controls.operatorController.leftBumper()
         .whileTrue(Commands.startEnd(() -> state.setOuttakeDesired(true), () -> state.setOuttakeDesired(false)));

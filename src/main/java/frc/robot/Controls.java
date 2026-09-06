@@ -5,7 +5,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
-import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.utils.lib.WafflesUtilities;
@@ -14,15 +13,16 @@ import frc.robot.utils.lib.WafflesUtilities;
  * Seperates controls a bit from RobotContainer while grouping controls specific constants together 
  */
 public class Controls {
-  // Replace with CommandPS4Controller or CommandJoystick if needed
-  public static final CommandJoystick leftJoystick = new CommandJoystick(DriverConstants.kLeftJoystickPort);
-  public static final CommandJoystick rightJoystick = new CommandJoystick(DriverConstants.kRightJoystickPort);
+  public static final CommandXboxController driverController = new CommandXboxController(
+      DriverConstants.kDriverControllerPort);
   public static final CommandXboxController operatorController = new CommandXboxController(
       OperatorConstants.kOperatorControllerPort);
 
   public static final CommandGenericHID simController = new CommandGenericHID(3);
 
   // Constants
+  // Worth revisiting now the driver is on a gamepad: a thumbstick has more slop
+  // at centre than a flight stick, so these may want raising.
   private static final double JOYSTICK_DEADZONE_INNER = 0.025; // Below the inner value the input is zero
   private static final double JOYSTICK_DEADZONE_OUTER = 0.15; // Between the inner and outer value the input is
                                                               // interpolated towards it's actual value
@@ -35,30 +35,32 @@ public class Controls {
    * When triggers are referenced in multiple places, they are defined here to
    * have a single source of truth
    */
-  public static final Trigger shootButton = rightJoystick.button(1).or(operatorController.rightTrigger());
+  public static final Trigger shootButton = driverController.rightTrigger().or(operatorController.rightTrigger());
   public static final Trigger beachButton = operatorController.rightBumper();
 
   public static class DriverConstants {
-    // public static final int kDriverControllerPort = 0;
-    public static final int kLeftJoystickPort = 0;
-    public static final int kRightJoystickPort = 1;
+    public static final int kDriverControllerPort = 0;
   }
 
   public static class OperatorConstants {
-    public static final int kOperatorControllerPort = 2;
+    public static final int kOperatorControllerPort = 1;
   }
 
+  /*
+   * The three negations are all the same convention, not a mistake: both a
+   * flight stick and a gamepad report right and *down* as positive, while the
+   * drivetrain wants forward, left and counterclockwise as positive.
+   */
   public static double getDriveXRaw() {
-    return -filterJoystick(leftJoystick.getX());
+    return -filterJoystick(driverController.getLeftX());
   }
 
   public static double getDriveYRaw() {
-    // Joystick returns negative number for forward???
-    return -filterJoystick(leftJoystick.getY());
+    return -filterJoystick(driverController.getLeftY());
   }
 
   public static double getDriveRotationRaw() {
-    return -filterJoystick(rightJoystick.getX());
+    return -filterJoystick(driverController.getRightX());
   }
 
   /* Methods to get operator input */
