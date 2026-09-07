@@ -224,3 +224,19 @@ gversion {
   timeZone     = "EST" // Use preferred time zone
   indent       = "  "
 }
+/*
+ * The JVM options above are inside the roborio artifact block, so they only ever
+ * reach the deployed robot. The simulator ran on JVM defaults, and it shows: 18%
+ * of loops overran their 20 ms budget with garbage collection averaging 24.7 ms
+ * a loop, measured with `./gradlew logReview --args="timing <log>"`.
+ *
+ * A desktop has memory the roboRIO does not, so give the simulation enough heap
+ * that it collects rarely, and a collector built for throughput rather than the
+ * RIO's tiny footprint. This affects simulation only; nothing here is deployed.
+ */
+tasks.withType(JavaExec).configureEach {
+    if (name.toLowerCase().contains('simulate')) {
+        // simulateJava heap
+        jvmArgs '-Xmx2G', '-Xms512M', '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=10'
+    }
+}

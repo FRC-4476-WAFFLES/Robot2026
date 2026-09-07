@@ -687,10 +687,11 @@ public class RobotContainer {
 
   private void configureFuelSim() {
     FuelSim instance = FuelSim.getInstance();
-    // Only for a human watching. Ninety balls of physics every loop pushes the
-    // simulation past its 20 ms budget, and a test that fires one wants that
-    // one, not the field's worth it was already carrying.
-    if (SimShooter.isEnabled()) {
+    // A match starts with 360 balls on the field. Every one is physics every
+    // loop, published in one array at 50 Hz, and drawn as its own object in
+    // AdvantageScope -- which is what makes the dashboard crawl. Watching your
+    // own shots needs none of them, so they are opt in.
+    if (SimShooter.isEnabled() && SimShooter.wantsStartingFuel()) {
       instance.spawnStartingFuel();
     }
     instance.registerRobot(

@@ -124,6 +124,7 @@ public final class LogReview {
       case "bump" -> reviewBump(logs);
       case "sticks" -> reviewSticks(logs);
       case "whynot" -> reviewWhyNot(logs);
+      case "timing" -> reviewTiming(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -2994,6 +2995,75 @@ public final class LogReview {
       System.out.printf("  %-34s %9.1fs %9.0f%%%n", names[i], blocked[i],
           100 * blocked[i] / heldTime);
     }
+  }
+
+  /**
+   * Reports where the loop's twenty milliseconds go.
+   *
+   * <p>
+   * A simulation that cannot hold its period is not just unpleasant to drive:
+   * every model in it integrates on a fixed timestep, so once loops start
+   * overrunning, simulated time and real time part company and the flywheel and
+   * battery models quietly stop meaning what they say.
+   */
+  private static void reviewTiming(List<File> logs) throws IOException {
+    Map<String, Draw> timings = new HashMap<>();
+    long overruns = 0;
+    long samples = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> entries = new HashMap<>();
+      int cycleEntry = -1;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            String name = start.name;
+            if (name.startsWith("/RealOutputs/RobotState/Timing (ms)/")
+                || name.startsWith("/RealOutputs/LoggedRobot/")) {
+              entries.put(start.entry, name
+                  .replace("/RealOutputs/RobotState/Timing (ms)/", "")
+                  .replace("/RealOutputs/LoggedRobot/", "LoggedRobot "));
+            }
+            if (name.equals("/RealOutputs/LoggedRobot/FullCycleMS")) {
+              cycleEntry = start.entry;
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          String name = entries.get(record.getEntry());
+          if (name == null) {
+            continue;
+          }
+          double value = record.getDouble();
+          timings.computeIfAbsent(name, k -> new Draw()).add(value, false);
+          if (record.getEntry() == cycleEntry) {
+            samples++;
+            if (value > 20.0) {
+              overruns++;
+            }
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (timings.isEmpty()) {
+      System.out.println("no timing data in these logs");
+      return;
+    }
+    System.out.printf("%d loops, %d of them over the 20 ms budget (%.0f%%)%n%n",
+        samples, overruns, 100.0 * overruns / Math.max(1, samples));
+    System.out.printf("  %-28s %10s %10s%n", "stage", "mean ms", "worst ms");
+    timings.entrySet().stream()
+        .sorted((a, b) -> Double.compare(b.getValue().mean(), a.getValue().mean()))
+        .forEach(e -> System.out.printf("  %-28s %10.2f %10.2f%n",
+            e.getKey(), e.getValue().mean(), e.getValue().peak));
   }
 
   private static Draw[] newBuckets() {

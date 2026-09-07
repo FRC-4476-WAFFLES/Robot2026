@@ -96,12 +96,17 @@ public final class SimShooter {
   /** Seeded, so a run can be repeated exactly rather than differing every time. */
   private static final java.util.Random SCATTER = new java.util.Random(4476);
   private static double nextInterval = SHOT_INTERVAL;
-  /** Two seconds of flight is more than any shot takes. */
-  private static final int TRAJECTORY_STEPS = 100;
+  /**
+   * Points on the drawn trajectory. Kept short because the whole array is
+   * republished on every shot, and a dashboard redrawing hundreds of poses
+   * several times a second is what makes it feel slow.
+   */
+  private static final int TRAJECTORY_STEPS = 40;
 
   private static double lastShot = -1;
   private static int shotsFired = 0;
   private static boolean enabled = true;
+  private static boolean startingFuel = false;
 
   /**
    * Turns ball spawning off. {@code SimHarness} does this at boot: a test that
@@ -117,6 +122,24 @@ public final class SimShooter {
   /** Whether balls are being simulated at all. */
   public static boolean isEnabled() {
     return enabled;
+  }
+
+  /**
+   * Whether to fill the field with the 360 balls a match starts with.
+   *
+   * <p>
+   * Off by default, and the reason is AdvantageScope rather than the robot:
+   * every ball is published in one array at 50 Hz and drawn as its own object in
+   * the 3D view, so a field's worth makes the dashboard crawl. Watching your own
+   * shots needs none of them.
+   */
+  public static boolean wantsStartingFuel() {
+    return startingFuel;
+  }
+
+  /** Fills the field with balls, for looking at rather than driving through. */
+  public static void setStartingFuel(boolean value) {
+    startingFuel = value;
   }
 
   /** Whether the prune is still able to reach into FuelSim. */
