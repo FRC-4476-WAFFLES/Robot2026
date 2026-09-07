@@ -18,6 +18,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.utils.sim.SimBattery;
 
 /**
  * Physics sim implementation of module IO. The sim models are configured using a set of module
@@ -46,9 +47,15 @@ public class ModuleIOSim implements ModuleIO {
   private double driveFFVolts = 0.0;
   private double driveAppliedVolts = 0.0;
   private double turnAppliedVolts = 0.0;
+  /** Whatever the power manager last applied. Effectively unlimited until it does. */
+  private double driveSupplyLimit = 1000.0;
+  private final String name;
+
+  private static int created = 0;
 
   public ModuleIOSim(
       SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
+    name = "Module" + created++;
     // Create drive and turn sim models
     driveSim = new DCMotorSim(
         LinearSystemId.createDCMotorSystem(
@@ -77,11 +84,33 @@ public class ModuleIOSim implements ModuleIO {
       turnController.reset();
     }
 
-    // Update simulation state
-    driveSim.setInputVoltage(MathUtil.clamp(driveAppliedVolts, -12.0, 12.0));
-    turnSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -12.0, 12.0));
+    // Clamp to what the battery can actually deliver rather than a fixed 12 V.
+    // A drivetrain that keeps its authority as the pack sags is simulating a
+    // robot that does not exist, and is exactly the case the power manager was
+    // written for.
+    double bus = SimBattery.getVoltage();
+    driveAppliedVolts = MathUtil.clamp(driveAppliedVolts, -bus, bus);
+
+    // Honour the supply current limit the power manager applies. Supply current
+    // is stator current times duty cycle, so the way to respect a supply limit
+    // is to back off the voltage until the product fits under it.
+    double predictedStator = Math.abs(driveSim.getCurrentDrawAmps());
+    double duty = Math.abs(driveAppliedVolts) / Math.max(1.0, bus);
+    double predictedSupply = predictedStator * duty;
+    if (predictedSupply > driveSupplyLimit && predictedSupply > 0.01) {
+      driveAppliedVolts *= Math.sqrt(driveSupplyLimit / predictedSupply);
+    }
+
+    driveSim.setInputVoltage(driveAppliedVolts);
+    turnSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -bus, bus));
     driveSim.update(0.02);
     turnSim.update(0.02);
+
+    // Report what this module is taking out of the pack.
+    SimBattery.setLoad(name + "/Drive",
+        Math.abs(driveSim.getCurrentDrawAmps()) * Math.abs(driveAppliedVolts) / Math.max(1.0, bus));
+    SimBattery.setLoad(name + "/Turn",
+        Math.abs(turnSim.getCurrentDrawAmps()) * Math.abs(turnAppliedVolts) / Math.max(1.0, bus));
 
     // Update drive inputs
     inputs.driveConnected = true;
@@ -129,5 +158,11 @@ public class ModuleIOSim implements ModuleIO {
   public void setTurnPosition(Rotation2d rotation) {
     turnClosedLoop = true;
     turnController.setSetpoint(rotation.getRadians());
+  }
+
+  @Override
+  public boolean setDriveSupplyCurrentLimit(double supplyCurrentLimit) {
+    driveSupplyLimit = supplyCurrentLimit;
+    return true;
   }
 }
