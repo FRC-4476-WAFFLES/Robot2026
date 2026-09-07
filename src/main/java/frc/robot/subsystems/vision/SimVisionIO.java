@@ -19,6 +19,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.Timer;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.VisionConstants;
 
 public class SimVisionIO implements VisionIO {
@@ -76,8 +77,10 @@ public class SimVisionIO implements VisionIO {
       visionSim.update(estimatedPose);
       var transform = cameraOffset.apply(Timer.getTimestamp());
       visionSim.adjustCamera(cameraSim, transform);
-      Logger.recordOutput("Vision/" + name + "/Sim Camera Position",
-          new Pose3d(estimatedPose).plus(transform));
+      if (CodeConstants.LOG_VISION_VISUALIZATION) {
+        Logger.recordOutput("Vision/" + name + "/Sim Camera Position",
+            new Pose3d(estimatedPose).plus(transform));
+      }
       // Logger.recordOutput("Vision/updateSimPose", estimatedPose);
     }
 

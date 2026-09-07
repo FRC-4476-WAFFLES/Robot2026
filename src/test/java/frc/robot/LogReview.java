@@ -125,6 +125,7 @@ public final class LogReview {
       case "sticks" -> reviewSticks(logs);
       case "whynot" -> reviewWhyNot(logs);
       case "timing" -> reviewTiming(logs);
+      case "bandwidth" -> reviewBandwidth(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -3064,6 +3065,61 @@ public final class LogReview {
         .sorted((a, b) -> Double.compare(b.getValue().mean(), a.getValue().mean()))
         .forEach(e -> System.out.printf("  %-28s %10.2f %10.2f%n",
             e.getKey(), e.getValue().mean(), e.getValue().peak));
+  }
+
+  /**
+   * Ranks logged fields by how many bytes they actually cost.
+   *
+   * <p>
+   * Everything logged is also published over NetworkTables at fifty hertz, so
+   * the heaviest fields are what make a dashboard crawl. Field <i>count</i> is a
+   * poor guide — one struct array can outweigh a hundred booleans — so this
+   * measures the bytes each name contributed to the log.
+   */
+  private static void reviewBandwidth(List<File> logs) throws IOException {
+    Map<String, long[]> cost = new HashMap<>();
+    long total = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      Map<Integer, String> names = new HashMap<>();
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            names.put(record.getStartData().entry, record.getStartData().name);
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          String name = names.get(record.getEntry());
+          if (name == null) {
+            continue;
+          }
+          long bytes = record.getRaw().length;
+          long[] entry = cost.computeIfAbsent(name, k -> new long[2]);
+          entry[0] += bytes;
+          entry[1]++;
+          total += bytes;
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (cost.isEmpty()) {
+      System.out.println("nothing logged");
+      return;
+    }
+    final long totalBytes = total;
+    System.out.printf("%d fields, %.1f MB of records%n%n", cost.size(), totalBytes / 1e6);
+    System.out.printf("  %-52s %10s %8s %9s%n", "field", "MB", "share", "records");
+    cost.entrySet().stream()
+        .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
+        .limit(18)
+        .forEach(e -> System.out.printf("  %-52s %10.2f %7.1f%% %9d%n",
+            e.getKey().length() > 52 ? e.getKey().substring(0, 52) : e.getKey(),
+            e.getValue()[0] / 1e6, 100.0 * e.getValue()[0] / totalBytes, e.getValue()[1]));
   }
 
   private static Draw[] newBuckets() {

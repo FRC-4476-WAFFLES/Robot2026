@@ -21,6 +21,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.VisionConstants;
 import frc.robot.subsystems.vision.Vision.TagPoseEstimate;
 import frc.robot.subsystems.vision.VisionIO.PoseEstimateRecord;
@@ -146,7 +147,9 @@ public class TagCamera {
       return;
     }
 
-    Logger.recordOutput("Vision/" + cameraName + "/Target Visualization", new Pose3d[0]);
+    if (CodeConstants.LOG_VISION_VISUALIZATION) {
+      Logger.recordOutput("Vision/" + cameraName + "/Target Visualization", new Pose3d[0]);
+    }
   }
 
   private void drawDebugLines(RawFiducialRecord[] rawFiducials, int length) {
@@ -173,7 +176,9 @@ public class TagCamera {
       output[k++] = cameraPose;
     }
 
-    Logger.recordOutput("Vision/" + cameraName + "/Target Visualization", output);
+    if (CodeConstants.LOG_VISION_VISUALIZATION) {
+      Logger.recordOutput("Vision/" + cameraName + "/Target Visualization", output);
+    }
   }
 
   private void drawCameraPose() {
@@ -186,7 +191,9 @@ public class TagCamera {
     // Transform3d camOffset = Transform3d.kZero;
 
     Pose3d cameraPose = robotPose.transformBy(cameraOffset.apply(Timer.getTimestamp()));
-    Logger.recordOutput("Vision/" + cameraName + "/Camera Position", cameraPose);
+    if (CodeConstants.LOG_VISION_VISUALIZATION) {
+      Logger.recordOutput("Vision/" + cameraName + "/Camera Position", cameraPose);
+    }
   }
 
   /**

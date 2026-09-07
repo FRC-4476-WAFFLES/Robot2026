@@ -121,6 +121,20 @@ public final class Constants {
      * rather than inferred from flywheel numbers. Simulation only, and it costs
      * a little loop time per ball in flight.
      */
+    /**
+     * Publishes the vision drawings — the lines to each tag and the camera
+     * poses — which exist only to be looked at.
+     *
+     * <p>
+     * They are not free. Measured over one simulator session with
+     * {@code logReview bandwidth}, target visualisation and the four camera pose
+     * fields came to 39 MB of 247, a sixth of everything logged, and every byte
+     * is also published over NetworkTables fifty times a second. Turning them off
+     * is the cheapest way to make a dashboard responsive again; turn them back on
+     * when the question is what the cameras are actually seeing.
+     */
+    public static final boolean LOG_VISION_VISUALIZATION = false;
+
     public static final boolean USE_FUEL_SIMULATION = true;
     public static final boolean USE_VISION_SIMULATION = true;
 
