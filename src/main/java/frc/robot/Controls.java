@@ -22,11 +22,18 @@ public class Controls {
   public static final CommandGenericHID simController = new CommandGenericHID(3);
 
   // Constants
-  // Worth revisiting now the driver is on a gamepad: a thumbstick has more slop
-  // at centre than a flight stick, so these may want raising.
-  private static final double JOYSTICK_DEADZONE_INNER = 0.025; // Below the inner value the input is zero
-  private static final double JOYSTICK_DEADZONE_OUTER = 0.15; // Between the inner and outer value the input is
-                                                              // interpolated towards it's actual value
+  /*
+   * Raised for the gamepad. These were set for flight sticks, which sit cleanly
+   * at centre; a thumbstick rests within a few percent of zero and wanders as it
+   * wears, so 0.025 let the robot creep while the driver was not asking for
+   * anything.
+   *
+   * The pair works as a soft edge rather than a cliff: below the inner value the
+   * input is zero, and between inner and outer it is interpolated up to its real
+   * value, so nothing jumps as the stick leaves the deadzone.
+   */
+  private static final double JOYSTICK_DEADZONE_INNER = 0.06;
+  private static final double JOYSTICK_DEADZONE_OUTER = 0.16;
   public static final double AXIS_DEADBAND = 0.1; // Deadband for controller axes to prevent unintended activation
   public static final double MANUAL_ELEVATOR_CONTROL_MULTIPLIER = 2;
 

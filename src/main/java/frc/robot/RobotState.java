@@ -282,7 +282,13 @@ public class RobotState {
     autonomousEnabled = DriverStation.isAutonomousEnabled();
 
     // checking this is kind of slow so aggregate
-    hubEnabled = !CodeConstants.LIMIT_TO_HUB_SHIFTS || HubShiftUtil.getShiftedShiftInfo().active();
+    // Hub shifts are a game rule and stay in force on a real robot. In
+    // simulation they only make driving practice wait: replaying a sim session,
+    // 52 % of the time the trigger was held and nothing happened was the hub
+    // being closed, which is indistinguishable from a broken robot at the desk.
+    hubEnabled = Constants.getMode() == Mode.SIM
+        || !CodeConstants.LIMIT_TO_HUB_SHIFTS
+        || HubShiftUtil.getShiftedShiftInfo().active();
   }
 
   public ShooterState getShooterState() {
@@ -412,6 +418,24 @@ public class RobotState {
    * <p>
    * Debounced so a gap of a few loops between shots does not buzz.
    */
+  /**
+   * True while the driver is asking to shoot at a hub that is not open.
+   *
+   * <p>
+   * Distinct from {@link #holdingFire}, which is the flywheel not being ready.
+   * This one is nothing to do with the robot: the shot is refused because the
+   * game says the hub is shut, and no amount of waiting or driving closer will
+   * change it until the shift comes round. The driver needs to know that is what
+   * is happening rather than chasing a robot they think is broken.
+   */
+  public Trigger hubClosedWhileShooting() {
+    return Controls.shootButton
+        .and(() -> shooterState == ShooterState.TARGET_HUB)
+        .and(() -> !hubEnabled)
+        .and(() -> robotEnabled())
+        .debounce(HOLDING_FIRE_DEBOUNCE);
+  }
+
   public Trigger holdingFire() {
     return Controls.shootButton.and(canFire().negate()).and(normalMode())
         .and(() -> robotEnabled())

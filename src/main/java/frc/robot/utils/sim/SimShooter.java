@@ -43,20 +43,61 @@ import frc.robot.utils.vendor.FuelSim;
  * in the goal".
  */
 public final class SimShooter {
-  /**
-   * Wheel surface speed that actually reaches the ball. A ball is squeezed and
-   * slips, so it leaves at well under the wheel's surface speed; two thirds is a
-   * common figure for a compliant wheel.
+  /*
+   * These three were guessed, and the shots went nowhere near the goal. They are
+   * now fitted against the team's own shot map, which is the one real
+   * calibration available: for each distance the map already says what flywheel
+   * speed and hood position put a ball in the goal, so the numbers that make the
+   * simulated flight arrive at the hub's 1.83 m entry height at that distance
+   * are the numbers the real shooter must have.
+   *
+   * Fitted across the map's eleven points, the residual is 0.16 m of height at
+   * the goal. That is close enough to watch a burst group; it is still not a
+   * substitute for measuring the real thing, and the fit is only as good as the
+   * map it came from.
    */
-  private static final double SLIP_FACTOR = 0.66;
+  /** Fraction of the wheel's surface speed that reaches the ball. */
+  private static final double SLIP_FACTOR = 0.445;
   /** Flywheel wheel radius, in metres. */
   private static final double WHEEL_RADIUS = 0.051;
   /** Hood travel, in rotations, mapped onto its angular range. */
   private static final double HOOD_ROTATIONS_AT_MAX = 21.0;
-  private static final double HOOD_MIN_DEGREES = 25.0;
-  private static final double HOOD_MAX_DEGREES = 62.0;
-  /** How long between balls while the feeder is running, in seconds. */
-  private static final double SHOT_INTERVAL = 0.35;
+  private static final double HOOD_MIN_DEGREES = 58.0;
+  private static final double HOOD_MAX_DEGREES = 70.0;
+  /*
+   * How balls actually come out, measured over 101 gaps in the ONWEL match logs:
+   * a median of 0.30 s, a quartile range of 0.19 to 0.84 s. Real bursts are
+   * irregular — the feeder catches, the wheel has to come back — so a metronome
+   * would look nothing like one.
+   */
+  private static final double SHOT_INTERVAL = 0.30;
+  private static final double SHOT_INTERVAL_SPREAD = 0.22;
+  private static final double SHOT_INTERVAL_MINIMUM = 0.12;
+
+  /**
+   * Shot-to-shot scatter, as a fraction of exit speed and degrees of heading.
+   *
+   * <p>
+   * Nothing leaves a shooter twice the same way: the ball is compressed
+   * differently, its seams sit differently, it enters the wheels at a slightly
+   * different angle. None of that is worth modelling in detail, but leaving it
+   * out entirely makes every simulated burst land in one spot, which is the one
+   * thing a burst never does.
+   *
+   * <p>
+   * <b>These two are guesses.</b> Everything else in this file is fitted to the
+   * shot map; the scatter is not, because the logs record where a ball was
+   * launched and never where it landed. Treat the spread as illustrative until
+   * somebody measures a grouping.
+   */
+  private static final double SPEED_SCATTER = 0.02;
+  private static final double HEADING_SCATTER_DEGREES = 0.8;
+
+  /** Seeded, so a run can be repeated exactly rather than differing every time. */
+  private static final java.util.Random SCATTER = new java.util.Random(4476);
+  private static double nextInterval = SHOT_INTERVAL;
+  /** Two seconds of flight is more than any shot takes. */
+  private static final int TRAJECTORY_STEPS = 100;
 
   private static double lastShot = -1;
   private static int shotsFired = 0;
@@ -187,10 +228,12 @@ public final class SimShooter {
       return;
     }
     double now = Timer.getTimestamp();
-    if (lastShot > 0 && now - lastShot < SHOT_INTERVAL) {
+    if (lastShot > 0 && now - lastShot < nextInterval) {
       return;
     }
     lastShot = now;
+    nextInterval = Math.max(SHOT_INTERVAL_MINIMUM,
+        SHOT_INTERVAL + SCATTER.nextGaussian() * SHOT_INTERVAL_SPREAD);
     fire();
   }
 
@@ -201,12 +244,14 @@ public final class SimShooter {
     // position is PHYSICAL_ZERO short of where it is actually pointing. This is
     // the same sum MechanismPoses uses to draw the turret, so a ball now leaves
     // along the barrel that is rendered rather than 45 degrees off it.
-    var turretHeading = robot.getRotation()
+    Rotation2d turretHeading = robot.getRotation()
         .plus(Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition()))
         .plus(TurretConstants.PHYSICAL_ZERO);
 
     double hoodDegrees = hoodAngleDegrees();
-    double speed = exitSpeed();
+    double speed = exitSpeed() * (1 + SCATTER.nextGaussian() * SPEED_SCATTER);
+    turretHeading = turretHeading.plus(
+        Rotation2d.fromDegrees(SCATTER.nextGaussian() * HEADING_SCATTER_DEGREES));
 
     // Where the ball leaves: the turret's centre, at shooter height.
     Translation3d origin = new Translation3d(robot.getX(), robot.getY(), 0)
@@ -240,6 +285,29 @@ public final class SimShooter {
     Logger.recordOutput("SimShooter/Hood Degrees", hoodDegrees);
     Logger.recordOutput("SimShooter/Turret Heading", turretHeading.getDegrees());
     Logger.recordOutput("SimShooter/Predicted Range", predictedRange(speed, pitch, origin.getZ()));
+    Logger.recordOutput("SimShooter/Trajectory", trajectory(origin, velocity));
+  }
+
+  /**
+   * The path the ball will fly, as poses AdvantageScope can draw.
+   *
+   * <p>
+   * Integrated the same way {@code FuelSim} integrates the ball itself, so the
+   * drawn line is where the ball actually goes rather than an idealisation of it
+   * — the two would part company otherwise, and a trajectory that disagrees with
+   * the ball beside it is worse than none.
+   */
+  private static Pose3d[] trajectory(Translation3d origin, Translation3d velocity) {
+    var points = new java.util.ArrayList<Pose3d>();
+    Translation3d position = origin;
+    Translation3d speed = velocity;
+    double dt = 0.02;
+    for (int i = 0; i < TRAJECTORY_STEPS && position.getZ() > 0; i++) {
+      points.add(new Pose3d(position, Rotation3d.kZero));
+      position = position.plus(speed.times(dt));
+      speed = speed.plus(new Translation3d(0, 0, -9.81 * dt));
+    }
+    return points.toArray(Pose3d[]::new);
   }
 
   /** Ball speed leaving the shooter, from the wheel's present surface speed. */

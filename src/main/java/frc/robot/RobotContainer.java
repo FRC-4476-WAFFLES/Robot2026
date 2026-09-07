@@ -547,6 +547,20 @@ public class RobotContainer {
         .onFalse(Commands.runOnce(
             () -> Controls.driverController.setRumble(RumbleType.kLeftRumble, 0)));
 
+    // Both motors together, pulsed, for a hub that is shut. Distinct by feel from
+    // either single motor, and pulsing says "this is not about the robot" -- no
+    // amount of waiting or driving closer opens the hub before its shift.
+    state.hubClosedWhileShooting().whileTrue(
+        Commands.repeatingSequence(
+            Commands.runOnce(
+                () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 1)),
+            Commands.waitSeconds(0.12),
+            Commands.runOnce(
+                () -> Controls.driverController.setRumble(RumbleType.kBothRumble, 0)),
+            Commands.waitSeconds(0.25))
+            .finallyDo(() -> Controls.driverController.setRumble(RumbleType.kBothRumble, 0))
+            .withName("Hub Closed Rumble"));
+
     // Right: the robot has lost track of where it is. Feedback only for now --
     // nothing moves the turret on the strength of this until it has been watched
     // across a few practice matches.

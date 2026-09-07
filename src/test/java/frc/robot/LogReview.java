@@ -43,7 +43,6 @@ public final class LogReview {
   private static final String VALIDATED = "/RealOutputs/Vision/Validated Pose";
   private static final String BATTERY_VOLTAGE = "/SystemStats/BatteryVoltage";
   private static final String FLYWHEEL_GOAL = "/RealOutputs/Flywheel/Flywheel Goal Velocity";
-  private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
   private static final String FLYWHEEL_MOTOR = "/Inputs/Flywheel/FlywheelMotorData0";
   private static final String FEEDER_MOTOR = "/Inputs/Indexer/FeederMotorData0";
   private static final String FEEDER_MOTOR_1 = "/Inputs/Indexer/FeederMotorData1";
@@ -51,6 +50,9 @@ public final class LogReview {
   private static final String SPINDEXER_MOTOR_1 = "/Inputs/Indexer/IndexerMotorData1";
   private static final String FIRE_SHOT = "/RealOutputs/Commands/Fire shot";
   private static final String SHOOTER_STATE = "/RealOutputs/RobotState/Shooter State";
+  private static final String TURRET_AT_GOAL = "/RealOutputs/Turret/At Goal";
+  private static final String HUB_ENABLED = "/RealOutputs/RobotState/Hub Enabled";
+  private static final String FLYWHEEL_AT_SETPOINT = "/RealOutputs/Flywheel/At Setpoint";
   private static final String DISTANCE_TO_TARGET = "/RealOutputs/Turret/Distance To Target";
   private static final String SHOOTING = "/RealOutputs/RobotState/Shooting";
   private static final String SHOOTER_HUB_COMMAND = "/RealOutputs/Commands/Shooter Hub";
@@ -121,6 +123,7 @@ public final class LogReview {
       case "pose" -> reviewPose(logs);
       case "bump" -> reviewBump(logs);
       case "sticks" -> reviewSticks(logs);
+      case "whynot" -> reviewWhyNot(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -799,6 +802,8 @@ public final class LogReview {
     List<Double> dips = new ArrayList<>();
     List<double[]> feederVsDip = new ArrayList<>();
     List<Double> dipDelays = new ArrayList<>();
+    List<Double> intervals = new ArrayList<>();
+    double[] previousShot = { -1 };
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
       int fireEntry = -1;
@@ -819,6 +824,7 @@ public final class LogReview {
       double distance = 0;
       String state = "?";
       int shots = 0;
+      previousShot[0] = -1; // timestamps do not carry across log files
       double[] pending = null;
       double[] recovering = null;
       double recoverFrom = 0;
@@ -898,6 +904,12 @@ public final class LogReview {
                 printedHeader = true;
               }
               shots++;
+              double shotTime = record.getTimestamp() / 1e6;
+              // Only gaps inside a burst; a long pause is the driver stopping.
+              if (previousShot[0] > 0 && shotTime - previousShot[0] < 3.0) {
+                intervals.add(shotTime - previousShot[0]);
+              }
+              previousShot[0] = shotTime;
               deficits.add(Math.abs(goal - speed));
               if (state.contains("HUB")) {
                 hubShots.add(new double[] { distance, Math.abs(goal - speed), battery });
@@ -941,6 +953,17 @@ public final class LogReview {
       }
       System.out.printf("  median %.1f rps, 90th percentile %.1f rps%n",
           deficits.get(deficits.size() / 2), deficits.get(deficits.size() * 9 / 10));
+    }
+
+    if (intervals.size() > 5) {
+      Collections.sort(intervals);
+      System.out.printf("%ntime between consecutive shots in a burst, %d gaps%n", intervals.size());
+      System.out.printf("  median %.2fs, 25th %.2fs, 75th %.2fs  -> about %.1f balls per second%n",
+          intervals.get(intervals.size() / 2), intervals.get(intervals.size() / 4),
+          intervals.get(intervals.size() * 3 / 4), 1.0 / intervals.get(intervals.size() / 2));
+      double mean = intervals.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+      double variance = intervals.stream().mapToDouble(i -> (i - mean) * (i - mean)).average().orElse(0);
+      System.out.printf("  mean %.2fs, standard deviation %.2fs%n", mean, Math.sqrt(variance));
     }
 
     if (!dipDelays.isEmpty()) {
@@ -2837,6 +2860,139 @@ public final class LogReview {
       } else {
         System.out.println("  --> sticks reached the drivetrain");
       }
+    }
+  }
+
+  /**
+   * Answers "I am holding the trigger and it will not shoot".
+   *
+   * <p>
+   * The intent has to come from the trigger axis itself. {@code
+   * RobotState/Shooting} is the <i>result</i> of {@code canFire} — it only goes
+   * true once the robot has already decided to fire — so comparing it against
+   * firing says nothing at all.
+   *
+   * <p>
+   * {@code canFire} is an AND of several conditions and only its result is
+   * logged, so from the driver's seat every refusal looks identical. This reports
+   * which term was false while the trigger was held.
+   */
+  private static void reviewWhyNot(List<File> logs) throws IOException {
+    /** Right trigger on the driver gamepad, per the WPILib Xbox mapping. */
+    final int rightTriggerAxis = 3;
+    String[] names = { "turret not at goal", "flywheel not at setpoint",
+        "flywheel not even spinning", "shooter state not a shooting one",
+        "hub closed (outside its shift window)" };
+    double[] blocked = new double[names.length];
+    double heldTime = 0;
+    double firedTime = 0;
+
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      int axesEntry = -1;
+      int turretEntry = -1;
+      int flywheelEntry = -1;
+      int stateEntry = -1;
+      int shootingEntry = -1;
+      int enabledEntry = -1;
+      int goalEntry = -1;
+      int hubEntry = -1;
+
+      boolean enabled = false;
+      boolean hubOpen = true;
+      boolean turretAtGoal = false;
+      boolean flywheelReady = false;
+      boolean shooting = false;
+      double goal = 0;
+      String shooterState = "?";
+      double last = -1;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            switch (start.name) {
+              case "/DriverStation/Joystick0/AxisValues" -> axesEntry = start.entry;
+              case TURRET_AT_GOAL -> turretEntry = start.entry;
+              case FLYWHEEL_AT_SETPOINT -> flywheelEntry = start.entry;
+              case SHOOTER_STATE -> stateEntry = start.entry;
+              case SHOOTING -> shootingEntry = start.entry;
+              case ENABLED -> enabledEntry = start.entry;
+              case FLYWHEEL_GOAL -> goalEntry = start.entry;
+              case HUB_ENABLED -> hubEntry = start.entry;
+              default -> {
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          double now = record.getTimestamp() / 1e6;
+          if (entry == enabledEntry) {
+            enabled = record.getBoolean();
+          } else if (entry == turretEntry) {
+            turretAtGoal = record.getBoolean();
+          } else if (entry == flywheelEntry) {
+            flywheelReady = record.getBoolean();
+          } else if (entry == stateEntry) {
+            shooterState = record.getString();
+          } else if (entry == shootingEntry) {
+            shooting = record.getBoolean();
+          } else if (entry == goalEntry) {
+            goal = record.getDouble();
+          } else if (entry == hubEntry) {
+            hubOpen = record.getBoolean();
+          } else if (entry == axesEntry) {
+            float[] axes = record.getFloatArray();
+            boolean held = axes.length > rightTriggerAxis && axes[rightTriggerAxis] > 0.5;
+            if (enabled && held && last > 0) {
+              double step = Math.min(0.1, now - last);
+              heldTime += step;
+              if (shooting) {
+                firedTime += step;
+              } else {
+                // Several can be false at once, so the columns do not sum to
+                // the held time.
+                if (!turretAtGoal) {
+                  blocked[0] += step;
+                }
+                if (goal > 1.0 && !flywheelReady) {
+                  blocked[1] += step;
+                }
+                if (goal <= 1.0) {
+                  blocked[2] += step;
+                }
+                if (!shooterState.contains("HUB") && !shooterState.contains("PASS")) {
+                  blocked[3] += step;
+                }
+                if (shooterState.contains("HUB") && !hubOpen) {
+                  blocked[4] += step;
+                }
+              }
+            }
+            last = now;
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+    }
+
+    if (heldTime < 0.5) {
+      System.out.println("the trigger was never held long enough while enabled to tell");
+      return;
+    }
+    System.out.printf("trigger held for %.1fs, firing for %.1fs (%.0f%%)%n%n",
+        heldTime, firedTime, 100 * firedTime / heldTime);
+    System.out.printf("  %-34s %10s %10s%n", "reason it did not fire", "seconds", "share");
+    for (int i = 0; i < names.length; i++) {
+      if (blocked[i] < 0.05) {
+        continue;
+      }
+      System.out.printf("  %-34s %9.1fs %9.0f%%%n", names[i], blocked[i],
+          100 * blocked[i] / heldTime);
     }
   }
 
