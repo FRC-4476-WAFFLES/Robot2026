@@ -21,6 +21,8 @@ import frc.robot.autos.adaptable.AdaptableManager;
 import frc.robot.data.BuildConstants;
 import frc.robot.data.Constants;
 import frc.robot.utils.sim.SimBattery;
+import frc.robot.utils.sim.SimField;
+import frc.robot.utils.sim.SimShooter;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.Mode;
 import frc.robot.data.Constants.VisionConstants;
@@ -269,6 +271,8 @@ public class Robot extends LoggedRobot {
     // Every simulated mechanism has reported its draw by now, so the rest of
     // the robot can be shown the voltage that leaves.
     SimBattery.publish();
+    SimField.update();
+    SimShooter.update();
     if (Constants.getMode() == Mode.SIM && CodeConstants.USE_FUEL_SIMULATION) {
       FuelSim.getInstance().updateSim();
     }

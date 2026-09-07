@@ -11,9 +11,13 @@ import java.lang.reflect.Method;
 
 import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.Logger;
+import edu.wpi.first.hal.AllianceStationID;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
+import frc.robot.utils.sim.SimField;
+import frc.robot.utils.sim.SimShooter;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
 
 /**
@@ -58,6 +62,15 @@ public final class SimHarness {
     DriverStationSim.setEnabled(false);
     attachControllers();
     DriverStationSim.notifyNewData();
+
+    // Set before the robot is built: RobotContainer reads these in its
+    // constructor to decide whether to fill the field with balls.
+    //
+    // Both exist for a human watching AdvantageScope. A test needs the robot to
+    // stay where it is put and the tilt to stay where it is set, and does not
+    // want to pay physics on ninety balls it never asked for.
+    SimField.setEnabled(false);
+    SimShooter.setEnabled(false);
 
     robot = new Robot();
 
@@ -188,6 +201,23 @@ public final class SimHarness {
   /** Enables the robot in autonomous. */
   public static void enableAutonomous() {
     setDs(true, true);
+  }
+
+  /**
+   * Sets the alliance the simulated driver station reports.
+   *
+   * <p>
+   * Worth being explicit about in any test that places the robot at a field
+   * coordinate: the simulator defaults to red, and a great deal of this code
+   * runs positions through {@code WafflesUtilities.FlipIfRedAlliance}, so the
+   * same coordinate means two different places depending on this.
+   */
+  public static void setAlliance(Alliance alliance) {
+    DriverStationSim.setAllianceStationId(alliance == Alliance.Blue
+        ? AllianceStationID.Blue1
+        : AllianceStationID.Red1);
+    DriverStationSim.notifyNewData();
+    step(2);
   }
 
   /** Disables the robot. */

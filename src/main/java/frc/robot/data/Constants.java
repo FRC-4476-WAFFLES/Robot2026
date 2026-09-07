@@ -116,7 +116,12 @@ public final class Constants {
     public static final boolean RESET_ODOMETRY_AUTO_START = true;
     public static final boolean DISABLE_PURE_PURSUIT = true;
 
-    public static final boolean USE_FUEL_SIMULATION = false;
+    /**
+     * Runs the ball simulation, so shots can be watched flying and landing
+     * rather than inferred from flywheel numbers. Simulation only, and it costs
+     * a little loop time per ball in flight.
+     */
+    public static final boolean USE_FUEL_SIMULATION = true;
     public static final boolean USE_VISION_SIMULATION = true;
 
     public static final boolean COMPLEX_AUTO_PREVIEW = true;

@@ -90,6 +90,7 @@ import frc.robot.subsystems.telemetry.Telemetry;
 import frc.robot.subsystems.vision.LimelightIO;
 import frc.robot.subsystems.vision.SimVisionIO;
 import frc.robot.subsystems.power.PowerManager;
+import frc.robot.utils.sim.SimShooter;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.utils.vendor.Elastic;
@@ -672,7 +673,12 @@ public class RobotContainer {
 
   private void configureFuelSim() {
     FuelSim instance = FuelSim.getInstance();
-    instance.spawnStartingFuel();
+    // Only for a human watching. Ninety balls of physics every loop pushes the
+    // simulation past its 20 ms budget, and a test that fires one wants that
+    // one, not the field's worth it was already carrying.
+    if (SimShooter.isEnabled()) {
+      instance.spawnStartingFuel();
+    }
     instance.registerRobot(
         PhysicalConstants.FULL_WIDTH.in(Meters),
         PhysicalConstants.FULL_LENGTH.in(Meters),

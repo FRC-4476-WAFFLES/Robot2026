@@ -58,6 +58,12 @@ public class Hood extends SubsystemBase {
   }
 
   @AutoLogOutput(key = "Hood/Position")
+
+  /** The position the hood is being asked to hold, in rotations. */
+  public double getGoalPosition() {
+    return setpoint;
+  }
+
   public double getPosition() {
     return inputs.hoodMotor.position() * 360;
   }
