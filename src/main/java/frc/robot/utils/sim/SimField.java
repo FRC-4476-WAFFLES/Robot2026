@@ -8,6 +8,8 @@ import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.RobotContainer;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
@@ -102,7 +104,14 @@ public final class SimField {
         FieldConstants.fieldWidth - ROBOT_RADIUS);
     boolean againstWall = clampedX != truth.getX() || clampedY != truth.getY();
 
-    if (againstWall) {
+    // Field elements the robot cannot drive through. Pushed out along whichever
+    // axis it is least far into, which is the direction it would actually slide.
+    Translation2d pushed = pushOutOfObstacles(new Translation2d(clampedX, clampedY));
+    boolean hitObstacle = pushed.getDistance(new Translation2d(clampedX, clampedY)) > 1e-6;
+    clampedX = pushed.getX();
+    clampedY = pushed.getY();
+
+    if (againstWall || hitObstacle) {
       // The robot stops; the wheels do not. Odometry keeps integrating the full
       // wheel motion and runs away from the truth, which is what pressing a
       // real robot into a wall does to its pose.
@@ -120,12 +129,48 @@ public final class SimField {
 
     GyroIOSim.setTilt(tilt);
     RobotContainer.simState.setSlip(
-        againstWall ? WALL_SLIP : onBump ? BUMP_SLIP : 0);
+        againstWall || hitObstacle ? WALL_SLIP : onBump ? BUMP_SLIP : 0);
 
     Logger.recordOutput("SimField/Against Wall", againstWall);
+    Logger.recordOutput("SimField/Against Obstacle", hitObstacle);
     Logger.recordOutput("SimField/On Bump", onBump);
     Logger.recordOutput("SimField/Bump Tilt", tilt);
     Logger.recordOutput("SimField/Odometry Error",
         truth.getTranslation().getDistance(RobotContainer.state.getPose().getTranslation()));
+  }
+
+  /**
+   * Pushes the robot out of any field element it is inside.
+   *
+   * <p>
+   * Both hubs, treated as rectangles grown by the robot's radius. A robot only
+   * ever overlaps one by a little, so it is pushed out along whichever axis it
+   * is least far into — the shallowest escape, which is the way it would
+   * actually slide off.
+   */
+  private static Translation2d pushOutOfObstacles(Translation2d position) {
+    Translation2d result = position;
+    for (Translation3d hub : new Translation3d[] {
+        FieldConstants.Hub.topCenterPoint, FieldConstants.Hub.oppTopCenterPoint }) {
+      result = pushOutOfRectangle(result, hub.getX(), hub.getY(),
+          FieldConstants.Hub.width / 2 + ROBOT_RADIUS,
+          FieldConstants.Hub.width / 2 + ROBOT_RADIUS);
+    }
+    return result;
+  }
+
+  private static Translation2d pushOutOfRectangle(Translation2d position,
+      double centreX, double centreY, double halfWidth, double halfHeight) {
+    double dx = position.getX() - centreX;
+    double dy = position.getY() - centreY;
+    if (Math.abs(dx) >= halfWidth || Math.abs(dy) >= halfHeight) {
+      return position;
+    }
+    double escapeX = halfWidth - Math.abs(dx);
+    double escapeY = halfHeight - Math.abs(dy);
+    if (escapeX < escapeY) {
+      return new Translation2d(centreX + Math.signum(dx) * halfWidth, position.getY());
+    }
+    return new Translation2d(position.getX(), centreY + Math.signum(dy) * halfHeight);
   }
 }

@@ -11,9 +11,12 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.TurretConstants;
+import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.vendor.FuelSim;
 
 /**
@@ -75,13 +78,106 @@ public final class SimShooter {
     return enabled;
   }
 
+  /** Whether the prune is still able to reach into FuelSim. */
+  public static boolean isPruneWorking() {
+    return !reflectionUnavailable;
+  }
+
+  /** How many balls are currently being simulated, or -1 if it cannot be read. */
+  public static int getBallsInPlay() {
+    return ballsInPlay;
+  }
+
   /** How many balls have been launched since the robot booted. */
   public static int getShotsFired() {
     return shotsFired;
   }
 
+  /*
+   * Reaching into FuelSim to drop balls that have come to rest.
+   *
+   * FuelSim is a vendor file and has to stay diffable against upstream, so it
+   * cannot grow a prune method of its own — and its fuel list and the Fuel class
+   * are both private. Reflection is the price of leaving it untouched. The
+   * handles are cached and the sweep runs a few times a second rather than every
+   * loop, because the cost that matters is the physics on every ball, and a ball
+   * that has stopped keeps paying it forever.
+   */
+  private static java.lang.reflect.Field fuelsField;
+  private static java.lang.reflect.Field positionField;
+  private static java.lang.reflect.Field velocityField;
+  private static boolean reflectionUnavailable = false;
+  private static double lastPrune = 0;
+  private static int ballsInPlay = -1;
+  /** How slowly a ball must be moving, in m/s, to count as finished. */
+  private static final double AT_REST_SPEED = 0.25;
+  /** How low it must be, in metres, so a ball resting in the hub is not swept. */
+  private static final double AT_REST_HEIGHT = 0.2;
+  private static final double PRUNE_INTERVAL = 0.5;
+
+  /**
+   * Removes balls that have stopped moving.
+   *
+   * <p>
+   * Every ball in the list is integrated every loop whether it is doing anything
+   * or not, so a match's worth of dead balls on the floor is pure loop time —
+   * and loop time in this simulation is what makes the flywheel and battery
+   * models worth anything.
+   */
+  private static void pruneStoppedBalls() {
+    if (reflectionUnavailable) {
+      return;
+    }
+    double now = Timer.getTimestamp();
+    if (now - lastPrune < PRUNE_INTERVAL) {
+      return;
+    }
+    lastPrune = now;
+
+    try {
+      if (fuelsField == null) {
+        fuelsField = FuelSim.class.getDeclaredField("fuels");
+        fuelsField.setAccessible(true);
+      }
+      Object list = fuelsField.get(FuelSim.getInstance());
+      if (!(list instanceof java.util.List<?> fuels)) {
+        reflectionUnavailable = true;
+        return;
+      }
+      int before = fuels.size();
+      fuels.removeIf(SimShooter::hasStopped);
+      ballsInPlay = fuels.size();
+      Logger.recordOutput("SimShooter/Balls In Play", ballsInPlay);
+      Logger.recordOutput("SimShooter/Balls Despawned", before - fuels.size());
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      // FuelSim's internals moved. Losing the prune costs loop time, not
+      // correctness, so say so once and carry on.
+      DriverStation.reportWarning(
+          "SimShooter cannot prune stopped balls; FuelSim's internals changed", false);
+      reflectionUnavailable = true;
+    }
+  }
+
+  /** Whether a ball has come to rest on the floor. */
+  private static boolean hasStopped(Object fuel) {
+    try {
+      if (positionField == null) {
+        positionField = fuel.getClass().getDeclaredField("pos");
+        positionField.setAccessible(true);
+        velocityField = fuel.getClass().getDeclaredField("vel");
+        velocityField.setAccessible(true);
+      }
+      var position = (Translation3d) positionField.get(fuel);
+      var velocity = (Translation3d) velocityField.get(fuel);
+      return velocity.getNorm() < AT_REST_SPEED && position.getZ() < AT_REST_HEIGHT;
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      return false;
+    }
+  }
+
   /** Fires a ball if the robot is shooting and one is due. Call every sim loop. */
   public static void update() {
+    pruneStoppedBalls();
     boolean shooting = enabled && RobotContainer.state.isShooting()
         && RobotContainer.flywheel.getGoalVelocity() > 1.0;
     Logger.recordOutput("SimShooter/Shots Fired", shotsFired);
@@ -101,8 +197,13 @@ public final class SimShooter {
   /** Launches one ball from wherever the turret is currently pointing. */
   private static void fire() {
     var robot = RobotContainer.state.getPose();
+    // The turret's zero faces diagonally back into the robot, so its mechanism
+    // position is PHYSICAL_ZERO short of where it is actually pointing. This is
+    // the same sum MechanismPoses uses to draw the turret, so a ball now leaves
+    // along the barrel that is rendered rather than 45 degrees off it.
     var turretHeading = robot.getRotation()
-        .plus(Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition()));
+        .plus(Rotation2d.fromRotations(RobotContainer.turret.getMechanismRelativePosition()))
+        .plus(TurretConstants.PHYSICAL_ZERO);
 
     double hoodDegrees = hoodAngleDegrees();
     double speed = exitSpeed();
@@ -115,7 +216,9 @@ public final class SimShooter {
             PhysicalConstants.ROBOT_TO_TURRET_CENTER.getZ())
             .rotateBy(new Rotation3d(0, 0, robot.getRotation().getRadians())));
 
-    double pitch = Units.degreesToRadians(hoodDegrees);
+    // A robot on the bump launches along its own tilted axis, which is exactly
+    // the case the drive team reports missing from.
+    double pitch = Units.degreesToRadians(hoodDegrees + GyroIOSim.getTilt());
     Translation3d velocity = new Translation3d(
         speed * Math.cos(pitch) * turretHeading.getCos(),
         speed * Math.cos(pitch) * turretHeading.getSin(),
@@ -135,6 +238,7 @@ public final class SimShooter {
         new Rotation3d(0, -pitch, turretHeading.getRadians())));
     Logger.recordOutput("SimShooter/Exit Speed", speed);
     Logger.recordOutput("SimShooter/Hood Degrees", hoodDegrees);
+    Logger.recordOutput("SimShooter/Turret Heading", turretHeading.getDegrees());
     Logger.recordOutput("SimShooter/Predicted Range", predictedRange(speed, pitch, origin.getZ()));
   }
 

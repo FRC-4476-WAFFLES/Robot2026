@@ -44,10 +44,10 @@ public class SimShooterTest {
     SimHarness.stepSeconds(0.5);
 
     int before = SimShooter.getShotsFired();
-    RobotContainer.state.setShooting(true);
-    RobotContainer.flywheel.runSetpoint(50);
-    SimHarness.stepSeconds(2.0);
-    RobotContainer.state.setShooting(false);
+    // Hold the trigger rather than setting a flywheel setpoint by hand: the
+    // shooter command rewrites that setpoint every loop, so one set here would
+    // survive a single loop and then be zeroed.
+    holdShootTrigger(2.5);
     SimShooter.setEnabled(false);
     SimHarness.stepSeconds(0.3);
 
@@ -91,8 +91,10 @@ public class SimShooterTest {
     // than wrong.
     SimField.setEnabled(true);
     double tiltedAt = Double.NaN;
+    // Along the side of the field, clear of the hub -- which sits on the centre
+    // line and would push the robot back out of any pose placed inside it.
     for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.25) {
-      RobotContainer.drive.setPose(new Pose2d(x, 4.0, Rotation2d.kZero));
+      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
       SimHarness.step(3);
       if (!RobotContainer.drive.isLevelOnGround()) {
         tiltedAt = x;
@@ -105,7 +107,7 @@ public class SimShooterTest {
 
     // And it must be level again on the far side, or every behaviour gated on
     // being level would stay off for the rest of the match.
-    RobotContainer.drive.setPose(new Pose2d(tiltedAt + 3.0, 4.0, Rotation2d.kZero));
+    RobotContainer.drive.setPose(new Pose2d(tiltedAt + 3.0, 1.5, Rotation2d.kZero));
     SimHarness.step(3);
     assertTrue(RobotContainer.drive.isLevelOnGround(),
         "the robot should be level again well past the bump");
@@ -147,6 +149,40 @@ public class SimShooterTest {
     assertTrue(peak > baseline + 0.05,
         "crossing the bump should cost real odometry accuracy, peak was " + peak
             + " against a baseline of " + baseline);
+  }
+
+  @Test
+  void stoppedBallsAreDespawned() {
+    // Every ball in the list is integrated every loop whether it is doing
+    // anything or not, so a match's worth of dead balls is pure loop time --
+    // and loop time is what makes the flywheel and battery models worth having.
+    //
+    // This also proves the reflection into FuelSim still works. It is a vendor
+    // file that has to stay diffable against upstream, so its private fuel list
+    // is reached rather than a prune method added, and a version bump could
+    // silently break it.
+    SimShooter.setEnabled(true);
+    RobotContainer.drive.setPose(new Pose2d(3.0, 4.0, Rotation2d.kZero));
+    SimHarness.stepSeconds(0.4);
+
+    holdShootTrigger(2.0);
+    SimShooter.setEnabled(false);
+
+    // Long enough for what was fired to land and settle.
+    SimHarness.stepSeconds(4.0);
+    int remaining = SimShooter.getBallsInPlay();
+    System.out.printf("balls still in play after everything landed: %d%n", remaining);
+    assertTrue(remaining >= 0, "the prune must not throw");
+    assertTrue(SimShooter.isPruneWorking(),
+        "the reflection into FuelSim stopped working, so balls will accumulate forever");
+  }
+
+  /** Holds the shoot trigger, so the shooter runs the way a driver runs it. */
+  private static void holdShootTrigger(double seconds) {
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kRightTrigger.value, 1.0);
+    SimHarness.stepSeconds(seconds);
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kRightTrigger.value, 0.0);
+    SimHarness.stepSeconds(0.3);
   }
 
   /** Holds the drive stick for a while, so the robot moves under its own power. */
