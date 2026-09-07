@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems.drive;
 
+import org.littletonrobotics.junction.Logger;
+
 import frc.robot.data.Constants;
 
 /**
@@ -49,6 +51,9 @@ public class GyroIOSim implements GyroIO {
   @Override
   public void updateInputs(GyroIOInputs inputs) {
     inputs.tipAngle = tiltDegrees;
+    // The real gyro logs this from GyroIOPigeon2.getTiltMagnitude, so log it
+    // here too or the tilt is invisible in AdvantageScope during a sim run.
+    Logger.recordOutput("TiltDeg", tiltDegrees);
     inputs.levelOnGround = !GyroIOPigeon2.isOnBumpGravity(tiltDegrees);
     // Left disconnected on purpose: Drive falls back to the module states for
     // heading, which is how the simulated robot has always turned.
