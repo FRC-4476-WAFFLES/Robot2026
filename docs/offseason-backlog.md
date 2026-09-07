@@ -703,7 +703,33 @@ driven directly: simulated vision derives its estimates from the drive's own
 pose, so it agrees perfectly on every loop and resets any pose-agreement state
 machine as fast as a test can set it.
 
-**Still missing:** the flywheel and battery physics below.
+**Also done.** `SimBattery` gives the simulation a pack fitted from the match
+logs — 11.79 V open circuit, 15.5 mOhm, so every 100 A costs 1.55 V — and
+publishes the result through `RoboRioSim` so the whole robot sees it.
+`ModuleIOSim` now clamps to that voltage, reports its draw, and honours the
+supply limit the power manager applies. `FlywheelIOSim` was replaced with a model
+identified from the logs: 2.311 rps/s per amp, a ceiling of 13.8 rps per volt
+capped at 88, and current available in proportion to the room between the wheel
+and that ceiling. `SimHarness.takeShot()` removes the measured 7.8 rps a ball
+costs.
+
+`SimPhysicsTest` covers what none of this could show before: that current sags
+the bus, that spinning up draws far more than sitting at speed, that a tired pack
+lowers what the wheel can reach, that a ball costs speed, and that a flywheel
+starved by the power manager recovers measurably slower than a fed one
+(0.22 s against 0.14 s).
+
+**Still missing.** The pieces below are worth doing if the simulation is ever
+relied on further:
+
+- **Vision that can disagree.** `SimVisionIO` derives its estimates from the
+  drive's own pose, so it agrees perfectly by construction. No pose-agreement
+  threshold can be evaluated in simulation, and the tests that exercise the
+  lost-pose logic have to bypass the robot loop entirely with
+  `SimHarness.advanceClockOnly`.
+- **The other mechanisms.** Intake, indexer and feeder still write velocity
+  straight through and load the battery not at all, so the parts of the budget
+  that touch them are still inert.
 
 **Shape of it.** A shared battery model that every IO layer draws from, so bus
 voltage falls with total current the way it does on the robot; a flywheel model
