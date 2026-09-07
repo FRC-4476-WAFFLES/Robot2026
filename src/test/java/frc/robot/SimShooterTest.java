@@ -177,6 +177,44 @@ public class SimShooterTest {
         "the reflection into FuelSim stopped working, so balls will accumulate forever");
   }
 
+  @Test
+  void theBumpPushesTheRobotBackDown() {
+    // Gravity acts on the robot the way it acts on a ball. The bump used to tilt
+    // the robot and take grip away and nothing else, so it climbed at exactly
+    // the speed it drove anywhere -- while a ball on the same slope rolled back.
+    //
+    // Parked on the slope with no drive input, the robot should slide.
+    SimField.setEnabled(true);
+    RobotContainer.simState.resetSlipTracking();
+    SimHarness.releaseAllControls();
+
+    // Find the bump by sweeping, so this does not depend on which alliance the
+    // simulator happens to have picked.
+    double onBumpX = Double.NaN;
+    for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.2) {
+      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
+      SimHarness.step(3);
+      if (!RobotContainer.drive.isLevelOnGround()) {
+        onBumpX = x;
+        break;
+      }
+    }
+    assertTrue(!Double.isNaN(onBumpX), "setup: never found the bump");
+
+    double before = RobotContainer.simState.getPose().getX();
+    SimHarness.stepSeconds(1.5);
+    double after = RobotContainer.simState.getPose().getX();
+
+    System.out.printf("parked on the bump at x %.2f, slid to %.2f (%.2f m)%n",
+        before, after, after - before);
+    SimField.setEnabled(false);
+    SimHarness.levelOut();
+
+    assertTrue(Math.abs(after - before) > 0.05,
+        "a robot sitting on the slope with no drive should slide, moved "
+            + (after - before) + " m");
+  }
+
   /** Holds the shoot trigger, so the shooter runs the way a driver runs it. */
   private static void holdShootTrigger(double seconds) {
     SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kRightTrigger.value, 1.0);

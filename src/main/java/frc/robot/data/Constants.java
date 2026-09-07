@@ -126,14 +126,17 @@ public final class Constants {
      * poses — which exist only to be looked at.
      *
      * <p>
-     * They are not free. Measured over one simulator session with
-     * {@code logReview bandwidth}, target visualisation and the four camera pose
-     * fields came to 39 MB of 247, a sixth of everything logged, and every byte
-     * is also published over NetworkTables fifty times a second. Turning them off
-     * is the cheapest way to make a dashboard responsive again; turn them back on
-     * when the question is what the cameras are actually seeing.
+     * They are not free: measured with {@code logReview bandwidth}, they came to
+     * 39 MB of 247 over one session, a sixth of everything logged, and every byte
+     * is also published over NetworkTables fifty times a second.
+     *
+     * <p>
+     * Turning them off was tried and made no difference a driver could feel, so
+     * the dashboard's cost is its rendering rather than its traffic. Left on,
+     * because they are worth having; the flag stays as the first thing to try if
+     * bandwidth ever is the problem.
      */
-    public static final boolean LOG_VISION_VISUALIZATION = false;
+    public static final boolean LOG_VISION_VISUALIZATION = true;
 
     public static final boolean USE_FUEL_SIMULATION = true;
     public static final boolean USE_VISION_SIMULATION = true;

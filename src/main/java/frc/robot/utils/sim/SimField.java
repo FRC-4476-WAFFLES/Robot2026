@@ -10,10 +10,12 @@ import static edu.wpi.first.units.Units.Meters;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.lib.WafflesUtilities;
@@ -67,7 +69,25 @@ public final class SimField {
   /** Wheels against a wall turn without taking the robot anywhere. */
   private static final double WALL_SLIP = 0.95;
 
+  /** Metres per second squared. */
+  private static final double GRAVITY = 9.81;
+  /**
+   * How much of the slope-induced speed is lost each loop to the drivetrain
+   * holding the robot. Without it a robot parked on the bump accelerates away
+   * forever; with it, it creeps and settles.
+   */
+  private static final double SLOPE_FRICTION = 0.30;
+  /** How much of the crossing is spent going from level to fully tilted. */
+  private static final double EDGE_TRANSITION = 0.12;
+  /**
+   * How much of the crossing the flat top takes, either side of the middle.
+   * Without it the steepest slope sits exactly where downhill flips direction,
+   * and a robot parked there is shoved back and forth instead of sliding off.
+   */
+  private static final double CREST_HALF_WIDTH = 0.10;
+
   private static boolean enabled = true;
+  private static double slopeVelocity = 0;
 
   private SimField() {}
 
@@ -85,6 +105,11 @@ public final class SimField {
     if (!value) {
       RobotContainer.simState.setSlip(0);
     }
+  }
+
+  /** How fast gravity is currently pulling the robot along the bump, in m/s. */
+  public static double getSlopeVelocity() {
+    return slopeVelocity;
   }
 
   /** Whether the walls, the bump and the slip are in effect. */
@@ -120,7 +145,7 @@ public final class SimField {
 
     if (againstWall || hitObstacle) {
       Pose2d held = new Pose2d(clampedX, clampedY, truth.getRotation());
-      RobotContainer.simState.setTruePose(held, truth.getRotation());
+      RobotContainer.simState.setTruePose(held);
 
       // Odometry is held here too, and only here. A real robot pressed into a
       // wall does let its pose run away, and simulating that faithfully was the
@@ -138,11 +163,13 @@ public final class SimField {
     double width = FieldConstants.LinesVertical.neutralZoneNear - BUMP_START_X;
     double through = (blueRelative.getX() - BUMP_START_X) / width;
     boolean onBump = through > 0 && through < 1;
-    double tilt = onBump ? BUMP_TILT_DEGREES * (1 - Math.abs(through * 2 - 1)) : 0;
+    double tilt = onBump ? tiltAt(through) : 0;
 
     GyroIOSim.setTilt(tilt);
     RobotContainer.simState.setSlip(
         againstWall || hitObstacle ? WALL_SLIP : onBump ? BUMP_SLIP : 0);
+
+    applySlope(onBump, through, tilt);
 
     Logger.recordOutput("SimField/Against Wall", againstWall);
     Logger.recordOutput("SimField/Against Obstacle", hitObstacle);
@@ -150,6 +177,72 @@ public final class SimField {
     Logger.recordOutput("SimField/Bump Tilt", tilt);
     Logger.recordOutput("SimField/Odometry Error",
         truth.getTranslation().getDistance(RobotContainer.state.getPose().getTranslation()));
+  }
+
+  /**
+   * How far the robot is tilted, given how far through the crossing it is.
+   *
+   * <p>
+   * The first version made tilt peak at the crest, which is backwards: the bump
+   * is a ramp up, a flat top and a ramp down, so the robot is most tilted on the
+   * faces and level on top. Peaking at the crest put the steepest slope exactly
+   * where downhill changes direction, so a robot sitting there was shoved back
+   * and forth and went nowhere.
+   *
+   * <p>
+   * Modelled as a triangle in height, which makes the slope constant along each
+   * face, with short transitions at the edges so the robot is not slapped from
+   * level to fully tilted in one loop.
+   */
+  private static double tiltAt(double through) {
+    double intoFace = Math.min(through, 1 - through) / EDGE_TRANSITION;
+    double overCrest = Math.abs(through - 0.5) / CREST_HALF_WIDTH;
+    return BUMP_TILT_DEGREES
+        * MathUtil.clamp(intoFace, 0, 1)
+        * MathUtil.clamp(overCrest, 0, 1);
+  }
+
+  /**
+   * Lets gravity act on the robot the way it acts on a ball.
+   *
+   * <p>
+   * The bump used to tilt the robot and take grip away, and do nothing else: the
+   * robot climbed it at exactly the speed it drove anywhere. A ball on the same
+   * slope rolls back down, and it looked wrong because it was.
+   *
+   * <p>
+   * On a slope of angle θ, gravity pulls along the surface at g sin θ. Climbing,
+   * that fights the drivetrain; descending, it helps. Drive at the bump too
+   * gently and the slope wins and pushes the robot back down — which is the
+   * failure the drive team calls beaching, and it could not happen here before.
+   *
+   * <p>
+   * The push goes to the truth pose only. The wheels did not turn for it, so
+   * odometry believes the robot is still climbing while it slides backwards,
+   * exactly as it does on the field.
+   */
+  private static void applySlope(boolean onBump, double through, double tiltDegrees) {
+    if (!onBump) {
+      slopeVelocity = 0;
+      Logger.recordOutput("SimField/Slope Velocity", 0.0);
+      return;
+    }
+
+    // Downhill is towards whichever face the robot is on: back the way it came
+    // on the near side, onward on the far side.
+    double downhill = through < 0.5 ? -1 : 1;
+    double along = -GRAVITY * Math.sin(Math.toRadians(tiltDegrees)) * downhill;
+
+    // Friction keeps a robot sitting still on a slope from accelerating forever.
+    slopeVelocity = (slopeVelocity + along * CodeConstants.PERIODIC_LOOP_TIME)
+        * (1 - SLOPE_FRICTION);
+
+    // Blue-relative X, so flip it when the field is mirrored.
+    double fieldX = slopeVelocity
+        * (WafflesUtilities.FlipIfRedAlliance(Pose2d.kZero).getX() > 1 ? -1 : 1);
+    RobotContainer.simState.push(
+        new Translation2d(fieldX * CodeConstants.PERIODIC_LOOP_TIME, 0));
+    Logger.recordOutput("SimField/Slope Velocity", slopeVelocity);
   }
 
   /**

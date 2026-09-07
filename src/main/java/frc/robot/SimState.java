@@ -10,6 +10,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 
@@ -43,6 +44,17 @@ public class SimState {
   private double slip = 0;
   private SwerveModulePosition[] truePositions = null;
   private double[] lastSeenDistances = null;
+  /**
+   * The raw gyro rotation Drive last fed in.
+   *
+   * <p>
+   * Anything that resets this estimator has to hand back the same reference it
+   * is being updated with. Passing the estimated field rotation instead
+   * corrupts the estimator's gyro offset, and the next update quietly undoes
+   * whatever the reset just did — which is what happened to the first version of
+   * {@link #push}.
+   */
+  private Rotation2d lastRawGyro = Rotation2d.kZero;
 
   /** Sets how much grip the robot is losing, 0 for none and 1 for all of it. */
   public void setSlip(double value) {
@@ -83,15 +95,34 @@ public class SimState {
       truePositions[i] = new SwerveModulePosition(
           truePositions[i].distanceMeters + delta * (1 - slip), positions[i].angle);
     }
+    lastRawGyro = gyroRotation;
     underlyingPoseEstimator.updateWithTime(timestamp, gyroRotation, truePositions);
   }
 
-  /** Moves the truth pose, for a wall the robot cannot drive through. */
-  public void setTruePose(Pose2d pose, Rotation2d gyroRotation) {
+  /**
+   * Shifts the truth pose by something the wheels did not do.
+   *
+   * <p>
+   * For forces the drivetrain has no say in — gravity pulling the robot back
+   * down the bump, most of all. Odometry never sees this, because the wheels did
+   * not turn for it, so a robot that slides backwards down a slope believes it is
+   * still climbing. That is exactly what happens on the field.
+   */
+  public void push(Translation2d displacement) {
     if (underlyingPoseEstimator == null || truePositions == null) {
       return;
     }
-    underlyingPoseEstimator.resetPosition(gyroRotation, truePositions, pose);
+    Pose2d current = underlyingPoseEstimator.getEstimatedPosition();
+    underlyingPoseEstimator.resetPosition(lastRawGyro, truePositions,
+        new Pose2d(current.getTranslation().plus(displacement), current.getRotation()));
+  }
+
+  /** Moves the truth pose, for a wall the robot cannot drive through. */
+  public void setTruePose(Pose2d pose) {
+    if (underlyingPoseEstimator == null || truePositions == null) {
+      return;
+    }
+    underlyingPoseEstimator.resetPosition(lastRawGyro, truePositions, pose);
   }
 
   /** Forgets the accumulated slip, so the truth pose is wherever odometry says. */
