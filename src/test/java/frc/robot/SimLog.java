@@ -85,26 +85,35 @@ public final class SimLog {
       throw new IllegalStateException(path + " is not a valid WPILOG file");
     }
 
-    for (DataLogRecord record : reader) {
-      if (record.isStart()) {
-        var start = record.getStartData();
-        namesByEntry.put(start.entry, start.name);
-        typesByEntry.put(start.entry, start.type);
-        continue;
-      }
-      if (record.isControl()) {
-        continue;
-      }
+    // A log being written right now ends mid-record, so the read stops there
+    // rather than failing. This matters more than it sounds: the newest log in
+    // simlogs/ is often one a running simulator is still appending to, and
+    // without this a test that opens the latest log fails whenever the
+    // simulator happens to be open.
+    try {
+      for (DataLogRecord record : reader) {
+        if (record.isStart()) {
+          var start = record.getStartData();
+          namesByEntry.put(start.entry, start.name);
+          typesByEntry.put(start.entry, start.type);
+          continue;
+        }
+        if (record.isControl()) {
+          continue;
+        }
 
-      String name = namesByEntry.get(record.getEntry());
-      if (name == null) {
-        continue;
-      }
+        String name = namesByEntry.get(record.getEntry());
+        if (name == null) {
+          continue;
+        }
 
-      Object value = decode(record, typesByEntry.get(record.getEntry()));
-      if (value != null) {
-        values.computeIfAbsent(name, k -> new ArrayList<>()).add(value);
+        Object value = decode(record, typesByEntry.get(record.getEntry()));
+        if (value != null) {
+          values.computeIfAbsent(name, k -> new ArrayList<>()).add(value);
+        }
       }
+    } catch (RuntimeException e) {
+      // Truncated tail; keep everything read up to it.
     }
 
     return new SimLog(values);

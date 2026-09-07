@@ -43,7 +43,12 @@ public class RobotBootSimTest {
     SimHarness.step(50); // 1 second
     double elapsed = Timer.getTimestamp() - before;
 
-    assertEquals(1.0, elapsed, 0.30, "50 loops should advance the clock ~1 second");
+    // Generous, because this asserts on wall-clock time and the tests share a
+    // machine. A simulator or a dashboard running alongside them competes for
+    // CPU, and the harness sleeps only the remainder of each period, so a busy
+    // machine stretches the loop rather than dropping it. Tightening this to
+    // catch a real regression would mean failing whenever anything else is open.
+    assertEquals(1.0, elapsed, 0.75, "50 loops should advance the clock about a second");
   }
 
   @Test

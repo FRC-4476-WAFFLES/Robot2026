@@ -6,11 +6,14 @@ package frc.robot.utils.sim;
 
 import org.littletonrobotics.junction.Logger;
 
+import static edu.wpi.first.units.Units.Meters;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.lib.WafflesUtilities;
@@ -40,8 +43,12 @@ import frc.robot.utils.lib.WafflesUtilities;
  * them, which is the point.
  */
 public final class SimField {
-  /** Roughly half the robot's diagonal, so a corner does not clip the wall. */
-  private static final double ROBOT_RADIUS = 0.45;
+  /**
+   * Half the robot's diagonal, from its real dimensions, so a corner cannot
+   * clip a wall when the robot is turned.
+   */
+  private static final double ROBOT_RADIUS = Math.hypot(
+      PhysicalConstants.FULL_WIDTH.in(Meters), PhysicalConstants.FULL_LENGTH.in(Meters)) / 2;
   /** Where the bump sits, matching what StateOrchestrator uses. */
   private static final double BUMP_START_X = 4.0;
   /** How far the robot tilts at the peak of the bump, in degrees. */
@@ -112,11 +119,17 @@ public final class SimField {
     clampedY = pushed.getY();
 
     if (againstWall || hitObstacle) {
-      // The robot stops; the wheels do not. Odometry keeps integrating the full
-      // wheel motion and runs away from the truth, which is what pressing a
-      // real robot into a wall does to its pose.
-      RobotContainer.simState.setTruePose(
-          new Pose2d(clampedX, clampedY, truth.getRotation()), truth.getRotation());
+      Pose2d held = new Pose2d(clampedX, clampedY, truth.getRotation());
+      RobotContainer.simState.setTruePose(held, truth.getRotation());
+
+      // Odometry is held here too, and only here. A real robot pressed into a
+      // wall does let its pose run away, and simulating that faithfully was the
+      // first attempt — but odometry is what the dashboard draws, so the robot
+      // slid through every wall on screen while only an invisible truth pose
+      // stopped. Being able to see the robot hit things is worth more than
+      // reproducing that particular drift, and the bump below still produces
+      // plenty of it.
+      RobotContainer.drive.setPose(held);
     }
 
     // The bump runs across the field at a fixed X. Tilt is a triangle: up the

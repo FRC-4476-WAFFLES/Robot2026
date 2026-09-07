@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -55,6 +56,19 @@ public class ShotPlanner {
 
   public static final double ACCEL_COMP_FACTOR = 0.0;
   public static final double SOTM_LOOKAHEAD = 1;
+  /**
+   * How many times to re-solve the lead. Five is far more than the two or three
+   * it actually takes to settle, and the loop leaves early once the time of
+   * flight stops moving, so the cost is a couple of map lookups.
+   */
+  private static final int SOTM_MAX_ITERATIONS = 5;
+  /** Time of flight settling to within this is close enough, in seconds. */
+  private static final double SOTM_CONVERGENCE_SECONDS = 0.005;
+  /**
+   * Below this range the bearing rate divides by something near zero and the
+   * lead becomes meaningless. Nobody shoots from here anyway.
+   */
+  private static final double MINIMUM_RANGE_FOR_LEAD = 0.5;
 
   private static Rotation2d lastTurretAngle;
   /** When the current pose recovery attempt began, or -1 if none is running. */
@@ -91,6 +105,9 @@ public class ShotPlanner {
       Logger.recordOutput("Turret/Distance To Target", distanceToTarget);
 
       Translation2d adjustedPose = turretPose.getTranslation();
+      // Declared out here so the bearing rate below uses the same velocity the
+      // lead was computed from, rather than a second estimate of it.
+      Translation2d integratedVelocity = Translation2d.kZero;
       // Hastily taken from 6328. Everybody say thank you 6328.
       if (CodeConstants.SHOOT_ON_MOVE && !RobotContainer.state.onBump
       // Do not lead the shot when the turret is being used as a camera mount
@@ -111,22 +128,37 @@ public class ShotPlanner {
 
         Translation2d turretVel = new Translation2d(turretVelocityX, turretVelocityY);
         Translation2d turretAccel = RobotContainer.state.getFieldAcceleration();
-        Translation2d integratedVelocity = turretVel.plus(turretAccel.times(ACCEL_COMP_FACTOR));
+        integratedVelocity = turretVel.plus(turretAccel.times(ACCEL_COMP_FACTOR));
 
+        // Leading the shot changes the distance, which changes the time of
+        // flight, which changes the lead. Solved by iterating to a fixed point.
+        //
+        // This loop was written to converge and then bounded at a single pass,
+        // which is the same as not converging at all: the lead was always
+        // computed from the time of flight for the distance the robot is at
+        // rather than the distance it will be at. The error grows with speed,
+        // which is exactly when shooting on the move matters.
         double previousTimeOfFlight = Double.NaN;
         double currentDistance = distanceToTarget;
-        for (int i = 0; i < 1; i++) {
+        int iterations = 0;
+        for (int i = 0; i < SOTM_MAX_ITERATIONS; i++) {
+          iterations = i + 1;
           double timeOfFlight = timeOfFlightMap.interpolate(currentDistance);
 
           adjustedPose = turretPose.getTranslation().plus(integratedVelocity.times(timeOfFlight * SOTM_LOOKAHEAD));
 
           currentDistance = adjustedPose.getDistance(fieldTarget);
 
-          if (previousTimeOfFlight != Double.NaN && Math.abs(timeOfFlight - previousTimeOfFlight) < 0.02) {
+          // The old guard read `previousTimeOfFlight != Double.NaN`, which is
+          // true for every value including NaN itself, so it never meant
+          // anything.
+          if (!Double.isNaN(previousTimeOfFlight)
+              && Math.abs(timeOfFlight - previousTimeOfFlight) < SOTM_CONVERGENCE_SECONDS) {
             break;
           }
           previousTimeOfFlight = timeOfFlight;
         }
+        Logger.recordOutput("Turret/SOTM Iterations", iterations);
 
         distanceToTarget = currentDistance;
 
@@ -138,13 +170,27 @@ public class ShotPlanner {
 
       double turretVelocity = 0;
       if (CodeConstants.SHOOT_ON_MOVE) {
-        // Numerically differentiate the desired turret angle and low pass filter it
-        if (lastTurretAngle == null)
-          lastTurretAngle = turretAngle;
-        // Convert to rotations/sec to match turret profile units
-        turretVelocity = turretAngleFilter.calculate(
-            turretAngle.minus(lastTurretAngle).getRotations() / CodeConstants.PERIODIC_LOOP_TIME);
-        lastTurretAngle = turretAngle;
+        // How fast the bearing to the target is turning, worked out from the
+        // geometry rather than by differentiating the angle.
+        //
+        // The previous version differentiated the aim angle numerically and put
+        // the result through a hundred-millisecond moving average, which cost
+        // about fifty milliseconds of lag. Rotating at two radians a second that
+        // is nearly six degrees of turret error, and the turret's own profile
+        // then has to chase it — which is why aim suffered most while turning.
+        //
+        // For a stationary target and a turret moving at v, the bearing rate is
+        // the component of v across the line of sight divided by the range. No
+        // differentiation, no filter, no lag, and no noise to filter out.
+        Translation2d lineOfSight = fieldTarget.minus(adjustedPose);
+        double range = lineOfSight.getNorm();
+        if (range > MINIMUM_RANGE_FOR_LEAD) {
+          double bearingRateRadians = (integratedVelocity.getX() * lineOfSight.getY()
+              - integratedVelocity.getY() * lineOfSight.getX())
+              / (range * range);
+          turretVelocity = Units.radiansToRotations(bearingRateRadians);
+        }
+        Logger.recordOutput("Turret/Bearing Rate", turretVelocity);
       }
 
       parameters = new ShootingParameters(
