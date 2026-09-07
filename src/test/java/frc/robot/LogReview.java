@@ -67,6 +67,7 @@ public final class LogReview {
   private static final double POSE_AGREEMENT_STALE_TIME = 0.5;
   private static final String ON_BUMP = "/RealOutputs/RobotState/On Bump";
   private static final String LEVEL_ON_GROUND = "/Inputs/Drive/Gyro/LevelOnGround";
+  private static final String CHASSIS_SETPOINT = "/RealOutputs/Drive/SwerveChassisSpeeds/Setpoints";
   private static final String MATCH_TIME = "/DriverStation/MatchTime";
   private static final String ENABLED = "/DriverStation/Enabled";
 
@@ -119,6 +120,7 @@ public final class LogReview {
       case "wiring" -> reviewWiring(logs);
       case "pose" -> reviewPose(logs);
       case "bump" -> reviewBump(logs);
+      case "sticks" -> reviewSticks(logs);
       case "vision" -> {
         for (File log : logs) {
           reviewVision(log);
@@ -2705,6 +2707,137 @@ public final class LogReview {
     System.out.printf("  %d began from tilt%n", tiltOnlyEvents);
     System.out.printf("  the two detectors disagreed for %.0f%% of enabled time%n",
         100 * disagreeTime / Math.max(1, enabledTime));
+  }
+
+  /**
+   * Reports what the driver station actually delivered, and what the drivetrain
+   * did about it.
+   *
+   * <p>
+   * For the case where the robot will not drive and it is not obvious whether
+   * the fault is the controller, the driver station, or the code. The three
+   * answers are distinguishable here: no joystick attached, a joystick whose
+   * axes never move, or axes that move while the chassis speeds stay zero.
+   */
+  private static void reviewSticks(List<File> logs) throws IOException {
+    for (File log : logs) {
+      DataLogReader reader = new DataLogReader(log.getAbsolutePath());
+      String[] names = new String[6];
+      boolean[] isXbox = new boolean[6];
+      int[] axisCounts = new int[6];
+      double[] maxAxis = new double[6];
+      long[] buttonsSeen = new long[6];
+      int[] nameEntries = new int[6];
+      int[] xboxEntries = new int[6];
+      int[] axisEntries = new int[6];
+      int[] buttonEntries = new int[6];
+      Arrays.fill(nameEntries, -1);
+      Arrays.fill(xboxEntries, -1);
+      Arrays.fill(axisEntries, -1);
+      Arrays.fill(buttonEntries, -1);
+
+      int enabledEntry = -1;
+      int dsEntry = -1;
+      int speedsEntry = -1;
+      boolean everEnabled = false;
+      boolean everAttached = false;
+      double maxCommandedSpeed = 0;
+      double enabledLoops = 0;
+
+      try {
+        for (DataLogRecord record : reader) {
+          if (record.isStart()) {
+            var start = record.getStartData();
+            String name = start.name;
+            if (name.equals("/DriverStation/Enabled")) {
+              enabledEntry = start.entry;
+            } else if (name.equals("/DriverStation/DSAttached")) {
+              dsEntry = start.entry;
+            } else if (name.equals(CHASSIS_SETPOINT)) {
+              speedsEntry = start.entry;
+            } else if (name.startsWith("/DriverStation/Joystick")) {
+              int port = name.charAt("/DriverStation/Joystick".length()) - '0';
+              if (port < 0 || port > 5) {
+                continue;
+              }
+              if (name.endsWith("/Name")) {
+                nameEntries[port] = start.entry;
+              } else if (name.endsWith("/Xbox")) {
+                xboxEntries[port] = start.entry;
+              } else if (name.endsWith("/AxisValues")) {
+                axisEntries[port] = start.entry;
+              } else if (name.endsWith("/ButtonValues")) {
+                buttonEntries[port] = start.entry;
+              }
+            }
+            continue;
+          }
+          if (record.isControl()) {
+            continue;
+          }
+          int entry = record.getEntry();
+          if (entry == enabledEntry) {
+            if (record.getBoolean()) {
+              everEnabled = true;
+            }
+          } else if (entry == dsEntry) {
+            if (record.getBoolean()) {
+              everAttached = true;
+            }
+          } else if (entry == speedsEntry) {
+            ByteBuffer buf = ByteBuffer.wrap(record.getRaw()).order(ByteOrder.LITTLE_ENDIAN);
+            maxCommandedSpeed = Math.max(maxCommandedSpeed,
+                Math.hypot(buf.getDouble(0), buf.getDouble(Double.BYTES)));
+            enabledLoops++;
+          } else {
+            for (int port = 0; port < 6; port++) {
+              if (entry == nameEntries[port]) {
+                names[port] = record.getString();
+              } else if (entry == xboxEntries[port]) {
+                isXbox[port] = record.getBoolean();
+              } else if (entry == buttonEntries[port]) {
+                buttonsSeen[port] |= record.getInteger();
+              } else if (entry == axisEntries[port]) {
+                float[] axes = record.getFloatArray();
+                axisCounts[port] = axes.length;
+                for (float axis : axes) {
+                  maxAxis[port] = Math.max(maxAxis[port], Math.abs(axis));
+                }
+              }
+            }
+          }
+        }
+      } catch (RuntimeException e) {
+        // truncated log; keep what was read
+      }
+
+      System.out.printf("%n%s%n", log.getName());
+      System.out.printf("  driver station attached: %s, ever enabled: %s%n",
+          everAttached ? "yes" : "NO", everEnabled ? "yes" : "NO");
+      System.out.printf("  %-6s %-26s %7s %6s %12s %10s%n",
+          "port", "name", "axes", "xbox", "max |axis|", "buttons");
+      for (int port = 0; port < 6; port++) {
+        if (names[port] == null && axisCounts[port] == 0) {
+          continue;
+        }
+        System.out.printf("  %-6d %-26s %7d %6s %12.3f %10s%n", port,
+            names[port] == null ? "(unnamed)" : names[port], axisCounts[port],
+            isXbox[port] ? "yes" : "no", maxAxis[port],
+            buttonsSeen[port] == 0 ? "none" : Long.toBinaryString(buttonsSeen[port]));
+      }
+      System.out.printf("  fastest chassis speed commanded: %.2f m/s over %.0f samples%n",
+          maxCommandedSpeed, enabledLoops);
+
+      if (!everEnabled) {
+        System.out.println("  --> the robot was never enabled, so no default command ever ran");
+      } else if (maxAxis[0] < 0.05) {
+        System.out.println("  --> port 0 never moved. The driver controller is not on port 0.");
+      } else if (maxCommandedSpeed < 0.05) {
+        System.out.println("  --> port 0 moved but the drivetrain was never commanded: a code fault");
+      } else {
+        System.out.println("  --> sticks reached the drivetrain");
+      }
+    }
   }
 
   private static Draw[] newBuckets() {

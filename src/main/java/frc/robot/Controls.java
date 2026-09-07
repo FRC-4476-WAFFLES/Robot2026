@@ -40,13 +40,15 @@ public class Controls {
    * perhaps a centimetre of travel where a flight stick had several, so the same
    * fraction of output arrives in a much smaller movement of the hand.
    *
-   * Rotation defaults higher because it is the twitchier of the two, and 0.7 is
-   * close to the squaring that was previously hard-coded into both drive
-   * commands — so rotation should feel unchanged and translation should feel
-   * calmer than before.
+   * Both are deliberately mild. An earlier version matched the squaring that used
+   * to be hard-coded into the drive commands, which the driver found far too
+   * soft at the bottom of the stick — a gamepad already gives fine control there
+   * because the travel is short, so the curve mostly needs to take the edge off
+   * rather than reshape the whole range. Rotation is the more linear of the two
+   * at the driver's request.
    */
-  public static final double TRANSLATION_CURVE = 0.5;
-  public static final double ROTATION_CURVE = 0.7;
+  public static final double TRANSLATION_CURVE = 0.35;
+  public static final double ROTATION_CURVE = 0.25;
 
   /*
    * Stick deflection past which the driver is taken to mean "all of it".

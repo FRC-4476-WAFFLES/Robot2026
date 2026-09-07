@@ -103,16 +103,29 @@ public class StickCurveTest {
   }
 
   @Test
-  void rotationStaysCloseToTheSquaringItReplaced() {
-    // Rotation used to be hard-coded as omega squared in both drive commands.
-    // Keeping the new curve near that means the driver should not notice a
-    // change in the one axis they were already used to.
-    for (double input = 0.1; input <= 1.0; input += 0.1) {
-      double squared = input * input;
-      double curved = Controls.applyRotationCurve(input);
-      assertEquals(squared, curved, 0.08,
-          String.format("rotation feel changed at %.1f stick: was %.3f, now %.3f",
-              input, squared, curved));
+  void rotationIsTheMoreLinearOfTheTwo() {
+    // At the driver's request. Rotation used to be hard-coded as omega squared,
+    // which on a gamepad was far too soft at the bottom of the stick -- the
+    // travel is short enough that fine control is already there without help.
+    double rotation = Controls.applyRotationCurve(0.5);
+    double translation = Controls.applyCurve(0.5, Controls.TRANSLATION_CURVE);
+    assertTrue(rotation > translation,
+        "rotation should be the more linear of the two, got " + rotation + " vs " + translation);
+
+    double squared = 0.25;
+    assertTrue(rotation > squared + 0.1,
+        "rotation should be well clear of the squaring it replaced, got " + rotation);
+  }
+
+  @Test
+  void neitherCurveIsSoSoftThatHalfStickCrawls() {
+    // The failure the driver reported: half a stick asking for a quarter of the
+    // speed feels broken on a gamepad, whatever it did on a flight stick.
+    for (double c : new double[] { Controls.TRANSLATION_CURVE, Controls.ROTATION_CURVE }) {
+      double half = Controls.applyCurve(0.5, c);
+      assertTrue(half > 0.35,
+          "half stick should ask for more than a third of full speed, got " + half
+              + " at curve " + c);
     }
   }
 }
