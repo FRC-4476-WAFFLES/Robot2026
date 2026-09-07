@@ -9,7 +9,6 @@ import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import frc.robot.RobotContainer;
-import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.lib.WafflesUtilities;
@@ -45,13 +44,26 @@ public final class SimField {
   private static final double BUMP_START_X = 4.0;
   /** How far the robot tilts at the peak of the bump, in degrees. */
   private static final double BUMP_TILT_DEGREES = 12.0;
+  /**
+   * How much grip the wheels lose on the bump.
+   *
+   * <p>
+   * Chosen to reproduce what was measured across 263 real crossings: a clean one
+   * under half a second costs about 3 cm of pose error and a slow two-to-four
+   * second one costs over a metre. Slipping about a third of the wheels' motion
+   * while on it lands in that range, and crossing slowly costs more simply
+   * because the robot spends longer there.
+   */
+  private static final double BUMP_SLIP = 0.35;
+  /** Wheels against a wall turn without taking the robot anywhere. */
+  private static final double WALL_SLIP = 0.95;
 
   private static boolean enabled = true;
 
   private SimField() {}
 
   /**
-   * Turns the walls and the bump off.
+   * Turns the walls, the bump and the slip off.
    *
    * <p>
    * {@code SimHarness} does this at boot, because a test that places the robot
@@ -61,48 +73,59 @@ public final class SimField {
    */
   public static void setEnabled(boolean value) {
     enabled = value;
+    if (!value) {
+      RobotContainer.simState.setSlip(0);
+    }
   }
 
-  /** Whether the walls and the bump are in effect. */
+  /** Whether the walls, the bump and the slip are in effect. */
   public static boolean isEnabled() {
     return enabled;
   }
 
   /**
-   * Keeps the robot on the field and tilts it on the bump. Call once per
-   * simulation loop.
+   * Keeps the robot on the field, tilts it on the bump, and makes the wheels
+   * slip where they would. Call once per simulation loop.
    */
   public static void update() {
     if (!enabled) {
       return;
     }
-    Pose2d pose = RobotContainer.state.getPose();
+    // The truth pose, not odometry. Once the wheels start slipping the two are
+    // different, and the walls and the bump are features of where the robot
+    // actually is.
+    Pose2d truth = RobotContainer.simState.getPose();
 
-    double clampedX = MathUtil.clamp(pose.getX(), ROBOT_RADIUS,
+    double clampedX = MathUtil.clamp(truth.getX(), ROBOT_RADIUS,
         FieldConstants.fieldLength - ROBOT_RADIUS);
-    double clampedY = MathUtil.clamp(pose.getY(), ROBOT_RADIUS,
+    double clampedY = MathUtil.clamp(truth.getY(), ROBOT_RADIUS,
         FieldConstants.fieldWidth - ROBOT_RADIUS);
+    boolean againstWall = clampedX != truth.getX() || clampedY != truth.getY();
 
-    boolean hitWall = clampedX != pose.getX() || clampedY != pose.getY();
-    if (hitWall) {
-      // Push back rather than model a collision. The drivetrain keeps running,
-      // so the robot sits against the wall the way it would if it were pressed
-      // into one, and odometry drifts exactly as it would while the wheels slip.
-      RobotContainer.drive.setPose(new Pose2d(clampedX, clampedY, pose.getRotation()));
+    if (againstWall) {
+      // The robot stops; the wheels do not. Odometry keeps integrating the full
+      // wheel motion and runs away from the truth, which is what pressing a
+      // real robot into a wall does to its pose.
+      RobotContainer.simState.setTruePose(
+          new Pose2d(clampedX, clampedY, truth.getRotation()), truth.getRotation());
     }
-    Logger.recordOutput("SimField/Against Wall", hitWall);
 
     // The bump runs across the field at a fixed X. Tilt is a triangle: up the
     // near face, over the crest, down the far face.
-    Pose2d blueRelative = WafflesUtilities.FlipIfRedAlliance(pose);
+    Pose2d blueRelative = WafflesUtilities.FlipIfRedAlliance(truth);
     double width = FieldConstants.LinesVertical.neutralZoneNear - BUMP_START_X;
     double through = (blueRelative.getX() - BUMP_START_X) / width;
-    double tilt = 0;
-    if (through > 0 && through < 1) {
-      tilt = BUMP_TILT_DEGREES * (1 - Math.abs(through * 2 - 1));
-    }
+    boolean onBump = through > 0 && through < 1;
+    double tilt = onBump ? BUMP_TILT_DEGREES * (1 - Math.abs(through * 2 - 1)) : 0;
+
     GyroIOSim.setTilt(tilt);
+    RobotContainer.simState.setSlip(
+        againstWall ? WALL_SLIP : onBump ? BUMP_SLIP : 0);
+
+    Logger.recordOutput("SimField/Against Wall", againstWall);
+    Logger.recordOutput("SimField/On Bump", onBump);
     Logger.recordOutput("SimField/Bump Tilt", tilt);
-    Logger.recordOutput("SimField/Loop Time", CodeConstants.PERIODIC_LOOP_TIME);
+    Logger.recordOutput("SimField/Odometry Error",
+        truth.getTranslation().getDistance(RobotContainer.state.getPose().getTranslation()));
   }
 }

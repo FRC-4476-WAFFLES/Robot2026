@@ -243,7 +243,10 @@ public class Drive extends ExpandedSubsystem implements PowerManaged {
         // Apply update
         poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, odometryModulePositions);
         if (Constants.getMode() == Mode.SIM) {
-          RobotContainer.simState.getSwerveDrivePoseEstimator().updateWithTime(sampleTimestamps[i], rawGyroRotation,
+          // Not the same positions odometry just got: the truth pose only
+          // advances by what the robot actually moved, so wheel slip shows up as
+          // the two drifting apart.
+          RobotContainer.simState.updateUnderlying(sampleTimestamps[i], rawGyroRotation,
               odometryModulePositions);
         }
       }

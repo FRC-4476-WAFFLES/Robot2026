@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.data.FieldConstants;
 import frc.robot.utils.sim.SimField;
 import frc.robot.utils.sim.SimShooter;
@@ -58,14 +59,22 @@ public class SimShooterTest {
   @Test
   void theFieldHasWalls() {
     SimField.setEnabled(true);
-    // Drop the robot well outside the field and let the walls put it back.
-    RobotContainer.drive.setPose(new Pose2d(-5.0, -5.0, Rotation2d.kZero));
-    SimHarness.stepSeconds(0.3);
+    RobotContainer.simState.resetSlipTracking();
+    // Start close to a wall and drive at it, so it is actually reached.
+    RobotContainer.drive.setPose(new Pose2d(1.2, 4.0, Rotation2d.kZero));
+    SimHarness.step(5);
 
-    Pose2d pose = RobotContainer.state.getPose();
-    System.out.printf("placed at (-5.0, -5.0), ended at (%.2f, %.2f)%n", pose.getX(), pose.getY());
-    assertTrue(pose.getX() > 0 && pose.getY() > 0,
-        "the walls should have pushed the robot back onto the field, got " + pose);
+    // Stick forward is +X, so this drives back towards the near wall.
+    driveForward(1.0, 2.0);
+
+    // The truth pose is what the wall holds. Odometry keeps integrating the
+    // wheels, which is the point -- a robot pressed into a wall loses its pose.
+    Pose2d truth = RobotContainer.simState.getPose();
+    double odometryX = RobotContainer.state.getPose().getX();
+    System.out.printf("drove into the wall: truth x %.2f, odometry x %.2f%n", truth.getX(), odometryX);
+    assertTrue(truth.getX() >= 0.4,
+        "the wall should have held the robot on the field, truth pose was " + truth);
+
     SimField.setEnabled(false);
   }
 
@@ -103,5 +112,54 @@ public class SimShooterTest {
 
     SimField.setEnabled(false);
     SimHarness.levelOut();
+  }
+
+  @Test
+  void crossingTheBumpCostsOdometryAccuracy() {
+    // The failure the drive team actually reports, and one no simulation could
+    // produce before: both pose estimators were fed identical module positions,
+    // so the truth pose and odometry could never disagree.
+    //
+    // The peak error during the crossing is what matters, not the error after
+    // it. Simulated vision sees the truth pose and corrects odometry back
+    // towards it, which is exactly what the real robot does -- the drift that
+    // hurts is the drift while it is happening, and while a real robot may have
+    // no tag in view to fix it.
+    SimField.setEnabled(true);
+    RobotContainer.simState.resetSlipTracking();
+    RobotContainer.drive.setPose(new Pose2d(2.5, 4.0, Rotation2d.kZero));
+    SimHarness.step(5);
+    double baseline = odometryError();
+
+    double peak = 0;
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, -1.0);
+    for (int i = 0; i < 150; i++) {
+      SimHarness.step(1);
+      peak = Math.max(peak, odometryError());
+    }
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, 0.0);
+    SimHarness.stepSeconds(0.3);
+
+    System.out.printf("odometry error: %.3f m at rest, %.3f m peak while crossing%n", baseline, peak);
+    SimField.setEnabled(false);
+    SimHarness.levelOut();
+
+    assertTrue(peak > baseline + 0.05,
+        "crossing the bump should cost real odometry accuracy, peak was " + peak
+            + " against a baseline of " + baseline);
+  }
+
+  /** Holds the drive stick for a while, so the robot moves under its own power. */
+  private static void driveForward(double stick, double seconds) {
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, stick);
+    SimHarness.stepSeconds(seconds);
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, 0.0);
+    SimHarness.stepSeconds(0.4);
+  }
+
+  /** How far odometry has drifted from where the robot actually is. */
+  private static double odometryError() {
+    return RobotContainer.simState.getPose().getTranslation()
+        .getDistance(RobotContainer.state.getPose().getTranslation());
   }
 }
