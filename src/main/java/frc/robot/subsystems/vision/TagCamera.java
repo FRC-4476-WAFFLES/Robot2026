@@ -205,6 +205,19 @@ public class TagCamera {
   }
 
   /**
+   * How many tags this camera currently has in view.
+   *
+   * <p>
+   * Worth reading because one tag and two tags are treated completely
+   * differently: {@code IGNORE_SINGLE_TAG} discards the single-tag case
+   * outright, and on real logs that is most of what one of the two cameras ever
+   * sees.
+   */
+  public int getTagCount() {
+    return inputs.isAlive && inputs.canSeeTag ? inputs.fiducialArrayLength : 0;
+  }
+
+  /**
    * Check for limelight heartbeat
    */
   public boolean isAlive() {

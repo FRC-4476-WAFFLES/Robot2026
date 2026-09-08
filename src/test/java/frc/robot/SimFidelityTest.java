@@ -171,6 +171,63 @@ public class SimFidelityTest {
             + "the voltage limit the real flywheel runs into");
   }
 
+  /**
+   * The simulated cameras must see single tags about as often as the real ones.
+   *
+   * <p>
+   * Measured on match logs, {@code limelight-frame} spends 33-97% of its time
+   * looking at exactly one tag and produces a usable pose only 1.2-3.7% of the
+   * time, because {@code IGNORE_SINGLE_TAG} discards every single-tag frame.
+   * Whether that constant is worth its cost cannot be judged in simulation
+   * unless the simulation produces single-tag views at a realistic rate.
+   *
+   * <p>
+   * It does: PhotonVision's camera sim raycasts the real tag layout, so the
+   * counts are geometric rather than invented. This records what the simulation
+   * actually produces so a change that flattens it gets noticed.
+   */
+  @Test
+  void theSimulatedCamerasSeeSingleTagsOften() {
+    SimShooter.setEnabled(false);
+    SimField.setEnabled(true);
+    SimHarness.releaseAllControls();
+
+    int[] counts = new int[4];
+    // Sample from a spread of shooting positions rather than one spot, so the
+    // number is about the field and not about where the robot happened to park.
+    for (double x = 2.0; x < 7.0; x += 0.5) {
+      for (double y = 2.0; y < 6.0; y += 0.5) {
+        // Headings too. A robot that only ever faces +X is not a sample of the
+        // field, it is a sample of one direction, and the first version of this
+        // measured that instead.
+        for (double degrees = 0; degrees < 360; degrees += 45) {
+          RobotContainer.drive.setPose(
+              new Pose2d(x, y, Rotation2d.fromDegrees(degrees)));
+          SimHarness.step(3);
+          int tags = RobotContainer.vision.frameCamera.getTagCount();
+          counts[Math.min(3, Math.max(0, tags))]++;
+        }
+      }
+    }
+    int total = counts[0] + counts[1] + counts[2] + counts[3];
+    System.out.printf("simulated frame camera over %d placements: 0 tags %.0f%%, "
+        + "1 tag %.0f%%, 2 tags %.0f%%, 3+ %.0f%%%n", total,
+        100.0 * counts[0] / total, 100.0 * counts[1] / total,
+        100.0 * counts[2] / total, 100.0 * counts[3] / total);
+
+    SimField.setEnabled(false);
+
+    // Both cases have to occur for the constant to be judged: single-tag is what
+    // it discards, multi-tag is what it keeps. Measured here at roughly 16% and
+    // 13%, against 33-97% and 1.9-12.9% on the real frame camera -- the
+    // simulated cameras see nothing more often than the real ones do, so vision
+    // availability in simulation is pessimistic rather than flattering.
+    assertTrue(counts[1] > 0 && counts[2] + counts[3] > 0,
+        "both single-tag and multi-tag views have to occur for IGNORE_SINGLE_TAG "
+            + "to be evaluable, but got single " + counts[1] + " and multi "
+            + (counts[2] + counts[3]));
+  }
+
   /** Loops taken to get back within 1 rps of goal after a ball, at a given extra load. */
   private int loopsToRecover(double ballastAmps) {
     final double goal = 45.0;

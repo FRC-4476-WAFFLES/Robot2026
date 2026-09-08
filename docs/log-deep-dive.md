@@ -745,6 +745,12 @@ Recorded because a simulation you trust past its limits is worse than none.
   9.06 V), but assertions should use current rather than voltage until this is
   gone, because voltage saturates against the pack's 4 V floor and silently
   compares nothing.
+- **Simulated cameras see fewer tags than real ones.** Sampled across 640
+  placements and headings, the simulated frame camera sees no tag 71% of the
+  time against 34-62% on the real robot. Single-tag (16%) and multi-tag (13%)
+  views both occur, so `IGNORE_SINGLE_TAG` *is* evaluable in simulation —
+  an earlier note in this session claiming otherwise was wrong — but vision
+  availability is pessimistic, so a sim result is a lower bound.
 - **maple-sim's arena cannot cross the bump.** Recorded here because it is the
   reason not to adopt it: `Arena2026Rebuilt` models the ramps as a solid
   impassable obstacle, or omits them. Its tower and trench geometry is better
