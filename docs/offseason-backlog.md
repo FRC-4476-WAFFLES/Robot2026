@@ -512,7 +512,40 @@ estimates" window stretches to an eighth of a match.
 This is the best explanation for the two autos that failed outright — ONWEL q8
 took a 1.42 m correction 3.4 s in and scored 3 balls against a median of 55.
 
-### Debounce `turret.atGoal()` inside `canFire()` — Open
+### Raise the bus voltage while shooting — Open, the fire-rate lever
+
+**This supersedes "Recovery is not a tuning problem" below, which was wrong.**
+
+Measured across every match: once the flywheel is more than ~6 rps below goal,
+its **duty cycle is pinned at 1.00** — the motor is flat out. It is not current
+limited. Achieved stator current reaches the 120 A ceiling in **0.03%** of
+samples, and during deep dips the 90th percentile is only 62–74 A.
+
+It cannot draw more because there is no voltage left: the bus sits at
+**7.8–8.3 V** during recovery against 10.0 V at setpoint.
+
+So the things that raise the fire rate are the things that raise bus volts:
+capping the drivetrain while shooting (which `PowerManager` already does, and
+whose `SHOOTING_FAR` comment already said this), and battery selection — pack
+resistance varies 11.2–15.0 mΩ, worth 1.14 V against an 8 V bus.
+
+Raising flywheel current limits buys nothing. They are never reached.
+
+### Turret tracking, not a gate debounce — Investigate
+
+**A debounce on `turret.atGoal()` was considered and rejected on the data.**
+Across every dropout that ended a fire window, the turret's peak error has a
+median of 22–35° and a 75th percentile of 336–340°. At 3 m, 20° is 1.09 m of
+lateral error — wider than the goal. The turret is genuinely off target, so
+debouncing would only let bad shots out.
+
+The 336–340° cases are the turret **unwrapping** through its 380° range, and
+last 0.6 s or more — that is the `getSmartUnwrapAngle` item further down.
+
+The rest is the turret being outrun while tracking, which is where the discarded
+motion profile matters.
+
+
 
 **Half of Houston's fire windows were closed by the turret dropping out of
 `atGoal`** (159 of 325), not by the driver — up from 36% at ONWEL. `canFire()`

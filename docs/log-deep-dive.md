@@ -554,6 +554,34 @@ cap without capping the drivetrain gives back the brownouts that motivated it.
 `PowerManager` on `offseason` already does the drivetrain half and has never been
 on a robot — that is the thing to bring up first.
 
+### Correction: a debounce on `turret.atGoal()` is the wrong fix
+
+I suggested one. The data says no.
+
+**Measured**, across every atGoal dropout while enabled (ONWEL 1102, Houston
+1635; 73 and 246 of them ended a fire window):
+
+| | duration p50 | peak error p50 | peak error p75 |
+|---|---|---|---|
+| all dropouts | 0.09-0.11 s | 21-23 deg | 44-55 deg |
+| the ones that killed a shot | 0.11-0.20 s | 22-35 deg | **336-340 deg** |
+
+The turret is genuinely off target, not flickering. At 3 m, 20 degrees is
+**1.09 m** of lateral error — wider than the goal. Debouncing would let those
+shots out and they would miss.
+
+And more than a quarter of the shot-killing dropouts have a peak error around
+340 degrees, which is not an aiming error at all — that is the turret
+**unwrapping**, swinging the long way round through its 380 degree range. Those
+last 0.6 s or more.
+
+So the fire windows are being closed for two real reasons, and both need the
+turret fixed rather than the gate loosened:
+
+- the turret being outrun while tracking (see the discarded motion profile
+  above), and
+- unwrap events, which is the `getSmartUnwrapAngle` item already in the backlog.
+
 ### Lever 2: fewer, longer fire windows
 
 **Measured**, across the qualification matches of each event.
@@ -628,6 +656,49 @@ keeping up, which is exactly what a profile would inform.
 
 Items 1 and 2 are the current-limit story. Item 3 is independent of it and is
 roughly the same size — worth doing regardless of what happens with power.
+
+### The flywheel is bus-voltage limited, not current limited
+
+**Measured.** This overturns a claim recorded earlier in the backlog and changes
+what raising the fire rate means.
+
+Flywheel state while firing, bucketed by how far below goal the wheel was:
+
+| deficit | motor V | **duty cycle** | stator A | bus V |
+|---|---|---|---|---|
+| at setpoint | 5.8 | 0.59 | 9 A | 10.02 |
+| 1-3 rps | 6.7 | 0.75 | 32 A | 9.27 |
+| 3-6 rps | 6.9 | 0.83 | 46 A | 8.85 |
+| **6-10 rps** | 7.4 | **1.00** | 38 A | **8.25** |
+| **10-20 rps** | 7.0 | **1.00** | 34 A | **7.79** |
+
+Once the wheel is more than about 6 rps down, **duty cycle is pinned at 1.00**.
+The motor is flat out. It is not being held back by a current limit — measured
+stator peaks at 119 A against a 120 A limit in **0.03%** of samples, and during
+deep dips the 90th percentile is only 62-74 A.
+
+It cannot pull more current because there is no voltage left: the bus is at
+**7.8-8.3 V** during exactly the moments recovery is needed, against 10.0 V at
+setpoint, and at 45 rps most of what remains is spent on back-EMF.
+
+**This corrects the backlog.** "During a 20 rps dip the controller asks for
+roughly 420 A against a 120 A stator limit — saturated more than threefold" was
+arithmetic on the gains, not a measurement. The achieved current never gets near
+the limit, so raising current ceilings buys nothing. What buys recovery is bus
+volts.
+
+Consequences, in order:
+
+1. **Capping the drivetrain while shooting is the fire-rate fix**, not just the
+   brownout fix. The drivetrain is what pulls the bus to 8 V. `PowerManagerState`
+   already says this in its `SHOOTING_FAR` comment — "what actually helps is the
+   bus voltage itself" — and it is now directly evidenced.
+2. **Battery selection matters as much as any code change.** Pack resistance
+   varies 11.2-15.0 mOhm across matches, worth 1.14 V; against an 8 V bus that is
+   a 14% change in the voltage available for recovery.
+3. **Raising flywheel current limits does nothing.** They are never reached.
+4. **Feeding faster than the wheel can service does nothing.** See the ceiling
+   below.
 
 ### What is *not* the limiter
 
