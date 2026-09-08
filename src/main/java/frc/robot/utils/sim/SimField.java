@@ -4,6 +4,7 @@
 
 package frc.robot.utils.sim;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.littletonrobotics.junction.Logger;
@@ -16,6 +17,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.RobotContainer;
 import frc.robot.data.Constants.PhysicalConstants;
@@ -99,6 +101,14 @@ public final class SimField {
    * approach. Lower it if the real robot beaches more than the simulated one.
    */
   private static final double BUMP_TRACTION = 0.55;
+
+  /*
+   * Tower upright and trench wall sizes, from maple-sim's Arena2026Rebuilt:
+   * 3.5 by 1.5 inch posts, and a 12 inch thick trench wall.
+   */
+  private static final double UPRIGHT_HALF_X = Units.inchesToMeters(3.5) / 2;
+  private static final double UPRIGHT_HALF_Y = Units.inchesToMeters(1.5) / 2;
+  private static final double TRENCH_WALL_HALF_Y = Units.inchesToMeters(12.0) / 2;
 
   /** Anything solid, as a box the robot's centre cannot come within reach of. */
   private record Obstacle(
@@ -337,37 +347,47 @@ public final class SimField {
    * Everything solid on the field.
    *
    * <p>
-   * The towers and trenches are taken as solid all the way through. Both have
-   * openings in real life, but a robot this size fits through neither: the
-   * tower's climbing gap is 32 inches across and the trench's is 22 inches tall.
+   * The shapes here follow maple-sim's {@code Arena2026Rebuilt}, which is better
+   * sourced than the first version of this method: that took the whole tower and
+   * the whole trench as solid blocks, which is wrong in both cases and wrong in a
+   * way that matters. A solid tower cannot be driven into to climb, and a solid
+   * trench blocks ground a robot can actually occupy.
+   *
+   * <p>
+   * The positions are ours rather than theirs, because ours are derived from the
+   * AprilTag layout and so stay consistent with what vision believes. The two
+   * agree closely, which is the reassuring part — maple-sim puts the tower
+   * uprights at (1.062, 3.315) and (1.062, 4.172) where {@link Tower} computes
+   * (1.105, 3.301) and (1.105, 4.159), and their trench wall begins at y = 1.279
+   * where {@link LinesHorizontal#rightTrenchOpenStart} ends at 1.266.
    */
   private static List<Obstacle> buildObstacles() {
     double hubHalf = Hub.width / 2;
-    double trenchHalfX = LeftTrench.depth / 2;
-    double leftTrenchMin = LinesHorizontal.leftTrenchOpenEnd;
-    double rightTrenchMax = LinesHorizontal.rightTrenchOpenStart;
-    double leftTrenchHalf = (FieldConstants.fieldWidth - leftTrenchMin) / 2;
-    double leftTrenchCentre = (leftTrenchMin + FieldConstants.fieldWidth) / 2;
-    double towerHalfX = Tower.depth / 2;
-    double towerHalfY = Tower.width / 2;
+    List<Obstacle> obstacles = new ArrayList<>();
 
-    return List.of(
-        new Obstacle("Hub", LinesVertical.hubCenter, FieldConstants.fieldWidth / 2,
-            hubHalf, hubHalf),
-        new Obstacle("Opp Hub", LinesVertical.oppHubCenter, FieldConstants.fieldWidth / 2,
-            hubHalf, hubHalf),
-        new Obstacle("Left Trench", LinesVertical.hubCenter, leftTrenchCentre,
-            trenchHalfX, leftTrenchHalf),
-        new Obstacle("Right Trench", LinesVertical.hubCenter, rightTrenchMax / 2,
-            trenchHalfX, rightTrenchMax / 2),
-        new Obstacle("Opp Left Trench", LinesVertical.oppHubCenter, leftTrenchCentre,
-            trenchHalfX, leftTrenchHalf),
-        new Obstacle("Opp Right Trench", LinesVertical.oppHubCenter, rightTrenchMax / 2,
-            trenchHalfX, rightTrenchMax / 2),
-        new Obstacle("Tower", Tower.frontFaceX - towerHalfX, Tower.centerPoint.getY(),
-            towerHalfX, towerHalfY),
-        new Obstacle("Opp Tower", FieldConstants.fieldLength - Tower.frontFaceX + towerHalfX,
-            Tower.oppCenterPoint.getY(), towerHalfX, towerHalfY));
+    obstacles.add(new Obstacle("Hub", LinesVertical.hubCenter,
+        FieldConstants.fieldWidth / 2, hubHalf, hubHalf));
+    obstacles.add(new Obstacle("Opp Hub", LinesVertical.oppHubCenter,
+        FieldConstants.fieldWidth / 2, hubHalf, hubHalf));
+
+    // The tower is two posts, not a wall. A robot drives between them to climb.
+    double oppTowerX = FieldConstants.fieldLength - Tower.frontFaceX;
+    obstacles.add(upright("Tower Upright", Tower.frontFaceX, Tower.leftUpright.getY()));
+    obstacles.add(upright("Tower Upright", Tower.frontFaceX, Tower.rightUpright.getY()));
+    obstacles.add(upright("Opp Tower Upright", oppTowerX, Tower.oppLeftUpright.getY()));
+    obstacles.add(upright("Opp Tower Upright", oppTowerX, Tower.oppRightUpright.getY()));
+
+    // The trench is a wall along its inner edge, not a filled block.
+    double wallHalfX = LeftTrench.depth / 2;
+    for (double hubX : new double[] { LinesVertical.hubCenter, LinesVertical.oppHubCenter }) {
+      obstacles.add(new Obstacle("Right Trench Wall", hubX,
+          LinesHorizontal.rightTrenchOpenStart + TRENCH_WALL_HALF_Y,
+          wallHalfX, TRENCH_WALL_HALF_Y));
+      obstacles.add(new Obstacle("Left Trench Wall", hubX,
+          LinesHorizontal.leftTrenchOpenEnd - TRENCH_WALL_HALF_Y,
+          wallHalfX, TRENCH_WALL_HALF_Y));
+    }
+    return obstacles;
   }
 
   /** The two ramps beside each hub, each running across the field in X. */
@@ -382,6 +402,11 @@ public final class SimField {
             LinesHorizontal.leftBumpEnd, LinesHorizontal.leftBumpStart },
         { LinesVertical.oppHubCenter - halfDepth, LinesVertical.oppHubCenter + halfDepth,
             LinesHorizontal.rightBumpEnd, LinesHorizontal.rightBumpStart } };
+  }
+
+  /** One tower post, at the position {@link Tower} computes for it. */
+  private static Obstacle upright(String name, double x, double y) {
+    return new Obstacle(name, x, y, UPRIGHT_HALF_X, UPRIGHT_HALF_Y);
   }
 
   private static Translation2d pushOutOfRectangle(Translation2d position,

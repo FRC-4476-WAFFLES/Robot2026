@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
 import frc.robot.utils.sim.SimBattery;
 import frc.robot.utils.sim.SimField;
 import frc.robot.utils.sim.SimShooter;
@@ -134,6 +135,73 @@ public class SimFidelityTest {
     assertTrue(at10[0] < at45[0] * 0.9,
         "a tighter drive supply limit should draw less current, but 10 A peaked at "
             + at10[0] + " A against " + at45[0] + " A at 45 A");
+  }
+
+  /**
+   * The flywheel must recover more slowly on a sagged bus.
+   *
+   * <p>
+   * This is the season's central measured finding rendered as an assertion. On
+   * the real robot, once the wheel is more than 6 rps below goal its duty cycle
+   * is pinned at 1.00 and the bus is at 7.8-8.3 V against 10.0 V at setpoint —
+   * it is out of volts, not out of amps, and its stator current never gets near
+   * its 120 A limit.
+   *
+   * <p>
+   * The ballast here is sized to reproduce that: 250 A of other load takes the
+   * simulated pack to about 7.9 V, which is what the logs show during a deep
+   * dip. If this test ever stops failing to recover more slowly, the simulation
+   * has stopped modelling the thing the whole power effort is aimed at.
+   */
+  @Test
+  void theFlywheelRecoversMoreSlowlyOnASaggedBus() {
+    SimShooter.setEnabled(false);
+    SimField.setEnabled(false);
+    SimHarness.releaseAllControls();
+
+    int healthy = loopsToRecover(0);
+    int sagged = loopsToRecover(250);
+
+    System.out.printf("flywheel recovery: %d loops on a healthy bus, %d loops on a sagged one%n",
+        healthy, sagged);
+
+    assertTrue(sagged > healthy,
+        "recovery should be slower on a sagged bus, but it took " + sagged
+            + " loops against " + healthy + " — the simulation is not modelling "
+            + "the voltage limit the real flywheel runs into");
+  }
+
+  /** Loops taken to get back within 1 rps of goal after a ball, at a given extra load. */
+  private int loopsToRecover(double ballastAmps) {
+    final double goal = 45.0;
+    SimBattery.setLoad("Test/Ballast", ballastAmps);
+    // Spin up. The setpoint is written every loop because nothing else is
+    // holding it while no shooter command is running.
+    for (int i = 0; i < 250; i++) {
+      RobotContainer.flywheel.runSetpoint(goal);
+      SimHarness.step(1);
+      if (Math.abs(FlywheelIOSim.getActive().getVelocity() - goal) < 0.5) {
+        break;
+      }
+    }
+    // The sim's own velocity, not the logged input: writing the Talon sim state
+    // does not show up in a refreshed signal until the next loop, so reading the
+    // input here returns the pre-shot value and the recovery measures nothing.
+    System.out.printf("   ballast %.0f A: bus %.2f V, spun up to %.1f rps, ",
+        ballastAmps, SimBattery.getVoltage(), FlywheelIOSim.getActive().getVelocity());
+    SimHarness.takeShot(10.0);
+    System.out.printf("after shot %.1f rps%n", FlywheelIOSim.getActive().getVelocity());
+
+    int loops = 0;
+    while (loops < 400 && Math.abs(FlywheelIOSim.getActive().getVelocity() - goal) > 1.0) {
+      RobotContainer.flywheel.runSetpoint(goal);
+      SimHarness.step(1);
+      loops++;
+    }
+    RobotContainer.flywheel.runSetpoint(0);
+    SimBattery.setLoad("Test/Ballast", 0);
+    SimHarness.stepSeconds(0.2);
+    return loops;
   }
 
   /** Peak total current and lowest bus voltage under full stick at a given limit. */

@@ -732,6 +732,28 @@ Recorded so they are not believed twice.
 
 ---
 
+## 9b. Simulation limitations worth knowing
+
+Recorded because a simulation you trust past its limits is worse than none.
+
+- **The robot is a circle**, radius 0.505 m (its half-diagonal). Right for
+  clipping a corner, too fat for threading a slot: the real 0.762 m robot fits
+  the tower's 0.858 m climbing gap and the circle does not, by about 9 cm.
+  A rectangle would fix it.
+- **The drivetrain still spikes for a loop or two** at the instant full stick is
+  applied. Steady state is now sane (25 A per module at a 45 A limit, bus holding
+  9.06 V), but assertions should use current rather than voltage until this is
+  gone, because voltage saturates against the pack's 4 V floor and silently
+  compares nothing.
+- **maple-sim's arena cannot cross the bump.** Recorded here because it is the
+  reason not to adopt it: `Arena2026Rebuilt` models the ramps as a solid
+  impassable obstacle, or omits them. Its tower and trench geometry is better
+  than what this repo had, and has been adopted; its drivetrain and field
+  handling would cost the bump, the fitted battery and flywheel models, and the
+  IO layer that makes replay work.
+
+---
+
 ## 10. What I could not determine
 
 Stated plainly rather than guessed at.

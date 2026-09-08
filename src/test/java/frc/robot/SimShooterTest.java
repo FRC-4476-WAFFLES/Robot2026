@@ -191,14 +191,53 @@ public class SimShooterTest {
         FieldConstants.fieldWidth / 2);
     assertPushedOut("opposing hub", FieldConstants.LinesVertical.oppHubCenter,
         FieldConstants.fieldWidth / 2);
-    assertPushedOut("tower", FieldConstants.Tower.frontFaceX / 2,
-        FieldConstants.Tower.centerPoint.getY());
-    assertPushedOut("left trench", FieldConstants.LinesVertical.hubCenter,
-        FieldConstants.fieldWidth - 0.3);
-    assertPushedOut("right trench", FieldConstants.LinesVertical.hubCenter, 0.3);
+    // The tower is two posts and the trench is a wall along its inner edge, not
+    // solid blocks -- so these aim at the structures themselves. A robot must
+    // still be able to drive between the uprights to climb, which is checked
+    // separately below.
+    assertPushedOut("tower upright", FieldConstants.Tower.frontFaceX,
+        FieldConstants.Tower.leftUpright.getY());
+    assertPushedOut("left trench wall", FieldConstants.LinesVertical.hubCenter,
+        FieldConstants.LinesHorizontal.leftTrenchOpenEnd - 0.15);
+    assertPushedOut("right trench wall", FieldConstants.LinesVertical.hubCenter,
+        FieldConstants.LinesHorizontal.rightTrenchOpenStart + 0.15);
 
     SimField.setEnabled(false);
     SimHarness.levelOut();
+  }
+
+  @Test
+  void theTowerCanBeDrivenIntoToClimb() {
+    // The first version of the obstacle map took the whole tower as a solid
+    // block, which is wrong in a way that matters: it made climbing impossible
+    // in simulation. It is two uprights, and the gap between them is open.
+    SimField.setEnabled(true);
+    SimHarness.releaseAllControls();
+
+    double middleY = (FieldConstants.Tower.leftUpright.getY()
+        + FieldConstants.Tower.rightUpright.getY()) / 2;
+    RobotContainer.drive.setPose(
+        new Pose2d(FieldConstants.Tower.frontFaceX, middleY, Rotation2d.kZero));
+    SimHarness.step(3);
+
+    Pose2d truth = RobotContainer.simState.getPose();
+    double moved = truth.getTranslation()
+        .getDistance(new Translation2d(FieldConstants.Tower.frontFaceX, middleY));
+    System.out.printf("placed between the tower uprights, moved %.2f m%n", moved);
+
+    SimField.setEnabled(false);
+    SimHarness.levelOut();
+
+    // Known limitation, and the reason this is not asserted tighter: the robot
+    // is a circle of radius 0.505 m, its half-diagonal, which is right for
+    // clipping a corner and too fat for threading a slot. The real robot is
+    // 0.762 m wide and fits the 0.858 m gap; the circle needs 1.01 m and so is
+    // squeezed by about 9 cm. Modelling the robot as a rectangle would fix it.
+    // What is asserted is that the gap is far more open than the upright itself,
+    // which pushes 0.33 m.
+    assertTrue(moved < 0.15,
+        "the gap between the tower uprights should be far more open than the "
+            + "uprights themselves, but the robot was pushed " + moved + " m");
   }
 
   /** Puts the robot inside something solid and checks the field throws it out. */
