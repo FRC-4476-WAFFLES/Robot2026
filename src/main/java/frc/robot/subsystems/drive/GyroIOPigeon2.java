@@ -63,6 +63,9 @@ public class GyroIOPigeon2 implements GyroIO {
 
     inputs.tipAngle = getTiltMagnitude();
     inputs.levelOnGround = !isOnBumpGravity(inputs.tipAngle);
+    // Recorded but not yet acted on -- see GyroIOInputs for why.
+    inputs.pitchDegrees = pigeon.getPitch().getValueAsDouble();
+    inputs.rollDegrees = pigeon.getRoll().getValueAsDouble();
   }
 
   public double getTiltMagnitude() {

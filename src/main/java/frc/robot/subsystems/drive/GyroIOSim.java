@@ -7,6 +7,7 @@ package frc.robot.subsystems.drive;
 import org.littletonrobotics.junction.Logger;
 
 import frc.robot.data.Constants;
+import frc.robot.utils.sim.SimRobot;
 
 /**
  * A simulated gyro that can be tilted.
@@ -51,6 +52,13 @@ public class GyroIOSim implements GyroIO {
   @Override
   public void updateInputs(GyroIOInputs inputs) {
     inputs.tipAngle = tiltDegrees;
+    // The simulated bump runs across the field, so its tilt is pitch when the
+    // robot is square to it and roll when it is sideways on. Split the same way
+    // the real Pigeon would see it, so the field is populated rather than left
+    // at zero for replay.
+    double heading = SimRobot.getPose().getRotation().getRadians();
+    inputs.pitchDegrees = tiltDegrees * Math.cos(heading);
+    inputs.rollDegrees = tiltDegrees * Math.sin(heading);
     // The real gyro logs this from GyroIOPigeon2.getTiltMagnitude, so log it
     // here too or the tilt is invisible in AdvantageScope during a sim run.
     Logger.recordOutput("TiltDeg", tiltDegrees);

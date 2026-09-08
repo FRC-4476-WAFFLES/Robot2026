@@ -732,6 +732,116 @@ Recorded so they are not believed twice.
 
 ---
 
+## 9a. The gyro thinks it is on the bump when it is braking
+
+**Measured**, and it explains four autonomous failures the drive team reported
+independently: q44, q59, q76 and e6 (which is `2026mil_sf6m1`).
+
+`GyroIOPigeon2.getTiltMagnitude()`:
+
+```java
+double gz = pigeon.getGravityVectorZ().getValueAsDouble();
+double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
+```
+
+Two problems, both measured across every match.
+
+**It reads 7 degrees while stationary and level.** Across 12,708 samples with the
+robot still, flat, and nowhere near a ramp, the median tip angle is **7.0
+degrees** and the 90th percentile is 7.4. `ON_BUMP_TILT` is **9.5**, so three
+quarters of the budget is gone before the robot moves. `acos` is
+ill-conditioned near flat — its slope goes to infinity as gz approaches 1 — so a
+0.75% error in the gravity vector becomes 7 degrees of apparent tilt.
+
+**And the gravity vector is an accelerometer, which cannot tell gravity from
+braking.** Sampled away from any real ramp:
+
+| acceleration | median tilt | p90 tilt | over the 9.5 degree threshold |
+|---|---|---|---|
+| 0.0 - 0.5 m/s² | 7.0° | 7.5° | 2.2% |
+| 1.5 - 3.0 m/s² | 7.1° | 9.1° | 9.4% |
+| 5.0 - 8.0 m/s² | 7.1° | 10.5° | 11.6% |
+| 8.0+ m/s² | 7.1° | 13.5° | **17.0%** |
+
+### What it costs
+
+`StateOrchestrator.determineOnBump` is `(X in band) OR (not level)`, so a false
+tilt reading sets `onBump` anywhere on the field. That does three things:
+
+- `DriveToPose` drops the autopilot acceleration limit from
+  `AUTO_MAX_ACCEL` 15 to `AUTO_MAX_ACCEL_BUMP` 7 — **halved** — in autonomous
+- the shooter is forced from `TARGET_HUB` to `TARGET_TAG`
+- `ShotPlanner` stops leading the shot
+
+Measured over the four reported autos:
+
+| match | auto | onBump | of which false | share of auto |
+|---|---|---|---|---|
+| q44 | 20.2 s | 4.7 s | 3.6 s | **18%** |
+| q59 | 20.6 s | 2.9 s | 2.0 s | 10% |
+| q76 | 20.0 s | 2.6 s | 1.7 s | 9% |
+| **e6** (`sf6m1`) | 21.1 s | 6.9 s | **5.7 s** | **27%** |
+
+**16% of autonomous, across those four matches, is spent driving at half
+acceleration because the robot believes it is on a ramp it is nowhere near.**
+That is "undershot our setpoints" and "took us forever to start shooting".
+
+### A debounce does not fix it — measured
+
+The obvious guard fails. Episode durations are nearly identical:
+
+| | n | p50 |
+|---|---|---|
+| genuinely on a bump | 390 | 0.392 s |
+| nowhere near a bump | 409 | 0.369 s |
+
+A 0.20 s debounce keeps 93% of real crossings and still lets **81%** of the
+false ones through. Duration carries no information here, so no debounce
+separates them.
+
+### What would
+
+- **Use the Pigeon's fused pitch and roll** rather than the raw gravity vector.
+  They are gyro-integrated and accelerometer-corrected slowly, so linear
+  acceleration should not move them, and `hypot(pitch, roll)` avoids the `acos`
+  conditioning problem entirely. **They were not logged**, so this cannot be
+  evaluated against the season's data — they are logged now, which is the only
+  change made here.
+- **Calibrate the 7 degree offset out**, whatever its source.
+- Consider requiring the tilt path to agree with position being *near* a ramp.
+  That weakens the case it exists for — catching a bad pose — so it is a
+  judgement call rather than an obvious win.
+
+Nothing about `onBump` was changed. The evidence is strong but the fix depends on
+sensor behaviour that no log can confirm.
+
+---
+
+## 9c. Measured wheel slip
+
+**Measured** across 25 FMS matches, comparing wheel travel against displacement
+between accepted vision poses — the only independent ground truth available,
+since `FieldPose` is itself vision-corrected and would show zero slip against the
+wheels by construction.
+
+| surface | n | p25 | median | p75 |
+|---|---|---|---|---|
+| carpet | 1228 | -2.2% | **6.0%** | 20.4% |
+| bump | 191 | 13.4% | **32.4%** | 47.9% |
+
+**The bump costs about a third of wheel travel.** Carpet's 6% sits inside the
+measurement noise — the 10th percentile is *negative*, meaning vision said the
+robot moved further than the wheels turned — so treat carpet slip as small and
+not resolvable by this method rather than as 6%.
+
+A first version of this measurement paired only *consecutive* accepted vision
+poses and then demanded a 0.35 s gap between them. Since accepted poses arrive
+about every 30 ms, that discarded everything except pairs straddling a vision
+dropout, sampling exactly the periods when vision was failing. The medians barely
+moved once fixed, but the sample went from 174 to 1228.
+
+---
+
 ## 9b. Simulation limitations worth knowing
 
 Recorded because a simulation you trust past its limits is worse than none.

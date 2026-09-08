@@ -512,6 +512,49 @@ estimates" window stretches to an eighth of a match.
 This is the best explanation for the two autos that failed outright — ONWEL q8
 took a 1.42 m correction 3.4 s in and scored 3 balls against a median of 55.
 
+### The gyro reads 7 degrees flat, and thinks braking is a bump — Open, highest value in autonomous
+
+`GyroIOPigeon2.getTiltMagnitude()` is `acos(gravityVectorZ)`. Two measured
+problems: it reads a median **7.0°** stationary and level (12,708 samples)
+against an `ON_BUMP_TILT` of 9.5, because `acos` is ill-conditioned near flat;
+and the gravity vector is an accelerometer, so **17% of samples cross the
+threshold under hard acceleration** while nowhere near a ramp.
+
+`determineOnBump` is `(X in band) OR (not level)`, so that fires anywhere. It
+then halves the autopilot acceleration limit in auto (15 → 7), forces
+`TARGET_TAG`, and disables the shot lead.
+
+Across the four autos the drive team reported as failures — q44, q59, q76 and
+e6 (`2026mil_sf6m1`) — **16% of autonomous is spent at half acceleration
+believing the robot is on a ramp it is nowhere near.** e6 is 27%.
+
+**A debounce does not fix it**, measured: real and false episodes have the same
+duration distribution (p50 0.392 s vs 0.369 s), and a 0.20 s debounce keeps 93%
+of real crossings while still passing 81% of false ones.
+
+The likely fix is the Pigeon's fused pitch and roll instead of the raw gravity
+vector — gyro-integrated, so linear acceleration should not move them, and
+`hypot(pitch, roll)` sidesteps the `acos` conditioning. They were not logged, so
+this could not be checked against the season's data. **They are logged now**;
+that is the only change made, deliberately, because the fix depends on sensor
+behaviour no log can confirm.
+
+Also worth calibrating the 7° offset out, whatever its source.
+
+### Measured wheel slip, for the simulation's friction constants — Done, recorded
+
+Comparing wheel travel against displacement between accepted vision poses, which
+is the only independent ground truth in the log:
+
+| surface | n | median slip |
+|---|---|---|
+| carpet | 1228 | 6.0% (inside the noise — p10 is negative) |
+| bump | 191 | **32.4%** |
+
+The bump costs about a third of wheel travel. Carpet is small and not resolvable
+by this method. `SimField.BUMP_TRACTION` remains a calibration knob but now has
+a measured figure to be checked against.
+
 ### Raise the bus voltage while shooting — Open, the fire-rate lever
 
 **This supersedes "Recovery is not a tuning problem" below, which was wrong.**
