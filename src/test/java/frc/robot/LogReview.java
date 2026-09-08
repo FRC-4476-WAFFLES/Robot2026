@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -805,6 +806,7 @@ public final class LogReview {
     List<double[]> feederVsDip = new ArrayList<>();
     List<Double> dipDelays = new ArrayList<>();
     List<Double> intervals = new ArrayList<>();
+    Map<String, List<Double>> intervalsByState = new TreeMap<>();
     double[] previousShot = { -1 };
     for (File log : logs) {
       DataLogReader reader = new DataLogReader(log.getAbsolutePath());
@@ -910,6 +912,8 @@ public final class LogReview {
               // Only gaps inside a burst; a long pause is the driver stopping.
               if (previousShot[0] > 0 && shotTime - previousShot[0] < 3.0) {
                 intervals.add(shotTime - previousShot[0]);
+                intervalsByState.computeIfAbsent(state, key -> new ArrayList<>())
+                    .add(shotTime - previousShot[0]);
               }
               previousShot[0] = shotTime;
               deficits.add(Math.abs(goal - speed));
@@ -959,13 +963,32 @@ public final class LogReview {
 
     if (intervals.size() > 5) {
       Collections.sort(intervals);
-      System.out.printf("%ntime between consecutive shots in a burst, %d gaps%n", intervals.size());
-      System.out.printf("  median %.2fs, 25th %.2fs, 75th %.2fs  -> about %.1f balls per second%n",
+      // These are gaps between the "Fire shot" command STARTING, so this is how
+      // often the shooter is let go, not how many balls left the robot. A held
+      // trigger that never drops out is one long window, not twenty shots.
+      System.out.printf("%ntime between the fire command reopening, within a burst, %d gaps%n",
+          intervals.size());
+      System.out.printf("  median %.2fs, 25th %.2fs, 75th %.2fs%n",
           intervals.get(intervals.size() / 2), intervals.get(intervals.size() / 4),
-          intervals.get(intervals.size() * 3 / 4), 1.0 / intervals.get(intervals.size() / 2));
+          intervals.get(intervals.size() * 3 / 4));
       double mean = intervals.stream().mapToDouble(Double::doubleValue).average().orElse(0);
       double variance = intervals.stream().mapToDouble(i -> (i - mean) * (i - mean)).average().orElse(0);
       System.out.printf("  mean %.2fs, standard deviation %.2fs%n", mean, Math.sqrt(variance));
+
+      // Split by what the shooter was doing, because passing and hub shooting
+      // have nothing to do with each other and a change in the mix moves the
+      // combined number without anything about either having changed.
+      System.out.printf("  %-18s %6s %9s %9s %9s%n", "state", "gaps", "median", "25th", "75th");
+      for (var entry : intervalsByState.entrySet()) {
+        List<Double> byState = entry.getValue();
+        if (byState.size() < 5) {
+          continue;
+        }
+        Collections.sort(byState);
+        System.out.printf("  %-18s %6d %8.2fs %8.2fs %8.2fs%n", entry.getKey(), byState.size(),
+            byState.get(byState.size() / 2), byState.get(byState.size() / 4),
+            byState.get(byState.size() * 3 / 4));
+      }
     }
 
     if (!dipDelays.isEmpty()) {
