@@ -41,7 +41,26 @@ import frc.robot.utils.lib.Spline1D.NodePoint;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  private static Mode simMode = Mode.SIM;
+  /**
+   * Off a robot, run the simulator — unless a log has been handed to us, in
+   * which case replay it.
+   *
+   * <p>
+   * {@code AKIT_LOG_PATH} is the variable AdvantageKit's own
+   * {@code LogFileUtil.findReplayLog()} already reads, so setting it is all that
+   * is needed to replay:
+   *
+   * <pre>
+   *   AKIT_LOG_PATH=path/to/match.wpilog ./gradlew simulateJava
+   * </pre>
+   *
+   * Switching on it here means replaying a log never requires editing code,
+   * which matters because the whole point of replay is that the code under test
+   * is the code you are about to deploy. See the {@code frc-log-replay} skill.
+   */
+  private static Mode simMode = System.getenv("AKIT_LOG_PATH") != null && !System.getenv("AKIT_LOG_PATH").isBlank()
+      ? Mode.REPLAY
+      : Mode.SIM;
 
   public static Mode getMode() {
     return RobotBase.isReal() ? Mode.REAL : simMode;
@@ -210,8 +229,12 @@ public final class Constants {
     // Use standard deviations reported by the limelight as opposed to hand
     // calculating them
     public static final boolean USE_AUTOMATIC_STANDARD_DEVIATIONS = true;
-    // Ignore single tag estimates
-    public static final boolean IGNORE_SINGLE_TAG = true;
+    // Ignore single tag estimates. Off since the milstein autos: replaying q44,
+    // q59 and q76 with single-tag estimates accepted put the pose 0.08 m from
+    // truth where odometry alone was 0.92 m out, across every window where
+    // vision had gone quiet for over 1.5 s. The single-tag path is still
+    // filtered on ambiguity, tag area, yaw agreement and both yaw rates below.
+    public static final boolean IGNORE_SINGLE_TAG = false;
 
     public static final int SEDING_LL_IMU_MODE = 1; // Enables seeding
     public static final int MOVING_LL_IMU_MODE = 2; // Uses internal IMU

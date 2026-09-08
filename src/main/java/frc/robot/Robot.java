@@ -268,12 +268,21 @@ public class Robot extends LoggedRobot {
   @Override
   @SuppressWarnings("unused")
   public void simulationPeriodic() {
+    // WPILib calls this off a robot, which includes replay -- and during replay
+    // there is no simulated robot to advance. Every input comes from the log, so
+    // running the physics would both crash (RobotContainer.simState is only
+    // built in SIM) and, worse, quietly fight the logged inputs it is supposed
+    // to be reproducing.
+    if (Constants.getMode() != Mode.SIM) {
+      return;
+    }
+
     // Every simulated mechanism has reported its draw by now, so the rest of
     // the robot can be shown the voltage that leaves.
     SimBattery.publish();
     SimField.update();
     SimShooter.update();
-    if (Constants.getMode() == Mode.SIM && CodeConstants.USE_FUEL_SIMULATION) {
+    if (CodeConstants.USE_FUEL_SIMULATION) {
       FuelSim.getInstance().updateSim();
     }
   }

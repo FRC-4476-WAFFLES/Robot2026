@@ -145,8 +145,15 @@ test {
 }
 
 // Simulation configuration (e.g. environment variables).
-wpi.sim.addGui().defaultEnabled = true
-wpi.sim.addDriverstation()
+// AdvantageKit refuses to replay with any HAL simulation extension loaded, and
+// the GUI and the DriverStation connection both count. Rather than making
+// anyone remember to turn them off, skip registering them when a log has been
+// handed to us -- the same variable that puts the robot in REPLAY mode.
+// See the frc-log-replay skill.
+if ((System.getenv('AKIT_LOG_PATH') ?: '').isBlank()) {
+    wpi.sim.addGui().defaultEnabled = true
+    wpi.sim.addDriverstation()
+}
 
 // Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')
 // in order to make them all available at runtime. Also adding the manifest so WPILib
@@ -176,6 +183,10 @@ task(logReview, type: JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
 }
 
+// Replaying a log requires every HAL simulation extension to be off -- the GUI
+// and the DriverStation connection both count, and AdvantageKit refuses to
+// start otherwise. Rather than making people remember that, drop them whenever
+// a log has been handed to us. See the frc-log-replay skill.
 task(replayWatch, type: JavaExec) {
     mainClass = "org.littletonrobotics.junction.ReplayWatch"
     classpath = sourceSets.main.runtimeClasspath
