@@ -146,8 +146,16 @@ public class IndexerIOTalonFX implements IndexerIO {
 
   private void configureFeederMotors() {
     TalonFXConfiguration feederConfigs = new TalonFXConfiguration();
+    // 25 A here was the single biggest thing holding the fire rate down. It was
+    // added mid-Ontario to fight brownouts, and the brownout logs say it was
+    // aimed at the wrong motor: across 159 brownouts the feeder's median draw is
+    // 0 A while the drivetrain's is 176 A of a 188 A total.
+    //
+    // 60 A sits above the 99th percentile of what the feeder drew when it was
+    // uncapped at ONWEL (55 A), so it does not bind in normal feeding, while
+    // still bounding the motor — every motor gets a limit.
     CurrentLimitsConfigs feederCurrentLimit = new CurrentLimitsConfigs()
-        .withSupplyCurrentLimit(25)
+        .withSupplyCurrentLimit(60)
         .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimit(120)
         .withStatorCurrentLimitEnable(true);

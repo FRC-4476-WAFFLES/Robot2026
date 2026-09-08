@@ -17,6 +17,23 @@ package frc.robot.subsystems.power;
  * that capacity goes to the flywheel instead.
  *
  * <p>
+ * <b>The feeder is not a brownout contributor and is no longer treated as one.</b>
+ * Across 159 brownouts in 25 matches the feeder's median draw is 0 A and the
+ * drivetrain's is 176 A of a 188 A total. Its allowance was 25 A per motor,
+ * which measurably cost 19% of the fire rate while saving nothing — the capped
+ * configuration drew <i>more</i> feeder charge per match than the uncapped one,
+ * because the cap was paired with a higher speed goal that drove current
+ * straight into it. It is now 60 A everywhere the robot is expected to shoot.
+ *
+ * <p>
+ * {@link #SHOOTING_FAR} is the exception and keeps a ball-path cap. That was
+ * argued separately, from the peaks a long shot draws rather than from
+ * brownouts, and is left standing rather than overturned here — but note the
+ * tension: at the worst 1% of battery moments in the uncapped logs the feeder
+ * was drawing 1 A, which is hard to square with it being what sags the bus.
+ * Worth re-deciding with a robot rather than another log pass.
+ *
+ * <p>
  * <b>The intake is never limited below what it uses.</b> Its supply limit was
  * removed on purpose because a 35 A limit made it bog down, and the logs confirm
  * it draws 54 - 64 A precisely when loaded. Its allowance is only tightened in
@@ -25,9 +42,9 @@ package frc.robot.subsystems.power;
  */
 public enum PowerManagerState {
   /** Everything at the limits the subsystems configure for themselves. */
-  DEFAULT(45, 120, 60, 90, 25, 90),
+  DEFAULT(45, 120, 60, 90, 60, 90),
   /** Flywheel priority: it needs headroom to recover between balls. */
-  SHOOTING(20, 160, 140, 20, 25, 90),
+  SHOOTING(20, 160, 140, 20, 60, 90),
   /**
    * A long shot, where accuracy collapses in the logs. The flywheel allowance is
    * the same as {@link #SHOOTING} because it cannot use any more: a long shot
@@ -51,7 +68,7 @@ public enum PowerManagerState {
    * dragged down in a pile is exactly when it needs torque, so the flywheel's
    * headroom is paid for out of the drivetrain alone.
    */
-  SHOOTING_AND_INTAKING(15, 160, 140, 50, 25, 90),
+  SHOOTING_AND_INTAKING(15, 160, 140, 50, 60, 90),
   /**
    * The driver needs to move more than they need the next shot — pinned, being
    * defended, or getting out of somewhere.

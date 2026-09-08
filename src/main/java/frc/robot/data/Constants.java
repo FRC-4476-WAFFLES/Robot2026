@@ -517,9 +517,34 @@ public final class Constants {
     public static final double MOTOR_DEADBAND = 0;
     public static final double MOTOR_PEAK_SUPPLY_VOLTAGE = 16;
 
+    /**
+     * Feed speeds, in rotations per second: the spindexer first, the feeder
+     * second.
+     *
+     * <p>
+     * These are back at the values ONWEL ran, and the reason is measured. The
+     * champs configuration asked the feeder for 65 rps and capped its supply
+     * current at 25 A per motor, which is self-defeating: the higher goal drives
+     * the current straight into the cap and the cap then takes away the torque
+     * needed to push a ball through. Measured on match logs, that combination
+     * fired at 4.34 balls per second against ONWEL's 5.38, while drawing
+     * <i>more</i> feeder charge per match (2895 A·s against 1770) and sitting
+     * pinned at 51 A for the pair at the worst moments, where ONWEL's uncapped
+     * feeder only ever wanted 38 A.
+     *
+     * <p>
+     * Asking for less and allowing more is the configuration that measured
+     * better on every axis. See {@code docs/log-deep-dive.md}.
+     *
+     * <p>
+     * <b>RUN and RUNSLOW are deliberately still identical.</b> They have been at
+     * both events, which makes the agitation cycle in {@code ShooterCommands} a
+     * no-op. That is recorded as its own item rather than guessed at here —
+     * nobody now knows what RUNSLOW was meant to be.
+     */
     public enum IndexerState {
-      RUN(13.5, 65),
-      RUNSLOW(13.5, 65),
+      RUN(15, 40),
+      RUNSLOW(15, 40),
       STOP(0, 0),
       REVERSE(-1, -1);
 
