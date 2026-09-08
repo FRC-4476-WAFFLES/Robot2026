@@ -34,6 +34,7 @@ public enum Ports {
   HOOD_MOTOR(23, Bus.RIO),
   CANDLE(24, Bus.RIO),
   FEEDER_MOTOR_1(28, Bus.RIO),
+  POWER_DISTRIBUTION(1, Bus.RIO),
 
   /* CANivore bus */
   TURRET_MOTOR(25, Bus.CANIVORE),

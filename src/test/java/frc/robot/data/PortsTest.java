@@ -36,6 +36,7 @@ public class PortsTest {
     expected.put(Ports.HOOD_MOTOR, "23 " + RIO);
     expected.put(Ports.CANDLE, "24 " + RIO);
     expected.put(Ports.FEEDER_MOTOR_1, "28 " + RIO);
+    expected.put(Ports.POWER_DISTRIBUTION, "1 " + RIO);
     expected.put(Ports.TURRET_MOTOR, "25 " + CANIVORE);
     expected.put(Ports.TURRET_ENCODER_0, "26 " + CANIVORE);
     expected.put(Ports.TURRET_ENCODER_1, "27 " + CANIVORE);
