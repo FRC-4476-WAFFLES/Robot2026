@@ -154,6 +154,18 @@ public final class Constants {
     // is fine when the limit is real; with the old 15.0 it would have meant
     // arriving at an acceleration the carpet cannot deliver, which is slip.
     public static final double AUTO_MAX_JERK = 40.0;
+    /**
+     * Jerk on the bump, scaled so the ramp takes as long as it does on carpet.
+     *
+     * <p>
+     * Scaled by the same ratio as the acceleration it serves, 3.0 / 5.0 of the
+     * flat value, so both reach their ceiling in 0.125 s. The reason to
+     * accelerate less on the ramp is that there is less grip, not that the
+     * robot should respond more slowly -- and that distinction matters, because
+     * being sluggish on the bump is how it got stuck there in q44 and e6, which
+     * gave up crossing rather than slipping.
+     */
+    public static final double AUTO_MAX_JERK_BUMP = 24.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
 

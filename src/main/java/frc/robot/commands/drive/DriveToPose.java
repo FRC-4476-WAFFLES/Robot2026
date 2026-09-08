@@ -67,9 +67,16 @@ public class DriveToPose {
 
       // Mutate constraints
       RobotState.setAutopilotMaxVelocity(blueTarget.getMaxVelocity());
-      RobotState.setAutopilotMaxAcceleration((state.onBump && state.autonomousEnabled())
+      boolean onRamp = state.onBump && state.autonomousEnabled();
+      RobotState.setAutopilotMaxAcceleration(onRamp
           ? CodeConstants.AUTO_MAX_ACCEL_BUMP
           : CodeConstants.AUTO_MAX_ACCEL);
+      // Jerk moves with acceleration so the ramp-up takes the same time either
+      // way. Lowering one without the other would mean the bump got both a
+      // smaller ceiling and a slower approach to it.
+      RobotState.setAutopilotMaxJerk(onRamp
+          ? CodeConstants.AUTO_MAX_JERK_BUMP
+          : CodeConstants.AUTO_MAX_JERK);
 
       if (lastMaxAngularVelocityConstraint != blueTarget.getMaxRotationRate()) {
         angleController.setConstraints(

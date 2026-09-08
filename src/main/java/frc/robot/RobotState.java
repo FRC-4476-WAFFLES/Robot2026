@@ -144,6 +144,8 @@ public class RobotState {
   private static double autopilotVelocityConstraint = Double.MAX_VALUE;
   @Getter
   private static double autopilotAccelerationConstraint = Double.MAX_VALUE;
+  @Getter
+  private static double autopilotJerkConstraint = Double.MAX_VALUE;
 
   private static final APProfile autopilotProfile = new APProfile(autopilotConstraints)
       .withErrorXY(CodeConstants.AUTO_POSITION_TOLERANCE_PRECISE)
@@ -161,6 +163,11 @@ public class RobotState {
   public static void setAutopilotMaxVelocity(double velocity) {
     autopilotConstraints.withVelocity(velocity);
     autopilotVelocityConstraint = velocity;
+  }
+
+  public static void setAutopilotMaxJerk(double jerk) {
+    autopilotConstraints.withJerk(jerk);
+    autopilotJerkConstraint = jerk;
   }
 
   public static void setAutopilotMaxAcceleration(double acceleration) {
