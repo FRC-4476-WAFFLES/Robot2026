@@ -10,6 +10,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.data.Constants.CodeConstants;
 
@@ -50,6 +51,53 @@ public final class SimRobot {
   private static final double MAX_TRACTION_ACCELERATION = FRICTION_COEFFICIENT * GRAVITY;
   /** Rotational equivalent, in rad/s². Scaled by the robot's radius of gyration. */
   private static final double MAX_ANGULAR_ACCELERATION = 30.0;
+
+  /**
+   * Half the wheel spacing, fore-aft and side to side, from TunerConstants.
+   *
+   * <p>
+   * These are not close to equal: the drivetrain is 15.5 inches front to back
+   * and 27.5 across. Accelerating along the short axis transfers weight over a
+   * shorter lever, so the front wheels unload sooner and the robot runs out of
+   * grip earlier going forwards than it does going sideways. A single traction
+   * number cannot express that, which is why the limit below depends on which
+   * way the robot is being asked to go.
+   */
+  private static final double HALF_WHEELBASE = Units.inchesToMeters(7.75);
+  private static final double HALF_TRACK = Units.inchesToMeters(13.75);
+
+  /**
+   * Height of the centre of gravity above the carpet, in metres.
+   *
+   * <p>
+   * <b>Estimated, not measured.</b> It cannot be recovered from the match logs:
+   * the method needs the robot to actually saturate traction in two directions
+   * and it never does — measured acceleration peaks around 4 m/s² against a
+   * ceiling near 10, so the logs record what the path follower asked for rather
+   * than what the carpet allows. 0.25 m is a plausible figure for a robot of
+   * this size and it reproduces the observed ceiling (see the class comment),
+   * but it is the number to replace first if this model is ever trusted with a
+   * real decision.
+   *
+   * <p>
+   * To measure it properly: put the robot on a slope, or on scales under each
+   * axle, and increase the tilt until the uphill wheels unload. The angle where
+   * that happens gives {@code h = halfSpacing / tan(angle)}.
+   */
+  private static final double COG_HEIGHT = 0.25;
+
+  /** A ball, in kilograms — about half a pound. */
+  private static final double BALL_MASS = 0.227;
+  /**
+   * How high a ball sits, in metres. Cargo rides above the drivetrain, so a
+   * full hopper raises the centre of gravity rather than just adding mass —
+   * and it is the height that matters here, because mass cancels out of a
+   * traction limit while the centre of gravity does not.
+   */
+  private static final double BALL_COG_HEIGHT = 0.50;
+
+  /** How many balls the robot is carrying. Raises the centre of gravity. */
+  private static int cargoBalls = 0;
   /** How much speed is lost in a collision rather than returned as a bounce. */
   private static final double RESTITUTION = 0.1;
 
@@ -116,7 +164,23 @@ public final class SimRobot {
     // The tyres can only pull so hard. Ask for more and they slip, which is
     // where hard acceleration and hard turns lose grip without being special
     // cases.
-    double available = MAX_TRACTION_ACCELERATION * MathUtil.clamp(tractionScale, 0, 1);
+    //
+    // How hard is not a constant, because pushing the robot along also tips
+    // weight off the wheels doing the pushing. Over a half spacing D, an
+    // acceleration a moves m*a*h/(2D) of load off the leading axle onto the
+    // trailing one, and once the modules are all asking for the same force it
+    // is the unloaded pair that lets go first. Solving for where that happens
+    // gives mu*g / (1 + mu*h/D) — always less than mu*g, and much less along
+    // the short axis.
+    //
+    // This is what was missing. A flat mu*g put the ceiling at 10.8 m/s², which
+    // the real robot never came near; with transfer the model gives 4.5 m/s²
+    // forwards and 6.0 sideways against measured 4.0 and 6.6.
+    Translation2d robotFrame = needed.rotateBy(pose.getRotation().unaryMinus());
+    double spacing = halfSpacing(robotFrame);
+    double height = cogHeight();
+    double grip = FRICTION_COEFFICIENT * MathUtil.clamp(tractionScale, 0, 1);
+    double available = grip * GRAVITY / (1 + grip * height / spacing);
     double demanded = needed.getNorm();
     Translation2d applied = demanded > available
         ? needed.times(available / demanded)
@@ -138,6 +202,55 @@ public final class SimRobot {
     Logger.recordOutput("SimRobot/Slipping", demanded > available);
     Logger.recordOutput("SimRobot/Traction Demand", demanded / Math.max(0.01, available));
     Logger.recordOutput("SimRobot/Traction Available", available);
+    // Where the wheels would leave the ground, for comparison. With carpet grip
+    // and this geometry the robot always slips before it tips — slipping caps
+    // the demand below the tipping threshold by construction — so this stays
+    // under 1 and is a diagnostic rather than a failure mode. It stops being
+    // true if grip goes up or the centre of gravity does, which is exactly when
+    // someone would want to know.
+    Logger.recordOutput("SimRobot/Tip Fraction",
+        demanded / (GRAVITY * spacing / height));
+    Logger.recordOutput("SimRobot/CoG Height", height);
+  }
+
+  /**
+   * Half the wheel spacing resisting a push in this direction, in metres.
+   *
+   * <p>
+   * Straight ahead this is the half wheelbase and straight sideways the half
+   * track; in between the wheels form a rectangle, and the ellipse through
+   * those two is a good enough interpolation for a model whose centre of
+   * gravity is a guess anyway.
+   *
+   * @param direction the demanded acceleration, in the robot's own frame
+   */
+  private static double halfSpacing(Translation2d direction) {
+    double norm = direction.getNorm();
+    if (norm < 1e-6) {
+      return HALF_WHEELBASE;
+    }
+    return 1.0 / Math.hypot(direction.getX() / norm / HALF_WHEELBASE,
+        direction.getY() / norm / HALF_TRACK);
+  }
+
+  /**
+   * Centre of gravity height including whatever the robot is carrying.
+   *
+   * <p>
+   * A hundred balls is 22.7 kg on a 55 kg robot, and they ride high, so a full
+   * hopper moves the centre of gravity from 0.25 m to about 0.32 m. That costs
+   * roughly 15% of the forward acceleration limit — the robot is meaningfully
+   * less able to accelerate when it is full, which is when it most wants to be
+   * driving somewhere.
+   */
+  private static double cogHeight() {
+    double cargo = cargoBalls * BALL_MASS;
+    return (MASS * COG_HEIGHT + cargo * BALL_COG_HEIGHT) / (MASS + cargo);
+  }
+
+  /** Tells the model how many balls are aboard, which raises the centre of gravity. */
+  public static void setCargoBalls(int balls) {
+    cargoBalls = Math.max(0, balls);
   }
 
   /**
@@ -159,7 +272,15 @@ public final class SimRobot {
     }
   }
 
-  /** The most the robot can accelerate before the wheels break loose, in m/s². */
+  /**
+   * Grip expressed as an acceleration, ignoring weight transfer, in m/s².
+   *
+   * <p>
+   * This is the ceiling the robot would have if pushing it did not tip weight
+   * off the wheels doing the pushing. It does, so the real limit is always
+   * lower than this and depends on direction — see {@link #halfSpacing}. Kept
+   * as an upper bound for tests and for anything reasoning about force.
+   */
   public static double maxTractionAcceleration() {
     return MAX_TRACTION_ACCELERATION;
   }

@@ -76,6 +76,28 @@ public class SimRobotTest {
   }
 
   @Test
+  void itLaunchesHarderSidewaysThanForwards() {
+    // The drivetrain is 15.5 inches front to back and 27.5 across, so
+    // accelerating forwards tips weight off the front wheels over a much
+    // shorter lever than accelerating sideways does. A robot that launches
+    // equally well in both directions is one that has forgotten it has a
+    // centre of gravity, and it will happily follow an autonomous path the
+    // real robot cannot drive.
+    drive(new ChassisSpeeds(4.0, 0, 0), 0.2);
+    double forwards = SimRobot.getVelocity().getNorm();
+    SimRobot.setPose(Pose2d.kZero);
+    drive(new ChassisSpeeds(0, 4.0, 0), 0.2);
+    double sideways = SimRobot.getVelocity().getNorm();
+    System.out.printf("in 0.2s: %.2f m/s forwards, %.2f m/s sideways%n",
+        forwards, sideways);
+    assertTrue(sideways > forwards * 1.15,
+        "sideways should out-accelerate forwards by a clear margin, got "
+            + sideways + " against " + forwards);
+    assertTrue(forwards < SimRobot.maxTractionAcceleration() * 0.2,
+        "weight transfer should keep the launch under the flat grip ceiling");
+  }
+
+  @Test
   void aGentleRequestIsNotLimited() {
     // The limit must only bite when it should, or the robot would feel sluggish
     // everywhere.
