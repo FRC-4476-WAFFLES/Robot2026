@@ -1538,6 +1538,86 @@
          0
         ]
        }
+      },
+      {
+       "type": 3,
+       "title": "Sim 3D",
+       "controller": {
+        "sources": [
+         {
+          "type": "robot",
+          "logKey": "/RealOutputs/SimField/Robot Pose 3D",
+          "logType": "Pose3d",
+          "visible": true,
+          "options": {
+           "model": "Leo"
+          }
+         },
+         {
+          "type": "component",
+          "logKey": "/RealOutputs/RobotState/MechanismPoses",
+          "logType": "Pose3d[]",
+          "visible": true,
+          "options": {}
+         },
+         {
+          "type": "ghost",
+          "logKey": "/RealOutputs/RobotState/FieldPose",
+          "logType": "Pose2d",
+          "visible": true,
+          "options": {
+           "model": "LeoStatic",
+           "color": "#ff0000"
+          }
+         },
+         {
+          "type": "gamePiece",
+          "logKey": "/RealOutputs/Fuel Simulation/Fuels",
+          "logType": "Translation3d[]",
+          "visible": true,
+          "options": {
+           "variant": "Fuel"
+          }
+         },
+         {
+          "type": "trajectory",
+          "logKey": "/RealOutputs/SimShooter/Trajectory",
+          "logType": "Pose3d[]",
+          "visible": true,
+          "options": {
+           "color": "#00ff00",
+           "size": "normal"
+          }
+         },
+         {
+          "type": "cone",
+          "logKey": "/RealOutputs/RobotState/Shooter Target",
+          "logType": "Pose2d",
+          "visible": true,
+          "options": {
+           "color": "#ffff00",
+           "position": "center"
+          }
+         }
+        ],
+        "game": "FRC:2026 Field"
+       },
+       "controllerUUID": "cfppbgx1fm5l0lz02hqhmasw90v3r984",
+       "renderer": {
+        "cameraIndex": -1,
+        "orbitFov": 50,
+        "cameraPosition": [
+         8.975494741769271,
+         2.1571406113650617,
+         0.06399243521401066
+        ],
+        "cameraTarget": [
+         3.3352828781494184,
+         -1.1843156100154053,
+         0.6790702380088558
+        ]
+       },
+       "controlsHeight": 321
       }
      ]
     }
