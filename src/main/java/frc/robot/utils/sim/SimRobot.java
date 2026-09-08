@@ -70,14 +70,19 @@ public final class SimRobot {
    * Height of the centre of gravity above the carpet, in metres.
    *
    * <p>
-   * <b>Estimated, not measured.</b> It cannot be recovered from the match logs:
-   * the method needs the robot to actually saturate traction in two directions
-   * and it never does — measured acceleration peaks around 4 m/s² against a
-   * ceiling near 10, so the logs record what the path follower asked for rather
-   * than what the carpet allows. 0.25 m is a plausible figure for a robot of
-   * this size and it reproduces the observed ceiling (see the class comment),
-   * but it is the number to replace first if this model is ever trusted with a
-   * real decision.
+   * <b>Constrained by measurement, not measured directly.</b> Autonomous is no
+   * help — the path follower never asks for the limit, so those logs record
+   * what was demanded rather than what the carpet allows. Teleop does ask: with
+   * the stick past about 0.6, acceleration stops responding to it at roughly
+   * 4.4 m/s², which is the carpet answering rather than the driver. Inverting
+   * the traction expression below at that ceiling gives 0.24 m at mu 1.0,
+   * 0.26 m at 1.1, and 0.29 m at 1.3 — so this is right to a couple of
+   * centimetres provided the friction coefficient is, and both should be
+   * replaced together if either is ever measured properly.
+   *
+   * <p>
+   * Note the 4.4 is wheel-derived and so an upper bound on the chassis, which
+   * makes this an upper bound on the height too.
    *
    * <p>
    * To measure it properly: put the robot on a slope, or on scales under each
