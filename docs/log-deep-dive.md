@@ -635,6 +635,82 @@ timing. **e3 (2)** has 87 pose jumps and 88 loop overruns over 100 ms.
 
 ---
 
+## 7b. The shot counter was measuring itself
+
+**Measured**, by counting balls off match video and comparing against what the
+detector said for the same window.
+
+Every balls-per-second figure in this document comes from one detector: peaks
+in flywheel stator current, one peak per ball. It had never been checked
+against a real count. It was tuned so the relative numbers tracked scouted
+scores, which catches gross errors and says nothing about accuracy.
+
+Five volleys, hand counted:
+
+| volley | detector | actual | detected rate | **true rate** | error |
+|---|---|---|---|---|---|
+| Ontarios q75 | 12 | 11 | 2.86/s | 2.62/s | −8% |
+| Houston q44 | 17 | **19** | 3.86/s | **4.32/s** | +12% |
+| Niagara q5 | 16 | 16 | 4.21/s | **4.21/s** | 0% |
+| Niagara q24 | 32 | **25** | 5.61/s | **4.39/s** | −22% |
+| Niagara q8 | 27 | **21** | 5.87/s | **4.57/s** | −22% |
+
+**The error is not noise — it tracks the detector's own output.** Above about
+5 balls/s it invents peaks and overcounts by roughly a fifth; around 4 it is
+accurate; below that it slightly undercounts. So a volley the detector thinks
+is fast is reported faster still, and the spread between events is
+manufactured by the instrument.
+
+Correcting for it, the four full-hopper volleys land at **4.21, 4.32, 4.39 and
+4.57 balls/s** — across two events, an 8% spread, against a 52% spread in what
+the detector reported. Pooled: **81 balls in 18.5 s, 4.38 balls/s.**
+
+The fifth ran at 2.6 balls/s with a near-empty hopper. That is the one real
+source of variation found, and it is ball *supply*, not the shooter.
+
+### What this retracts
+
+**The event-to-event shot rate comparison, and everything resting on it.** A
+season sweep gave Niagara 5.46 balls/s against Houston 3.46 and Ontarios 3.59,
+which reads as a serious decline. Niagara's volleys are the fast ones, and fast
+is exactly where the detector inflates. The gap is an artifact.
+
+Note the per-match table in §7 was never wrong: it puts Houston at 4.27–4.66
+b/s, which is what hand counting confirms. The damage was done by the
+cross-event aggregate, which additionally divided by fire-command time
+including windows where no ball ever came out.
+
+### What survives, because it never depended on counting balls
+
+| | Durham | Niagara | Ontarios | Houston |
+|---|---|---|---|---|
+| flywheel goal | 54.2 rps | 49.0 rps | 46.2 rps | 45.7 rps |
+| inertia proxy (torque ÷ dω/dt) | 0.853 | **0.417** | 0.672 | 0.701 |
+| recovery per ball | 136 ms | **54 ms** | 81 ms | 67 ms |
+| feeder speed while firing | — | 38.0 rps | 37.5 rps | 40.5 rps |
+
+The flywheel really did get heavier — the inertia proxy comes from torque
+divided by angular acceleration during spin-up and involves no ball counting at
+all. **But it never bound.** Recovery is 54–67 ms against a ball arriving every
+~228 ms, so the wheel spends roughly 160 ms per ball already back at speed and
+waiting. The feeder did not slow either; Houston's was the fastest measured.
+
+There was no mechanism for a decline, which is the tell that should have been
+followed before the decline was explained.
+
+### For next time
+
+- A rate derived from a detector needs the detector checked against reality
+  before the rate is compared across configurations. Ours changes behaviour
+  with flywheel mass, which is the exact variable under study.
+- Pick validation windows at random. Choosing "countable" windows means
+  choosing slow ones, and rate was the measurement — the first two counts were
+  biased this way and had to be thrown out.
+- Ask what the mechanism would be. Recovery time against ball spacing was
+  measurable from the start and rules the story out in one line.
+
+---
+
 ## 8. Fire rate: what we can actually do
 
 ### What changed, and what it cost
@@ -785,7 +861,7 @@ keeping up, which is exactly what a profile would inform.
 | # | Change | Expected gain | Confidence | Risk / precondition |
 |---|---|---|---|---|
 | 1 | Cap the **drivetrain** while shooting (`PowerManager`) | fewer brownouts, no fire-rate cost | **High** | Built on `offseason`, never run on a robot. Do this first. |
-| 2 | Raise/remove the feeder supply cap (25 A) | toward 5.4 balls/s, ~13 s/match back | **High** — direct A/B across events | Adds ≤60 A peak to a bus whose problem is 176 A of drivetrain. Needs 1 first. |
+| 2 | ~~Raise/remove the feeder supply cap (25 A)~~ | ~~toward 5.4 balls/s~~ **— see §7b, the 5.4 was a counting artifact** | ~~High~~ **Low** | The cross-event A/B this rested on does not survive hand counting. The cap may still be worth raising, but not for this reason and not at this priority. |
 | 3 | Falling debounce on `turret.atGoal()` in `canFire()` | up to ~9.5 s/match of window edges | **Medium-High** — 49% of windows measured | Must not loosen the actual aim requirement |
 | 4 | Use or delete the turret motion profile | clarity; possibly better tracking | **Medium** | Changing what is commanded needs field time |
 | 5 | Make `RUNSLOW` slower, or delete the branch | removes a no-op | **High** | None |
@@ -859,7 +935,7 @@ Recorded so they are not believed twice.
 
 | Claim | Correction |
 |---|---|
-| "Shot rate dropped 37%" | Contaminated by non-FMS practice logs. FMS matches only: **19%** on balls/s while firing, 29% on sustained gap. |
+| ~~"Shot rate dropped 37%"~~ | Twice wrong. First contaminated by non-FMS practice logs (FMS only: 19%). Then **retracted entirely** — hand counting five volleys off match video shows the rate never dropped. See §7b. |
 | "`logReview shots` gives balls per second" | It counts rising edges of `Commands/Fire shot` — how often the shooter is *let go*, not how often a ball leaves. Renamed and split by state in `LogReview` (commit `c53b303`). |
 | "The Ontario logs are champs matches" | All ten have `FMSAttached = false`. They are practice sessions dated after the event. |
 | "A feeder dragged to 65% of goal must be passing more material" | Sloppy. The goal went 40 → 65 rps *and* the gains changed, so more droop is expected at the same ball rate. |

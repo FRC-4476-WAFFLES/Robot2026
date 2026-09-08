@@ -86,9 +86,34 @@ public final class SimShooter {
    * closely (0.127 / 0.190 / 0.283 / 0.501), where the old clamped Gaussian
    * could not: it needed a spread as wide as its own median and still had to be
    * clipped off at the bottom.
+   *
+   * <p>
+   * <b>0.190 is the median, not the mean.</b> A lognormal's mean is
+   * {@code median * exp(sigma^2/2)}, and the floor below trims the short tail,
+   * which puts the simulated mean interval at 0.227 s — 4.40 balls/s, not the
+   * 5.3 the median alone suggests.
+   *
+   * <p>
+   * That rate is now measured rather than inferred. Five volleys across
+   * Niagara, Ontarios and Houston were counted by hand off match video; the
+   * four with a full hopper gave 81 balls in 18.5 s, a mean interval of
+   * 0.228 s, or 4.38 balls/s. The simulation is 0.5% off that, so leave it
+   * alone. The fifth volley ran at 2.6 balls/s with a near-empty hopper, which
+   * is ball supply rather than the shooter and is not modelled here.
    */
   private static final double SHOT_INTERVAL = 0.190;
-  /** Shape of the lognormal, fitted to the quartile ratio of those same gaps. */
+  /**
+   * Shape of the lognormal, fitted to the quartile ratio of those same gaps.
+   *
+   * <p>
+   * Treat this one as the soft number. The gaps it was fitted to come from the
+   * peak detector, and hand counting five volleys against match video later
+   * showed that detector invents extra peaks in fast bursts — it overcounts by
+   * about 22% above 5 balls/s and undercounts by about 12% below 4. That
+   * inflates the spread of short gaps, so real bursts are probably steadier
+   * than this reproduces. The rate itself is unaffected: over-splitting a burst
+   * moves gaps around without changing how many balls fell in the window.
+   */
   private static final double SHOT_INTERVAL_SIGMA = 0.59;
   /** The 5th percentile: two balls are never closer than this. */
   private static final double SHOT_INTERVAL_MINIMUM = 0.067;
