@@ -68,6 +68,17 @@ public final class SimBattery {
     return total;
   }
 
+  /** Everything drawn by sources whose name starts with {@code prefix}, in amps. */
+  public static double getTotalCurrent(String prefix) {
+    double total = 0;
+    for (var load : loads.entrySet()) {
+      if (load.getKey().startsWith(prefix)) {
+        total += load.getValue();
+      }
+    }
+    return total;
+  }
+
   /**
    * Every load by name and size, largest first, for working out where the
    * current is going when the model does something surprising.

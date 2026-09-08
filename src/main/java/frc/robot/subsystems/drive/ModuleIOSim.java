@@ -117,6 +117,29 @@ public class ModuleIOSim implements ModuleIO {
     return sign * Math.min(magnitude, Math.max(0, root));
   }
 
+  /**
+   * Supply current, signed, as electrical power over bus voltage.
+   *
+   * <p>
+   * The obvious {@code |stator| * duty} is wrong in the one case that matters
+   * here. When the bus sags below a spinning wheel's back-EMF the motor
+   * generates rather than consumes, and taking the magnitude reported that
+   * generated current as if the module were still drawing it — which fed
+   * straight back into the sag and ran the simulated pack down to its floor.
+   *
+   * <p>
+   * Power is {@code applied * stator} and supply current is that over the bus,
+   * which carries the sign for free: negative while regenerating.
+   * {@code SimBattery} floors loads at zero, so the pack does not get credited
+   * for the regeneration, it merely stops being charged for it.
+   */
+  private static double supplyDraw(DCMotorSim sim, double gearRatio, DCMotor gearbox,
+      double appliedVolts, double bus) {
+    double backEmf = sim.getAngularVelocityRadPerSec() * gearRatio / gearbox.KvRadPerSecPerVolt;
+    double stator = (appliedVolts - backEmf) / gearbox.rOhms;
+    return appliedVolts * stator / Math.max(1.0, bus);
+  }
+
   @Override
   public void updateInputs(ModuleIOInputs inputs) {
     // Run closed-loop control
@@ -168,16 +191,25 @@ public class ModuleIOSim implements ModuleIO {
     driveAppliedVolts = clampToSupply(driveAppliedVolts, driveSim, driveGearRatio,
         DRIVE_GEARBOX, driveSupplyLimit, bus);
 
+    // The battery clamp has to come last. MathUtil.clamp returns the bound when
+    // the value is outside it, so on a fast wheel with a sagged bus the stator
+    // clamp's lower bound sits above the bus and "clamping" raised the applied
+    // voltage above what the pack can deliver. Duty then exceeded 1 and the
+    // reported supply current inflated with it -- measured, four modules
+    // reporting 224 A each against a 45 A limit.
+    driveAppliedVolts = MathUtil.clamp(driveAppliedVolts, -bus, bus);
+    turnAppliedVolts = MathUtil.clamp(turnAppliedVolts, -bus, bus);
+
     driveSim.setInputVoltage(driveAppliedVolts);
-    turnSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -bus, bus));
+    turnSim.setInputVoltage(turnAppliedVolts);
     driveSim.update(0.02);
     turnSim.update(0.02);
 
     // Report what this module is taking out of the pack.
     SimBattery.setLoad(name + "/Drive",
-        Math.abs(driveSim.getCurrentDrawAmps()) * Math.abs(driveAppliedVolts) / Math.max(1.0, bus));
+        supplyDraw(driveSim, driveGearRatio, DRIVE_GEARBOX, driveAppliedVolts, bus));
     SimBattery.setLoad(name + "/Turn",
-        Math.abs(turnSim.getCurrentDrawAmps()) * Math.abs(turnAppliedVolts) / Math.max(1.0, bus));
+        supplyDraw(turnSim, turnGearRatio, TURN_GEARBOX, turnAppliedVolts, bus));
 
     // Update drive inputs
     inputs.driveConnected = true;

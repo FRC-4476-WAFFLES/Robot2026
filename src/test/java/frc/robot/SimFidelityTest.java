@@ -122,8 +122,8 @@ public class SimFidelityTest {
     double[] at45 = driveHardWith(45);
     double[] at10 = driveHardWith(10);
 
-    System.out.printf("45 A limit: peak %.0f A, low %.2f V   |   10 A limit: peak %.0f A, low %.2f V%n",
-        at45[0], at45[1], at10[0], at10[1]);
+    System.out.printf("drivetrain draw: %.0f A at a 45 A/module limit, %.0f A at 10 A%n",
+        at45[0], at10[0]);
     SimField.setEnabled(false);
     SimHarness.releaseAllControls();
     RobotContainer.drive.applyCurrentLimits(45);
@@ -147,12 +147,22 @@ public class SimFidelityTest {
     SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, -1.0);
     double lowest = idle;
     double peakAmps = 0;
+    int peakAt = -1;
+    String peakLoads = "";
     for (int i = 0; i < 40; i++) {
       SimHarness.step(1);
       lowest = Math.min(lowest, SimBattery.getVoltage());
-      peakAmps = Math.max(peakAmps, SimBattery.getTotalCurrent());
+      // The drivetrain specifically, not the whole robot -- the flywheel spins
+      // up alongside and would otherwise dominate the number being asserted on.
+      double driveAmps = SimBattery.getTotalCurrent("Module");
+      if (driveAmps > peakAmps) {
+        peakAmps = driveAmps;
+        peakAt = i;
+        peakLoads = SimBattery.describeLoads();
+      }
     }
-    System.out.printf("   limit %.0f A -> %s%n", supplyLimit, SimBattery.describeLoads());
+    System.out.printf("   limit %.0f A/module: peak drivetrain %.0f A on loop %d -> %s%n",
+        supplyLimit, peakAmps, peakAt, peakLoads);
     SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, 0.0);
     SimHarness.stepSeconds(0.5);
     return new double[] { peakAmps, lowest };
