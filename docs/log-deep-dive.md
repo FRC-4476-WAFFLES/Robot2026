@@ -732,7 +732,76 @@ Recorded so they are not believed twice.
 
 ---
 
-## 9. Why autonomous gets stuck on the bump
+## 9. Why autonomous fails at the bump — four matches, one cause
+
+**Measured**, on the four the drive team reported: q44, q59, q76 and e6
+(`2026mil_sf6m1`). Their account was right, and it is a *pose* failure that
+happens at the bump rather than a bump failure.
+
+**The mechanism.** The bump costs about a third of wheel travel (section 9c), so
+odometry over-reports how far the robot has gone. The path follower acts on that
+wrong pose. It then does one of two things depending on what the wrong pose
+implies:
+
+### It turns early and drives into the hub — q59, q76
+
+| q59 | pose | hub gap | speed | drive current |
+|---|---|---|---|---|
+| t=7.52 | (6.89, 4.67) | 1.69 m | 0.72 | **345 A** |
+| t=7.81 | (6.76, 4.72) | 1.56 m | 0.42 | **348 A** |
+| **t=8.11** | **(5.80, 3.71)** | **0.59 m** | 0.09 | 166 A |
+
+A **1.39 m pose jump in 0.3 s**. Before it the robot is pushing 345-348 A at
+0.4 m/s — shoving against something immovable — while odometry places it 1.6 m
+clear of the hub. Vision then corrects it to 0.59 m away, which for a robot with
+a 0.5 m half-diagonal is contact.
+
+q76 is the same shape: 257 A at 0.08 m/s at (6.47, 4.13), then a **0.87 m jump**
+to (5.81, 3.57), hub gap 0.61 m.
+
+The robot drove into the hub and odometry did not know. "It didn't cross far
+enough into the middle of the field" is exactly right — the turn was commanded
+against a pose that thought it had.
+
+### It gives up crossing and tries to spin on the ramp — q44, e6
+
+Tilted well above the flat-ground baseline, barely moving, commanded to rotate
+hard:
+
+| match | t | match clock | pose | tilt | speed | commanded omega |
+|---|---|---|---|---|---|---|
+| **q44** | 8.9 | **12** | (13.56, 5.40) | 22.2° | **0.05** | **+5.79** |
+| q44 | 9.2 | 12 | (13.11, 5.60) | 14.7° | 0.43 | **+11.55** |
+| q59 | 10.7 | 10 | (3.02, 2.66) | 11.0° | **0.04** | -6.70 |
+| q76 | 10.5 | 10 | (2.96, 2.66) | 13.4° | **0.09** | -4.83 |
+| e6 | 9.2-10.9 | 11-12 | (13.54, 2.67) | 11-18° | **0.02-0.09** | -6.77 to +2.05 |
+
+q44 commands **11.55 rad/s — 660 degrees per second** — while sitting still at
+22 degrees of tilt. The follower believes it has arrived at the waypoint and
+only heading is left, so it stops asking for translation and asks for rotation
+instead. It has not arrived; it is short, on the ramp.
+
+### Why vision does not rescue it
+
+In e6 the robot sat motionless for **5.2 seconds** with the pose going stale to
+**6.3 seconds** old, then corrected 0.55 m. Throughout that time the frame
+camera had **exactly one tag in view continuously** and every frame was
+discarded by `IGNORE_SINGLE_TAG`.
+
+That is the case for accepting single-tag estimates at reduced confidence. It is
+not that the tags were missing.
+
+### What this costs, per match
+
+| | genuine stall | worst pose staleness | correction when vision returned |
+|---|---|---|---|
+| q59 | 1.9 s | 3.1 s | 0.69 m |
+| e6 | 4.0 s | **6.3 s** | 0.55 m |
+| q76 | — | — | 0.91 m (at the end of auto) |
+
+---
+
+## 9z. Earlier framing of this section, corrected
 
 **Measured**, on e6 (`2026mil_sf6m1`), the match the drive team reported.
 
