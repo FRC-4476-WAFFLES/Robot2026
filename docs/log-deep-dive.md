@@ -344,13 +344,43 @@ Median gap 0.55-0.58 s, which is `LL_HEARTBEAT_MIN_FREQ` exactly.
 Someone started leaving AdvantageScope connected over the field WiFi partway
 through May 1, and it got worse every match through elims.
 
-**Why it spirals.** NT4 is subscription-based, so Elastic costs nothing — it
-subscribes to the handful of topics it draws. AdvantageScope subscribes to the
-*entire* AdvantageKit tree, which is the point of it. That does not fit in the
-bandwidth FMS allows, so the connection saturates and drops; on reconnect NT4
-re-announces every topic and dumps initial values, which saturates it again.
-117 cycles in 220 seconds. It cannot ever settle, and each cycle costs the loop
-enough to lose both cameras for half a second.
+**It is the thrashing, not the attachment.** A *stable* AdvantageScope
+connection over the radio costs loop time but kills nothing:
+
+| match | attached | reconnects/s | over 60 ms attached | detached | camera deaths |
+|---|---|---|---|---|---|
+| q68 | 168 s | 0.01 | 3.0% | 0.5% | **0** |
+| q105 | 167 s | 0.01 | 2.8% | 0.4% | **0** |
+| e3 (14:00) | 167 s | 0.01 | 3.2% | 0.5% | **0** |
+| q117 | 166 s | 0.05 | 5.0% | 0.8% | 1 |
+| e3 (14:34) | 135 s | 0.35 | 7.6% | 0.6% | 28 |
+| e3 (15:06) | 123 s | **0.68** | **10.5%** | 1.3% | **43** |
+| e6 | 106 s | **0.73** | 8.0% | 1.8% | 35 |
+
+**e6 was not the worst — e3 at 15:06 was**, on both loop overrun and camera
+deaths. e6 had the highest reconnect *rate* and was the last match played. The
+escalation belongs to May 2 elims generally, not to e6 specifically.
+
+**Ruled out as the reason it started thrashing** (all measured):
+
+| Suspect | Evidence against |
+|---|---|
+| We published more topics | 373 in q44, 386 at the worst. Essentially flat. |
+| Attached for longer | Attached time went *down*, 168 s → 106 s. |
+| The radio degraded | DS and FMS attach exactly twice per match (on, off) in every one of these. `CommsDisableCount` is 0, except 1 in e6. Elastic flips once. AdvantageScope shares that RF path and was the only thing dropping. |
+
+**Suspected, not measured — the mechanism.** NT4 is subscription-based, so
+Elastic is cheap: it subscribes to the handful of topics it draws.
+AdvantageScope subscribes broadly, and each reconnect re-announces topics and
+re-sends values. That is consistent with everything above, but the log records
+connection state and IP only — it has no bandwidth, signal strength or
+subscription data, so this is inference from how NT4 works and not something
+these logs demonstrate.
+
+**Why it began at 14:34 on May 2 is unknown.** Not our topic count, not
+attachment duration, not the field link. Whatever changed was on the laptop
+side — where it was sitting, which laptop it was, or how many tabs were open in
+AdvantageScope — and none of that reaches the log.
 
 **The fix is not code.** Do not connect AdvantageScope over the field radio
 during a match. Log to the USB stick and pull it afterwards, which is what
