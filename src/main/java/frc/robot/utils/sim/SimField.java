@@ -10,7 +10,9 @@ import static edu.wpi.first.units.Units.Meters;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.RobotContainer;
@@ -19,6 +21,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.lib.WafflesUtilities;
+import frc.robot.utils.sim.SimRobot;
 
 /**
  * Gives the simulated robot a field to be on, rather than an infinite plane.
@@ -55,28 +58,9 @@ public final class SimField {
   private static final double BUMP_START_X = 4.0;
   /** How far the robot tilts at the peak of the bump, in degrees. */
   private static final double BUMP_TILT_DEGREES = 12.0;
-  /**
-   * How much grip the wheels lose on the bump.
-   *
-   * <p>
-   * Chosen to reproduce what was measured across 263 real crossings: a clean one
-   * under half a second costs about 3 cm of pose error and a slow two-to-four
-   * second one costs over a metre. Slipping about a third of the wheels' motion
-   * while on it lands in that range, and crossing slowly costs more simply
-   * because the robot spends longer there.
-   */
-  private static final double BUMP_SLIP = 0.35;
-  /** Wheels against a wall turn without taking the robot anywhere. */
-  private static final double WALL_SLIP = 0.95;
 
   /** Metres per second squared. */
   private static final double GRAVITY = 9.81;
-  /**
-   * How much of the slope-induced speed is lost each loop to the drivetrain
-   * holding the robot. Without it a robot parked on the bump accelerates away
-   * forever; with it, it creeps and settles.
-   */
-  private static final double SLOPE_FRICTION = 0.30;
   /** How much of the crossing is spent going from level to fully tilted. */
   private static final double EDGE_TRANSITION = 0.12;
   /**
@@ -85,9 +69,21 @@ public final class SimField {
    * and a robot parked there is shoved back and forth instead of sliding off.
    */
   private static final double CREST_HALF_WIDTH = 0.10;
+  /**
+   * How high the crest sits above the carpet, in metres. Consistent with the
+   * tilt: a face of about 0.86 m at 12 degrees rises roughly this far.
+   */
+  private static final double BUMP_HEIGHT = 0.18;
+  /**
+   * How much grip is left on the bump. Less weight on each wheel and a worse
+   * surface under them, and what remains has to beat gravity along the slope --
+   * so a robot that drives at it too gently slides back down. That is beaching,
+   * and here it falls out of the physics rather than being written in.
+   */
+  private static final double BUMP_TRACTION = 0.22;
 
   private static boolean enabled = true;
-  private static double slopeVelocity = 0;
+  private static Pose3d robotPose3d = Pose3d.kZero;
 
   private SimField() {}
 
@@ -102,14 +98,11 @@ public final class SimField {
    */
   public static void setEnabled(boolean value) {
     enabled = value;
-    if (!value) {
-      RobotContainer.simState.setSlip(0);
-    }
   }
 
-  /** How fast gravity is currently pulling the robot along the bump, in m/s. */
-  public static double getSlopeVelocity() {
-    return slopeVelocity;
+  /** Where the robot is in three dimensions, including its height and tilt. */
+  public static Pose3d getRobotPose3d() {
+    return robotPose3d;
   }
 
   /** Whether the walls, the bump and the slip are in effect. */
@@ -118,65 +111,105 @@ public final class SimField {
   }
 
   /**
-   * Keeps the robot on the field, tilts it on the bump, and makes the wheels
-   * slip where they would. Call once per simulation loop.
+   * Runs the physical robot forward one loop and keeps it on the field.
+   *
+   * <p>
+   * The order matters. The wheels state an intent, {@link SimRobot} works out
+   * what the robot actually does about it, and only then is the result checked
+   * against the field — so a robot that hits a wall stops because it hit a wall,
+   * rather than being teleported out of one afterwards.
    */
   public static void update() {
     if (!enabled) {
       return;
     }
-    // The truth pose, not odometry. Once the wheels start slipping the two are
-    // different, and the walls and the bump are features of where the robot
-    // actually is.
-    Pose2d truth = RobotContainer.simState.getPose();
 
-    double clampedX = MathUtil.clamp(truth.getX(), ROBOT_RADIUS,
-        FieldConstants.fieldLength - ROBOT_RADIUS);
-    double clampedY = MathUtil.clamp(truth.getY(), ROBOT_RADIUS,
-        FieldConstants.fieldWidth - ROBOT_RADIUS);
-    boolean againstWall = clampedX != truth.getX() || clampedY != truth.getY();
-
-    // Field elements the robot cannot drive through. Pushed out along whichever
-    // axis it is least far into, which is the direction it would actually slide.
-    Translation2d pushed = pushOutOfObstacles(new Translation2d(clampedX, clampedY));
-    boolean hitObstacle = pushed.getDistance(new Translation2d(clampedX, clampedY)) > 1e-6;
-    clampedX = pushed.getX();
-    clampedY = pushed.getY();
-
-    if (againstWall || hitObstacle) {
-      Pose2d held = new Pose2d(clampedX, clampedY, truth.getRotation());
-      RobotContainer.simState.setTruePose(held);
-
-      // Odometry is held here too, and only here. A real robot pressed into a
-      // wall does let its pose run away, and simulating that faithfully was the
-      // first attempt — but odometry is what the dashboard draws, so the robot
-      // slid through every wall on screen while only an invisible truth pose
-      // stopped. Being able to see the robot hit things is worth more than
-      // reproducing that particular drift, and the bump below still produces
-      // plenty of it.
-      RobotContainer.drive.setPose(held);
-    }
-
-    // The bump runs across the field at a fixed X. Tilt is a triangle: up the
-    // near face, over the crest, down the far face.
-    Pose2d blueRelative = WafflesUtilities.FlipIfRedAlliance(truth);
+    // Where the robot is on the field decides the slope it is on, so that is
+    // worked out before the step rather than after it.
+    Pose2d before = SimRobot.getPose();
+    Pose2d blueRelative = WafflesUtilities.FlipIfRedAlliance(before);
     double width = FieldConstants.LinesVertical.neutralZoneNear - BUMP_START_X;
     double through = (blueRelative.getX() - BUMP_START_X) / width;
     boolean onBump = through > 0 && through < 1;
     double tilt = onBump ? tiltAt(through) : 0;
 
     GyroIOSim.setTilt(tilt);
-    RobotContainer.simState.setSlip(
-        againstWall || hitObstacle ? WALL_SLIP : onBump ? BUMP_SLIP : 0);
 
-    applySlope(onBump, through, tilt);
+    // Gravity along the surface. Downhill is back the way it came on the near
+    // face and onward on the far side, and flips with the field.
+    double alongSlope = 0;
+    if (onBump) {
+      double downhill = through < 0.5 ? -1 : 1;
+      alongSlope = -GRAVITY * Math.sin(Math.toRadians(tilt)) * downhill;
+      if (blueRelative.getX() != before.getX()) {
+        alongSlope = -alongSlope;
+      }
+    }
 
-    Logger.recordOutput("SimField/Against Wall", againstWall);
-    Logger.recordOutput("SimField/Against Obstacle", hitObstacle);
+    SimRobot.update(RobotContainer.drive.getSimWheelIntent(),
+        new Translation2d(alongSlope, 0),
+        onBump ? BUMP_TRACTION : 1.0);
+
+    // Now stop it going anywhere it cannot.
+    resolveCollisions();
+
+    // Odometry integrates the wheels regardless, so the difference between what
+    // the wheels did and what the robot did is the drift — no slip factor
+    // needed, because the slip is whatever physics left over.
+    Pose2d truth = SimRobot.getPose();
+    RobotContainer.simState.setTruePose(truth);
+
+    publishRobotPose3d(truth, blueRelative, through, onBump);
     Logger.recordOutput("SimField/On Bump", onBump);
     Logger.recordOutput("SimField/Bump Tilt", tilt);
     Logger.recordOutput("SimField/Odometry Error",
         truth.getTranslation().getDistance(RobotContainer.state.getPose().getTranslation()));
+  }
+
+  /**
+   * Stops the robot at anything solid.
+   *
+   * <p>
+   * Each surface is checked in turn and the robot is pushed out along the
+   * shallowest escape, which is the direction it would actually slide. The
+   * velocity into that surface is taken away by {@link SimRobot#collide}, so a
+   * robot driving along a wall keeps moving down it rather than sticking.
+   */
+  private static void resolveCollisions() {
+    Pose2d current = SimRobot.getPose();
+    double x = current.getX();
+    double y = current.getY();
+
+    double clampedX = MathUtil.clamp(x, ROBOT_RADIUS, FieldConstants.fieldLength - ROBOT_RADIUS);
+    double clampedY = MathUtil.clamp(y, ROBOT_RADIUS, FieldConstants.fieldWidth - ROBOT_RADIUS);
+    if (clampedX != x || clampedY != y) {
+      Translation2d normal = new Translation2d(
+          Math.signum(clampedX - x), Math.signum(clampedY - y));
+      if (normal.getNorm() > 0) {
+        normal = normal.div(normal.getNorm());
+      }
+      SimRobot.collide(new Pose2d(clampedX, clampedY, current.getRotation()), normal);
+      Logger.recordOutput("SimField/Against Wall", true);
+      current = SimRobot.getPose();
+    } else {
+      Logger.recordOutput("SimField/Against Wall", false);
+    }
+
+    boolean hitObstacle = false;
+    for (Translation3d hub : new Translation3d[] {
+        FieldConstants.Hub.topCenterPoint, FieldConstants.Hub.oppTopCenterPoint }) {
+      double half = FieldConstants.Hub.width / 2 + ROBOT_RADIUS;
+      Translation2d pushed = pushOutOfRectangle(current.getTranslation(),
+          hub.getX(), hub.getY(), half, half);
+      if (pushed.getDistance(current.getTranslation()) > 1e-9) {
+        Translation2d normal = pushed.minus(current.getTranslation());
+        normal = normal.div(normal.getNorm());
+        SimRobot.collide(new Pose2d(pushed, current.getRotation()), normal);
+        current = SimRobot.getPose();
+        hitObstacle = true;
+      }
+    }
+    Logger.recordOutput("SimField/Against Obstacle", hitObstacle);
   }
 
   /**
@@ -203,66 +236,40 @@ public final class SimField {
   }
 
   /**
-   * Lets gravity act on the robot the way it acts on a ball.
+   * Publishes where the robot is in three dimensions, so it can be drawn sitting
+   * on the field rather than through it.
    *
    * <p>
-   * The bump used to tilt the robot and take grip away, and do nothing else: the
-   * robot climbed it at exactly the speed it drove anywhere. A ball on the same
-   * slope rolls back down, and it looked wrong because it was.
+   * The robot's pose is a {@code Pose2d} — X, Y and a heading. There is nowhere
+   * in it to say the robot is off the floor and nose up, so however much the
+   * gyro reported, the drawn robot stayed flat on the carpet and slid through
+   * the bump. A real robot cannot know its own height either, which is why this
+   * belongs to the simulation and not to {@code RobotState}.
    *
    * <p>
-   * On a slope of angle θ, gravity pulls along the surface at g sin θ. Climbing,
-   * that fights the drivetrain; descending, it helps. Drive at the bump too
-   * gently and the slope wins and pushes the robot back down — which is the
-   * failure the drive team calls beaching, and it could not happen here before.
-   *
-   * <p>
-   * The push goes to the truth pose only. The wheels did not turn for it, so
-   * odometry believes the robot is still climbing while it slides backwards,
-   * exactly as it does on the field.
+   * Point AdvantageScope's 3D field at {@code SimField/Robot Pose 3D} and the
+   * robot climbs the bump, nose up going on and tail up coming off. Pitch and
+   * roll are resolved against the heading rather than assumed, so crossing the
+   * bump square pitches the robot and crossing it sideways rolls it.
    */
-  private static void applySlope(boolean onBump, double through, double tiltDegrees) {
-    if (!onBump) {
-      slopeVelocity = 0;
-      Logger.recordOutput("SimField/Slope Velocity", 0.0);
-      return;
+  private static void publishRobotPose3d(Pose2d truth, Pose2d blueRelative,
+      double through, boolean onBump) {
+    double height = onBump ? BUMP_HEIGHT * (1 - Math.abs(through * 2 - 1)) : 0;
+
+    double slopeRadians = onBump
+        ? Math.toRadians(tiltAt(through)) * (through < 0.5 ? 1 : -1)
+        : 0;
+    if (blueRelative.getX() != truth.getX()) {
+      slopeRadians = -slopeRadians;
     }
 
-    // Downhill is towards whichever face the robot is on: back the way it came
-    // on the near side, onward on the far side.
-    double downhill = through < 0.5 ? -1 : 1;
-    double along = -GRAVITY * Math.sin(Math.toRadians(tiltDegrees)) * downhill;
-
-    // Friction keeps a robot sitting still on a slope from accelerating forever.
-    slopeVelocity = (slopeVelocity + along * CodeConstants.PERIODIC_LOOP_TIME)
-        * (1 - SLOPE_FRICTION);
-
-    // Blue-relative X, so flip it when the field is mirrored.
-    double fieldX = slopeVelocity
-        * (WafflesUtilities.FlipIfRedAlliance(Pose2d.kZero).getX() > 1 ? -1 : 1);
-    RobotContainer.simState.push(
-        new Translation2d(fieldX * CodeConstants.PERIODIC_LOOP_TIME, 0));
-    Logger.recordOutput("SimField/Slope Velocity", slopeVelocity);
-  }
-
-  /**
-   * Pushes the robot out of any field element it is inside.
-   *
-   * <p>
-   * Both hubs, treated as rectangles grown by the robot's radius. A robot only
-   * ever overlaps one by a little, so it is pushed out along whichever axis it
-   * is least far into — the shallowest escape, which is the way it would
-   * actually slide off.
-   */
-  private static Translation2d pushOutOfObstacles(Translation2d position) {
-    Translation2d result = position;
-    for (Translation3d hub : new Translation3d[] {
-        FieldConstants.Hub.topCenterPoint, FieldConstants.Hub.oppTopCenterPoint }) {
-      result = pushOutOfRectangle(result, hub.getX(), hub.getY(),
-          FieldConstants.Hub.width / 2 + ROBOT_RADIUS,
-          FieldConstants.Hub.width / 2 + ROBOT_RADIUS);
-    }
-    return result;
+    double heading = truth.getRotation().getRadians();
+    robotPose3d = new Pose3d(
+        new Translation3d(truth.getX(), truth.getY(), height),
+        new Rotation3d(-slopeRadians * Math.sin(heading), -slopeRadians * Math.cos(heading),
+            heading));
+    Logger.recordOutput("SimField/Robot Pose 3D", robotPose3d);
+    Logger.recordOutput("SimField/Height", height);
   }
 
   private static Translation2d pushOutOfRectangle(Translation2d position,

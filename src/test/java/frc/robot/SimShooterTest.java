@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterAll;
@@ -213,6 +214,45 @@ public class SimShooterTest {
     assertTrue(Math.abs(after - before) > 0.05,
         "a robot sitting on the slope with no drive should slide, moved "
             + (after - before) + " m");
+  }
+
+  @Test
+  void theRobotRidesOverTheBumpInThreeDimensions() {
+    // The robot's pose is a Pose2d, so there is nowhere in it to say the robot
+    // is off the floor and nose up. Whatever the gyro reported, the drawn robot
+    // stayed flat on the carpet and slid through the bump -- which is why none
+    // of the collision work looked like it was working.
+    SimField.setEnabled(true);
+    RobotContainer.simState.resetSlipTracking();
+    SimHarness.releaseAllControls();
+
+    double flatHeight = Double.NaN;
+    double peakHeight = 0;
+    double peakPitchDegrees = 0;
+    for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.15) {
+      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
+      SimHarness.step(3);
+      var pose = SimField.getRobotPose3d();
+      if (Double.isNaN(flatHeight)) {
+        flatHeight = pose.getZ();
+      }
+      if (pose.getZ() > peakHeight) {
+        peakHeight = pose.getZ();
+      }
+      peakPitchDegrees = Math.max(peakPitchDegrees,
+          Math.abs(Math.toDegrees(pose.getRotation().getY())));
+    }
+
+    System.out.printf("3D robot: %.3f m on the flat, %.3f m at the crest, %.1f deg of pitch%n",
+        flatHeight, peakHeight, peakPitchDegrees);
+    SimField.setEnabled(false);
+    SimHarness.levelOut();
+
+    assertEquals(0.0, flatHeight, 1e-6, "the robot should sit on the carpet away from the bump");
+    assertTrue(peakHeight > 0.1,
+        "the robot should ride up over the bump, peaked at " + peakHeight + " m");
+    assertTrue(peakPitchDegrees > 5,
+        "and tip nose up climbing it, peaked at " + peakPitchDegrees + " degrees");
   }
 
   /** Holds the shoot trigger, so the shooter runs the way a driver runs it. */

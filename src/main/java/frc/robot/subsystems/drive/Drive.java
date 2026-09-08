@@ -243,9 +243,9 @@ public class Drive extends ExpandedSubsystem implements PowerManaged {
         // Apply update
         poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, odometryModulePositions);
         if (Constants.getMode() == Mode.SIM) {
-          // Not the same positions odometry just got: the truth pose only
-          // advances by what the robot actually moved, so wheel slip shows up as
-          // the two drifting apart.
+          // Keeps the truth estimator's module and gyro references current. Its
+          // pose comes from SimRobot rather than from these, but resetting it
+          // needs a reference that matches what it was last updated with.
           RobotContainer.simState.updateUnderlying(sampleTimestamps[i], rawGyroRotation,
               odometryModulePositions);
         }
@@ -341,6 +341,21 @@ public class Drive extends ExpandedSubsystem implements PowerManaged {
     return states;
   }
 
+  /**
+   * What the wheels are trying to do to the robot, field relative.
+   *
+   * <p>
+   * Simulation only, and deliberately an <i>intent</i> rather than a result:
+   * {@code SimRobot} decides what the robot actually does about it once traction
+   * and the field have had their say. Odometry keeps integrating the wheels
+   * either way, which is what makes the two drift apart.
+   */
+  public ChassisSpeeds getSimWheelIntent() {
+    var robotRelative = kinematics.toChassisSpeeds(getModuleStates());
+    return ChassisSpeeds.fromRobotRelativeSpeeds(robotRelative,
+        frc.robot.utils.sim.SimRobot.getPose().getRotation());
+  }
+
   /** Returns the measured chassis speeds of the robot. */
   @AutoLogOutput(key = "RobotState/SwerveChassisSpeeds/Measured")
   private ChassisSpeeds getChassisSpeeds() {
@@ -376,6 +391,12 @@ public class Drive extends ExpandedSubsystem implements PowerManaged {
 
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
+    if (Constants.getMode() == Mode.SIM) {
+      // Placing the robot places the actual robot, not just its belief about
+      // itself. Without this the physical robot stays where it was and the two
+      // instantly disagree by however far it was moved.
+      frc.robot.utils.sim.SimRobot.setPose(pose);
+    }
     poseEstimator.resetPosition(rawGyroRotation, getOdometryModulePositions(), pose);
     if (Constants.getMode() == Mode.SIM) {
       RobotContainer.simState.getSwerveDrivePoseEstimator().resetPosition(rawGyroRotation, getOdometryModulePositions(),
