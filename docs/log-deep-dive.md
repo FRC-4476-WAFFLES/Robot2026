@@ -818,13 +818,28 @@ you notice which frames pass: the close ones. In the window where the robot was
 actually lost, areas were 1.5 - 2.3. The threshold self-selects for short range,
 which is where a single tag is trustworthy and where being lost hurts most.
 
-**e6 is a different failure and should not be lumped in.** There the frame
-camera's estimate is frozen at (11.48, 2.66) for the entire five seconds —
-byte-identical every sample, so the Limelight was returning a stale result, not
-a good one being rejected. It was 1.37 m from truth. The duplicate-timestamp
-skip was right to drop it. That points at `LimelightIO`'s early returns leaving
-stale values in the inputs object (section 2.3) rather than at
-`IGNORE_SINGLE_TAG`.
+**~~e6 is a different failure and should not be lumped in.~~ Retracted — e6 is
+the same failure.** The claim above was that the frame camera's estimate sat
+byte-identical for five seconds, so the Limelight was frozen rather than being
+filtered. That was an artifact of how WPILOG stores data: records are written
+only when a value *changes*, so a camera that sees nothing and a camera that is
+frozen both leave the same silence in the log. Counting identical payloads
+counts nothing, because identical payloads are never written twice.
+
+Separating the two properly — stale means `isAlive` and `canSeeTag` both true
+with no new `MegatagResult` — e6's longest genuine stale spell is **0.64 s**,
+not five seconds. e6 does have far more staleness than its neighbours (39
+spells, 16.9 s total on the turret, against 1-2 spells under 0.6 s in q44, q59
+and q76), but it is spread across the match in half-second slices that line up
+with loop overruns, and none of it lands in the failure window.
+
+Both limelights are also declared dead on the *same loop* twice during e6 auto
+(t=2.8 and t=11.6). Two cameras failing simultaneously is not two cameras
+failing — `isAlive` is derived from a heartbeat that robot code has to read, so
+any loop stall past `LL_HEARTBEAT_MIN_FREQ` (0.5 s) marks every camera dead at
+once. e6 ran 26.2% of its loops over 30 ms, against 14.2% in q44. That is a
+roboRIO symptom being reported as a camera symptom, and it is worth fixing
+separately, but it is not what lost the auto.
 
 ### Why vision does not rescue it
 
@@ -835,6 +850,23 @@ discarded by `IGNORE_SINGLE_TAG`.
 
 That is the case for accepting single-tag estimates at reduced confidence. It is
 not that the tags were missing.
+
+**Confirmed by replay.** Running the e6 log through the pose estimator both ways
+(see the `frc-log-replay` skill):
+
+| blind window | length | baseline error | single-tag error |
+|---|---|---|---|
+| t=1.5 s | 1.6 s | 1.42 m | 1.06 m |
+| **t=7.2 s** | **6.3 s** | **0.92 m** | **0.08 m** |
+
+The second row is the one that lost the auto. Through it the baseline holds
+(13.54, 2.66) while the gyro reads 17° of tilt — a robot at 17° is on a ramp,
+and the far bump ends at x=12.459, so the pose is at least 1.08 m past the
+nearest surface that could tilt it. Single-tag holds x≈12.26, which is *on* the
+ramp and physically coherent with the tilt.
+
+It takes almost nothing to do it: 346 accepted fixes against the baseline's 338.
+Eight extra corrections, landing in the one window where there were none.
 
 ### What this costs, per match
 
