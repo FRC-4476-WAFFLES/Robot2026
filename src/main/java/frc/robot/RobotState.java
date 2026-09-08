@@ -28,6 +28,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.Mode;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
+import frc.robot.utils.lib.BeachDetector;
 import frc.robot.utils.vendor.HubShiftUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -133,6 +134,10 @@ public class RobotState {
 
   @Getter
   private double latestTilt = 0;
+
+  private final BeachDetector beachDetector = new BeachDetector();
+  private ChassisSpeeds autopilotCommandedSpeeds = new ChassisSpeeds();
+  private double lastOdometryTimestamp = 0;
 
   private static final APConstraints autopilotConstraints = new APConstraints()
       .withVelocity(CodeConstants.AUTO_MAX_SPEED)
@@ -276,6 +281,35 @@ public class RobotState {
         latestTilt = 16;
       }
     }
+
+    // Notice if the wheels are turning and the robot is not going anywhere.
+    // The pose passed in here is the vision-corrected estimate, which is what
+    // makes this work at all -- see BeachDetector.
+    beachDetector.update(
+        timestamp,
+        pose.getTranslation(),
+        Math.hypot(newSpeeds.vxMetersPerSecond, newSpeeds.vyMetersPerSecond),
+        Math.hypot(autopilotCommandedSpeeds.vxMetersPerSecond,
+            autopilotCommandedSpeeds.vyMetersPerSecond),
+        timestamp - lastOdometryTimestamp);
+    lastOdometryTimestamp = timestamp;
+  }
+
+  /** True when the wheels are turning but the robot is going nowhere. */
+  @AutoLogOutput(key = "RobotState/Beached")
+  public boolean isBeached() {
+    return beachDetector.isBeached();
+  }
+
+  /** Ground covered as a fraction of wheel travel, 1.0 when all is well. */
+  @AutoLogOutput(key = "RobotState/Ground Ratio")
+  public double getGroundRatio() {
+    return beachDetector.getGroundRatio();
+  }
+
+  /** Records what the drivetrain has been asked for, so beaching can be judged. */
+  public void setCommandedSpeeds(ChassisSpeeds speeds) {
+    autopilotCommandedSpeeds = speeds;
   }
 
   public void updateTurret(double timestamp, Rotation2d position, double velocity) {

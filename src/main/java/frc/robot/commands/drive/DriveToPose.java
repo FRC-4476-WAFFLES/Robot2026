@@ -137,6 +137,10 @@ public class DriveToPose {
 
       var robotRelativeGoalSpeed = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeGoalSpeed, pose.getRotation());
 
+      // What the drivetrain is being asked for, so the beach detector can tell
+      // "going nowhere while trying" from "going nowhere on purpose".
+      RobotContainer.state.setCommandedSpeeds(fieldRelativeGoalSpeed);
+
       Logger.recordOutput("RobotState/Autopilot/Target", currentTarget.getReference());
       Logger.recordOutput("RobotState/Autopilot/Field Relative Goal Speeds", fieldRelativeGoalSpeed);
       Logger.recordOutput("RobotState/Autopilot/Velocity Limit", RobotState.getAutopilotVelocityConstraint());
