@@ -473,6 +473,97 @@ shows it. Exclude it by passing the others individually.
 
 ---
 
+## From the all-match log deep dive
+
+Full evidence in [`log-deep-dive.md`](log-deep-dive.md) — 113 logs, 25 FMS
+matches. Only the actionable items are listed here.
+
+### Raise the feeder supply current limit — Open, do after the power manager
+
+`IndexerIOTalonFX.configureFeederMotors()` caps feeder supply at 25 A. Commit
+`a55caae` (2026-04-18) added it; before that there was no supply limit at all.
+Measured across FMS matches, that cap took balls/second while firing from 5.38 to
+4.34 and the ball-to-ball gap from 0.129 s to 0.183 s. The drive team compensated
+by holding the trigger 33% longer, so it cost about **13 seconds of match time
+per match** rather than points.
+
+It was presumably added to fight brownouts, and the brownout data says it is
+aimed at the wrong subsystem: across 159 brownouts the feeder's median draw is
+**0 A** while the drivetrain's is **176 A**.
+
+**Do not do this before the power manager is running.** Removing the cap without
+capping the drivetrain gives back the brownouts that motivated it.
+
+### Debounce `turret.atGoal()` inside `canFire()` — Open
+
+**Half of Houston's fire windows were closed by the turret dropping out of
+`atGoal`** (159 of 325), not by the driver — up from 36% at ONWEL. `canFire()`
+uses the term raw, so a momentary excursion kills the shoot command, and the next
+one pays the 0.12–0.37 s startup latency again. Window edges cost roughly 9.5 s
+per match.
+
+`POSITION_TOLERANCE` is already a wide 12°, and `atGoal()` compares against the
+*final* goal (`Turret.java:105`), so dropping out means the turret is genuinely
+lagging its target — a tracking problem, not a tolerance one. A falling debounce
+on that term, exactly as was done for the flywheel, stops the churn without
+loosening the aim requirement.
+
+### Use or delete the turret motion profile — Open
+
+`Turret.java:96` evaluates a trapezoidal profile every loop and logs it to
+`Turret/MotionProfile/*`; line 103 commands `profileState` but is commented out
+and line 104 commands the raw goal instead. Measured turret velocity p99 is
+2.00–2.10 rot/s in every match — it is saturating its own top speed rather than
+following a profile. Right now the profile is pure cost and its logged outputs
+describe motion that never happens.
+
+### Decide `IGNORE_SINGLE_TAG` deliberately — Investigate
+
+`limelight-frame` produces a usable pose **1.2–3.7% of enabled time**. It spends
+33–97% of a match looking at exactly one tag, and the flag discards every one —
+and also short-circuits `calculateGyroEstimate()`, the fallback built for that
+case. `isAmbiguityAcceptable`, `MIN_TAG_AREA_SINGLE_TAG` and
+`isYawDifferenceAcceptable` are all unreachable today.
+
+Not a code change to make blind — the flag exists for a reason. But the cost is
+now quantified and the guards are already written. Worth a practice-field test.
+
+### Separate "camera dead" from "loop was late" — Open
+
+`LimelightIO.java:35` derives `isAlive` from wall-clock heartbeat staleness with
+a 0.5 s window, so any loop stall over 0.5 s marks **both** cameras dead at once.
+That is the entire observed pattern of simultaneous camera dropouts. Compare
+heartbeat progression against loops actually run instead.
+
+### Fix six early returns inside `EpochTimer` blocks — Open
+
+`Flywheel:71`, `Indexer:62`, `Intake:68`, `Hood:46`, `Turret:69`, `Turret:74`
+return before `EndEpoch`, so `Timing (ms)/<name>` silently stops updating.
+`Turret` BRAKE happens during matches, so that one goes stale mid-match. Ten
+minutes with `try/finally`, and it matters because half of every loop overrun is
+currently unaccounted for.
+
+### Pass a real period to `ChassisSpeeds.discretize` — Open
+
+`Drive.java:271` hardcodes 0.02 s. Measured loop is p50 21 ms, p90 32–44 ms,
+p99 66 ms, so it under-compensates the translate/rotate coupling exactly when the
+robot is busiest.
+
+### Make `RUNSLOW` slower, or delete the agitation branch — Open
+
+`ShooterCommands.java:26-33` switches between `IndexerState.RUN` and `RUNSLOW` on
+a 2 s cycle. The two states have had identical parameters at both events, so the
+branch computes nothing.
+
+### Hood zeroing runs after enable, every match — Open
+
+Motors cannot move while disabled, so `Hood.periodic`'s zeroing routine only
+completes 0.1–0.6 s **after** the match starts, during autonomous, while
+`periodic` returns early and never commands a position. There is also no timeout
+and no alert if the stall is never detected.
+
+---
+
 ## Highest value (everything else)
 
 ### Collision detection and recovery in autos — Open
