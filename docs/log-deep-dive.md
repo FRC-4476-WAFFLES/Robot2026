@@ -781,6 +781,51 @@ q44 commands **11.55 rad/s — 660 degrees per second** — while sitting still 
 only heading is left, so it stops asking for translation and asks for rotation
 instead. It has not arrived; it is short, on the ramp.
 
+### What we could see, and threw away
+
+**Measured**, decoding the megatag results that were rejected.
+
+q59, the 1.3 seconds before the robot drove into the hub. The turret camera had
+tag 19, then tag 20, continuously — about 45 frames:
+
+| | measured | the gate behind the flag | verdict |
+|---|---|---|---|
+| distance | 0.98 - 1.12 m | — | close |
+| `avgTagArea` | **1.5 - 2.3** | `MIN_TAG_AREA_SINGLE_TAG` = 1.0 | **passes** |
+| ambiguity | **0.02 - 0.09** | `AMBIGUITY_THRESHOLD` = 0.7 | **passes easily** |
+| tag count | 1 | `IGNORE_SINGLE_TAG` | **blocked** |
+
+**Every one of those frames would have passed the existing single-tag quality
+guards.** They are unreachable code, because the flag short-circuits first.
+
+What those frames were worth, against the next accepted fix at (5.80, 3.70):
+
+| t | estimate | error vs odometry | **error of the estimate** |
+|---|---|---|---|
+| 7.0 | (5.91, 3.41) | 1.62 m | 0.31 m |
+| **7.5** | **(5.80, 3.67)** | **1.47 m** | **0.03 m** |
+
+A single-tag fix **3 centimetres** from truth while odometry was **1.47 m**
+wrong, six tenths of a second before the collision.
+
+q59's second window is the same story at smaller scale — single-tag estimates
+0.25 to 0.29 m from truth while odometry was about 1.0 m off.
+
+**A caveat on the area gate.** Across whole matches, `MIN_TAG_AREA_SINGLE_TAG`
+= 1.0 would pass only 1.5% of the frame camera's single-tag frames and 17% of
+the turret's, because the median area is 0.33 and 0.67. That sounds fatal until
+you notice which frames pass: the close ones. In the window where the robot was
+actually lost, areas were 1.5 - 2.3. The threshold self-selects for short range,
+which is where a single tag is trustworthy and where being lost hurts most.
+
+**e6 is a different failure and should not be lumped in.** There the frame
+camera's estimate is frozen at (11.48, 2.66) for the entire five seconds —
+byte-identical every sample, so the Limelight was returning a stale result, not
+a good one being rejected. It was 1.37 m from truth. The duplicate-timestamp
+skip was right to drop it. That points at `LimelightIO`'s early returns leaving
+stale values in the inputs object (section 2.3) rather than at
+`IGNORE_SINGLE_TAG`.
+
 ### Why vision does not rescue it
 
 In e6 the robot sat motionless for **5.2 seconds** with the pose going stale to

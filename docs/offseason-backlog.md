@@ -532,6 +532,17 @@ estimate at a confidence that reflects what it is worth. The guards written to
 make that safe — `isAmbiguityAcceptable`, `MIN_TAG_AREA_SINGLE_TAG`,
 `isYawDifferenceAcceptable` — are already in `TagCamera` and unreachable.
 
+**And they would have worked.** In q59, in the 1.3 s before the robot drove into
+the hub, the turret camera held tag 19 then 20 continuously at 0.98-1.12 m, with
+`avgTagArea` 1.5-2.3 against a 1.0 gate and ambiguity 0.02-0.09 against a 0.7
+gate. Every frame passes both. The estimate at t=7.5 was **0.03 m from truth
+while odometry was 1.47 m wrong**.
+
+Note the area gate looks fatal on paper — it passes only 1.5% of the frame
+camera's single-tag frames across a whole match — but the frames it passes are
+the close ones, which is exactly when a single tag is trustworthy and when being
+lost costs the most.
+
 **Related and worth fixing at the same time:** the frame camera's Z baseline is
 0.148 m against a `MAX_Z_ERROR` of 0.20, leaving 0.05 m of margin, and the ramp
 is 0.165 m tall. A robot genuinely on the bump reads ~0.31 m and is rejected —
