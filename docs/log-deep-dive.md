@@ -367,7 +367,7 @@ escalation belongs to May 2 elims generally, not to e6 specifically.
 |---|---|
 | We published more topics | 373 in q44, 386 at the worst. Essentially flat. |
 | Attached for longer | Attached time went *down*, 168 s → 106 s. |
-| The radio degraded | DS and FMS attach exactly twice per match (on, off) in every one of these. `CommsDisableCount` is 0, except 1 in e6. Elastic flips once. AdvantageScope shares that RF path and was the only thing dropping. |
+| ~~The radio degraded~~ | **Weak, do not rely on it.** DS and FMS attach exactly twice per match in every one of these and `CommsDisableCount` is 0, but DS control traffic is a few hundred bytes of UDP at 50 Hz and FMS prioritises it. A healthy DS link proves the prioritised low-bandwidth channel worked; it says nothing about bandwidth headroom for a bulk TCP stream. Field-side congestion is **not** ruled out. |
 
 **Suspected, not measured — the mechanism.** NT4 is subscription-based, so
 Elastic is cheap: it subscribes to the handful of topics it draws.
@@ -377,10 +377,49 @@ connection state and IP only — it has no bandwidth, signal strength or
 subscription data, so this is inference from how NT4 works and not something
 these logs demonstrate.
 
-**Why it began at 14:34 on May 2 is unknown.** Not our topic count, not
-attachment duration, not the field link. Whatever changed was on the laptop
-side — where it was sitting, which laptop it was, or how many tabs were open in
-AdvantageScope — and none of that reaches the log.
+### Direction of causation
+
+The correlation alone is ambiguous, because a loop stall would break the NT
+connection *and* stale the heartbeat — which would make the dashboard a victim
+rather than a cause, and unplugging it would fix nothing. The two stories differ
+in ordering, and the ordering is measurable.
+
+Loop health in 1-second windows around each event:
+
+| | 2-1 s before | 1-0 s before | 0-1 s after | 1-2 s after | match avg |
+|---|---|---|---|---|---|
+| **reconnect**, e6 | 4% | 3% | **14%** | 6% | 4% |
+| **reconnect**, e3 15:06 | 9% | 4% | **17%** | 9% | 5% |
+| **reconnect**, e3 14:34 | 6% | 4% | **18%** | 11% | 2% |
+| **disconnect**, e6 | **12%** | 4% | 5% | 6% | 4% |
+| **disconnect**, e3 15:06 | **12%** | 7% | 8% | 8% | 5% |
+| **disconnect**, e3 14:34 | **13%** | 4% | 7% | 12% | 2% |
+
+(percent of loops over 60 ms)
+
+Before a reconnect the loop is at or below the match average; immediately after
+it is 3-9x worse. Before a *disconnect* the loop is already elevated. So the
+cycle runs reconnect → stall → disconnect → reconnect, and it is self-sustaining
+once started. The dashboard is not merely a bystander: the reconnect is what
+costs the time.
+
+62 distinct ephemeral source ports in e6 confirm each cycle is a genuine TCP
+teardown and re-establish, not a stream hiccup. It does not say which end closed
+it — either end closing, or a timeout, looks the same from here.
+
+### What we still cannot attribute
+
+**Whether the laptop or the field started it is unknown**, and the earlier claim
+that it was laptop-side is withdrawn. What is measured: our topic count is flat
+(373-386), attached duration went down not up, the reconnect precedes the stall,
+and the cycle sustains itself. What is *not* measured: bandwidth, signal
+strength, subscriptions, or which end dropped the connection. A laptop-side
+trigger (position, machine, tabs open) and a field-side one (elims RF
+congestion, the FMS bandwidth cap) both fit everything above.
+
+The practical conclusion does not depend on resolving it. The reconnect cost is
+measured, the cycle is self-sustaining, and a stable attachment is harmless — so
+keep it off the field radio during matches and the question stays academic.
 
 **The fix is not code.** Do not connect AdvantageScope over the field radio
 during a match. Log to the USB stick and pull it afterwards, which is what
