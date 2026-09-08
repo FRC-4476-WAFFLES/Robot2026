@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Test;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
 import frc.robot.utils.sim.SimBattery;
 import frc.robot.utils.sim.SimField;
 import frc.robot.utils.sim.SimShooter;
+import frc.robot.utils.sim.SimRobot;
 
 /**
  * Checks the simulation against numbers measured on real match logs.
@@ -259,6 +261,68 @@ public class SimFidelityTest {
     SimBattery.setLoad("Test/Ballast", 0);
     SimHarness.stepSeconds(0.2);
     return loops;
+  }
+
+  /**
+   * Acceleration must stop responding to the stick, the way the real one does.
+   *
+   * <p>
+   * Measured across the Houston teleop logs, chassis acceleration at the 90th
+   * percentile goes 3.18 m/s² at 0.4 stick, 3.80 at 0.6, 3.89 at 0.8 and 4.41 at
+   * full. Past about 0.6 the stick stops buying anything — that is the carpet
+   * answering rather than the driver, and it is the shape a traction limit
+   * makes.
+   *
+   * <p>
+   * A simulation without weight transfer does not do this. Its ceiling is a
+   * flat mu*g of 10.8 m/s², so harder demands keep producing harder launches
+   * and an autonomous tuned against it will be planned around an acceleration
+   * the robot cannot reach. That is not hypothetical: AUTO_MAX_ACCEL is 15.0,
+   * more than three times what the robot delivers.
+   */
+  @Test
+  void accelerationSaturatesTheWayTheCarpetDoes() {
+    SimShooter.setEnabled(false);
+    SimField.setEnabled(true);
+
+    double half = peakLaunchAcceleration(0.5);
+    double full = peakLaunchAcceleration(1.0);
+
+    SimField.setEnabled(false);
+    System.out.printf("launch acceleration: %.2f m/s² at half stick, %.2f at full "
+        + "(real robot: 3.80 and 4.41)%n", half, full);
+
+    assertTrue(full > 2.5 && full < 7.0,
+        "full-stick launch should land near the measured 4.4 m/s², was " + full);
+    assertTrue(full < half * 1.6,
+        "acceleration should be saturating by half stick as it does on carpet, "
+            + "but full stick gave " + full + " against " + half
+            + " — the model is still letting demand buy grip");
+  }
+
+  /** Peak acceleration of the true simulated robot launching from rest. */
+  private static double peakLaunchAcceleration(double stick) {
+    SimHarness.releaseAllControls();
+    RobotContainer.drive.setPose(new Pose2d(3.0, 2.5, Rotation2d.kZero));
+    SimRobot.setPose(new Pose2d(3.0, 2.5, Rotation2d.kZero));
+    SimHarness.stepSeconds(0.6);
+
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, -stick);
+    double last = SimRobot.getVelocity().getNorm();
+    double peak = 0;
+    // Skip the first few loops: the drivetrain spikes for a loop or two when
+    // full stick lands, which is a known artefact and not a launch.
+    for (int i = 0; i < 30; i++) {
+      SimHarness.step(1);
+      double now = SimRobot.getVelocity().getNorm();
+      if (i >= 3) {
+        peak = Math.max(peak, (now - last) / CodeConstants.PERIODIC_LOOP_TIME);
+      }
+      last = now;
+    }
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, 0.0);
+    SimHarness.stepSeconds(0.4);
+    return peak;
   }
 
   /** Peak total current and lowest bus voltage under full stick at a given limit. */
