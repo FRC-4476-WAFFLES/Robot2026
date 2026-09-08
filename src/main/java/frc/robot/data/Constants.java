@@ -119,8 +119,25 @@ public final class Constants {
     public static final double ON_BUMP_TILT = 9.5; // Degrees, how much off vertical axis is considered the bump
 
     public static final double AUTO_MAX_SPEED = 3.5;
-    public static final double AUTO_MAX_ACCEL = 15.0;
-    public static final double AUTO_MAX_ACCEL_BUMP = 7.0;
+    // Was 15.0, which the robot could not do. Measured: acceleration stops
+    // responding to the stick past about 0.6 and plateaus near 4.4 m/s^2, so
+    // traction was always the limit and the constant was inert -- the robot
+    // reached 23% of it. What a cap it cannot reach does do is let the path
+    // follower chase a reference that needs slip to track.
+    //
+    // The season ran the experiment. Oshawa used 3.0 and averaged 0.1 pose
+    // corrections per autonomous at 0.13 m; every event after used 15.0 and
+    // averaged 3.6-4.3 at 0.25-0.36 m, for 40% more acceleration. That drift is
+    // the mechanism behind the autos lost at Houston. Oshawa's 3.0 was binding
+    // though, so this sits just above the measured ceiling rather than back at
+    // the old value.
+    public static final double AUTO_MAX_ACCEL = 5.0;
+    // Same reasoning, less evidence. Grip on the ramp is worse than on carpet,
+    // so the achievable limit there is lower than 5.0 rather than higher --
+    // this had it higher. The 3.0 comes from the simulation's bump traction
+    // factor, which is itself fitted, so treat it as a direction and not a
+    // measurement.
+    public static final double AUTO_MAX_ACCEL_BUMP = 3.0;
     public static final double AUTO_MAX_JERK = 15.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
