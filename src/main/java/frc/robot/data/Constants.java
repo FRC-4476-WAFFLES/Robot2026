@@ -138,7 +138,22 @@ public final class Constants {
     // factor, which is itself fitted, so treat it as a direction and not a
     // measurement.
     public static final double AUTO_MAX_ACCEL_BUMP = 3.0;
-    public static final double AUTO_MAX_JERK = 15.0;
+    // Was 15.0, which is what actually made the autos feel slow. Ramping
+    // acceleration from nothing to the 4.4 m/s^2 the robot can pull takes
+    // 4.4/15 = 0.29 s, and the median acceleration in an autonomous only lasts
+    // 0.57 s -- so half of every one was spent building up to the acceleration
+    // rather than using it, and the achieved rate came out at 2.23 m/s^2
+    // against a capability of 4.4.
+    //
+    // Measured across nine Houston autos: 2.9 s per autonomous is spent
+    // speeding up, against 1.4 s if it reached its limit promptly. This is
+    // where the time is -- the per-target speed caps are worth about 0.5 s
+    // between them, and the path never reaches AUTO_MAX_SPEED at all.
+    //
+    // Safe only because AUTO_MAX_ACCEL is now 5.0. Reaching the limit sooner
+    // is fine when the limit is real; with the old 15.0 it would have meant
+    // arriving at an acceleration the carpet cannot deliver, which is slip.
+    public static final double AUTO_MAX_JERK = 40.0;
 
     public static final double AUTO_SLEW_LIMIT = 12; // Smoothes out pure pursit segments
 
