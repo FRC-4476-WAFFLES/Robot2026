@@ -153,6 +153,14 @@ moment.
 `isAmbiguityAcceptable`, `MIN_TAG_AREA_SINGLE_TAG`, `isYawDifferenceAcceptable`,
 and all of `calculateGyroEstimate` — is unreachable while the flag is true.
 
+**A knock-on effect.** `Vision.combineEstimates` — the inverse-variance fusion
+of both cameras, borrowed from 254 — only runs when *both* cameras produce an
+estimate in the same loop. With the frame camera accepted 248 times against the
+turret's 3086 in a median Houston match, that path can run at most ~8% of the
+time. The most careful piece of code in the vision stack is bypassed by a
+constant. (It is correct, for what it is worth: the latency compensation and the
+NaN guards both check out.)
+
 **Not a recommendation to just flip it.** The flag was presumably set because
 single-tag estimates were bad. But the guards written to make single-tag safe
 are sitting right there unused, and the cost of the blanket rule is now
