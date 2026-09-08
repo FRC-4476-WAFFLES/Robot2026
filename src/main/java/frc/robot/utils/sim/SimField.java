@@ -14,6 +14,7 @@ import static edu.wpi.first.units.Units.Meters;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -28,6 +29,7 @@ import frc.robot.data.FieldConstants.LeftTrench;
 import frc.robot.data.FieldConstants.LinesHorizontal;
 import frc.robot.data.FieldConstants.LinesVertical;
 import frc.robot.data.FieldConstants.Tower;
+import frc.robot.data.Constants.ExpanderConstants.ExpanderPosition;
 import frc.robot.subsystems.drive.GyroIOSim;
 
 /**
@@ -56,19 +58,25 @@ import frc.robot.subsystems.drive.GyroIOSim;
  * </ul>
  *
  * <p>
- * This is not a physics engine. The robot is a circle, obstacles are boxes, and
- * a bump is a height and a slope rather than something the wheels climb. What
+ * This is not a physics engine. The robot is an oriented rectangle, obstacles
+ * are axis-aligned boxes, and a bump is a height and a slope rather than
+ * something the wheels climb. What
  * makes it worth having is that {@link SimRobot} carries momentum through all
  * of it, so a robot that fails to get over a bump fails for the same reason the
  * real one does.
  */
 public final class SimField {
   /**
-   * Half the robot's diagonal, from its real dimensions, so a corner cannot clip
-   * a wall when the robot is turned.
+   * How far the intake sticks out past the frame when fully deployed, in metres.
+   *
+   * <p>
+   * <b>Not measured.</b> Nothing in the codebase records the intake's reach, so
+   * this is a placeholder chosen to be about the size of the mechanism drawn in
+   * {@code MechanismPoses}. Measure it on the real robot — it decides how much
+   * bigger the robot is with the intake down, which is exactly when it is most
+   * likely to catch on something.
    */
-  private static final double ROBOT_RADIUS = Math.hypot(
-      PhysicalConstants.FULL_WIDTH.in(Meters), PhysicalConstants.FULL_LENGTH.in(Meters)) / 2;
+  private static final double INTAKE_EXTENSION = 0.30;
 
   /** Metres per second squared. */
   private static final double GRAVITY = 9.81;
@@ -146,6 +154,14 @@ public final class SimField {
     return robotPose3d;
   }
 
+  /**
+   * How long the robot currently is, front to back, including whatever the
+   * intake is sticking out. For tests and for watching on a dashboard.
+   */
+  public static double getFootprintLength() {
+    return footprintOf(SimRobot.getPose()).halfLength() * 2;
+  }
+
   /** Whether the walls, the bumps and the obstacles are in effect. */
   public static boolean isEnabled() {
     return enabled;
@@ -207,6 +223,13 @@ public final class SimField {
    * Stops the robot at anything solid.
    *
    * <p>
+   * The robot is its real rectangle, not a circle. A circle of the robot's
+   * half-diagonal is right for clipping a corner and much too fat for threading
+   * a gap — it could not fit between the tower uprights, which the real robot
+   * does — and it cannot represent a robot being longer than it is wide, so a
+   * robot turned sideways in a gap behaved identically to one lined up with it.
+   *
+   * <p>
    * Each surface is checked in turn and the robot is pushed out along the
    * shallowest escape, which is the direction it would actually slide. The
    * velocity into that surface is taken away by {@link SimRobot#collide}, so a
@@ -214,31 +237,121 @@ public final class SimField {
    */
   private static void resolveCollisions() {
     Pose2d current = SimRobot.getPose();
-    double x = current.getX();
-    double y = current.getY();
+    Footprint robot = footprintOf(current);
 
-    double clampedX = MathUtil.clamp(x, ROBOT_RADIUS, FieldConstants.fieldLength - ROBOT_RADIUS);
-    double clampedY = MathUtil.clamp(y, ROBOT_RADIUS, FieldConstants.fieldWidth - ROBOT_RADIUS);
-    if (clampedX != x || clampedY != y) {
-      push(new Translation2d(clampedX, clampedY));
-      Logger.recordOutput("SimField/Against Wall", true);
+    // Walls, using the footprint's world-aligned extent so a turned robot needs
+    // more room across than a square one does.
+    double halfX = robot.extentX();
+    double halfY = robot.extentY();
+    double clampedX = MathUtil.clamp(robot.centre().getX(), halfX,
+        FieldConstants.fieldLength - halfX);
+    double clampedY = MathUtil.clamp(robot.centre().getY(), halfY,
+        FieldConstants.fieldWidth - halfY);
+    boolean againstWall = clampedX != robot.centre().getX() || clampedY != robot.centre().getY();
+    if (againstWall) {
+      push(current.getTranslation()
+          .plus(new Translation2d(clampedX, clampedY).minus(robot.centre())));
       current = SimRobot.getPose();
-    } else {
-      Logger.recordOutput("SimField/Against Wall", false);
+      robot = footprintOf(current);
     }
+    Logger.recordOutput("SimField/Against Wall", againstWall);
 
     String hit = "";
     for (Obstacle obstacle : OBSTACLES) {
-      Translation2d pushed = pushOutOfRectangle(current.getTranslation(),
-          obstacle.centreX(), obstacle.centreY(),
-          obstacle.halfX() + ROBOT_RADIUS, obstacle.halfY() + ROBOT_RADIUS);
-      if (pushed.getDistance(current.getTranslation()) > 1e-9) {
-        push(pushed);
+      Translation2d escape = separate(robot, obstacle);
+      if (escape != null) {
+        push(current.getTranslation().plus(escape));
         current = SimRobot.getPose();
+        robot = footprintOf(current);
         hit = obstacle.name();
       }
     }
     Logger.recordOutput("SimField/Against Obstacle", hit);
+    Logger.recordOutput("SimField/Footprint Length", robot.halfLength() * 2);
+  }
+
+  /**
+   * The robot's rectangle, grown forward by however far the intake is out.
+   *
+   * <p>
+   * The intake swings off the +X face, so deploying it makes the robot longer at
+   * the front only: the box grows by the extension and its centre moves half
+   * that way forward. A robot with the intake down really is a bigger object,
+   * and it is the part most likely to catch on something.
+   */
+  private static Footprint footprintOf(Pose2d pose) {
+    double extension = INTAKE_EXTENSION * intakeDeployedFraction();
+    Translation2d forward = new Translation2d(pose.getRotation().getCos(),
+        pose.getRotation().getSin());
+    return new Footprint(
+        pose.getTranslation().plus(forward.times(extension / 2)),
+        pose.getRotation(),
+        PhysicalConstants.FULL_LENGTH.in(Meters) / 2 + extension / 2,
+        PhysicalConstants.FULL_WIDTH.in(Meters) / 2);
+  }
+
+  /** How far out the intake is, from 0 stowed to 1 fully deployed. */
+  private static double intakeDeployedFraction() {
+    if (RobotContainer.intake == null) {
+      return 0;
+    }
+    double degrees = Units.rotationsToDegrees(RobotContainer.intake.getExpanderPosition());
+    return MathUtil.clamp(degrees / ExpanderPosition.EXTENDED.getDegrees(), 0, 1);
+  }
+
+  /**
+   * How far to move the robot to get it out of an obstacle, or null if it is
+   * already clear.
+   *
+   * <p>
+   * Separating axis theorem across the four axes that matter — the field's two
+   * and the robot's two. If any of them separates the shapes there is no
+   * collision; otherwise the smallest overlap is the shortest way out, which is
+   * also the direction the robot would really slide.
+   */
+  private static Translation2d separate(Footprint robot, Obstacle box) {
+    Translation2d unitX = new Translation2d(robot.heading().getCos(), robot.heading().getSin());
+    Translation2d unitY = new Translation2d(-robot.heading().getSin(), robot.heading().getCos());
+    Translation2d toBox = new Translation2d(box.centreX(), box.centreY()).minus(robot.centre());
+
+    Translation2d bestAxis = null;
+    double bestOverlap = Double.MAX_VALUE;
+    for (Translation2d axis : new Translation2d[] {
+        new Translation2d(1, 0), new Translation2d(0, 1), unitX, unitY }) {
+      double robotExtent = robot.halfLength() * Math.abs(dot(unitX, axis))
+          + robot.halfWidth() * Math.abs(dot(unitY, axis));
+      double boxExtent = box.halfX() * Math.abs(axis.getX()) + box.halfY() * Math.abs(axis.getY());
+      double overlap = robotExtent + boxExtent - Math.abs(dot(toBox, axis));
+      if (overlap <= 0) {
+        return null;
+      }
+      if (overlap < bestOverlap) {
+        bestOverlap = overlap;
+        bestAxis = axis;
+      }
+    }
+    return bestAxis.times(dot(toBox, bestAxis) > 0 ? -bestOverlap : bestOverlap);
+  }
+
+  private static double dot(Translation2d a, Translation2d b) {
+    return a.getX() * b.getX() + a.getY() * b.getY();
+  }
+
+  /** The robot as an oriented rectangle on the field. */
+  private record Footprint(
+      Translation2d centre,
+      Rotation2d heading,
+      double halfLength,
+      double halfWidth
+  ) {
+    /** Half the width of the world-aligned box this footprint fits inside. */
+    double extentX() {
+      return halfLength * Math.abs(heading.getCos()) + halfWidth * Math.abs(heading.getSin());
+    }
+
+    double extentY() {
+      return halfLength * Math.abs(heading.getSin()) + halfWidth * Math.abs(heading.getCos());
+    }
   }
 
   /**
@@ -409,34 +522,4 @@ public final class SimField {
     return new Obstacle(name, x, y, UPRIGHT_HALF_X, UPRIGHT_HALF_Y);
   }
 
-  private static Translation2d pushOutOfRectangle(Translation2d position,
-      double centreX, double centreY, double halfWidth, double halfHeight) {
-    double dx = position.getX() - centreX;
-    double dy = position.getY() - centreY;
-    if (Math.abs(dx) >= halfWidth || Math.abs(dy) >= halfHeight) {
-      return position;
-    }
-    // All four ways out, shortest first, but only ones that stay on the field.
-    // The trenches sit against the side walls, so their shortest escape is
-    // through the wall — taking it put the robot outside the field entirely.
-    Translation2d best = null;
-    for (double side : new double[] { -1, 1 }) {
-      for (Translation2d escape : new Translation2d[] {
-          new Translation2d(centreX + side * halfWidth, position.getY()),
-          new Translation2d(position.getX(), centreY + side * halfHeight) }) {
-        if (onField(escape)
-            && (best == null || escape.getDistance(position) < best.getDistance(position))) {
-          best = escape;
-        }
-      }
-    }
-    return best == null ? position : best;
-  }
-
-  private static boolean onField(Translation2d position) {
-    return position.getX() >= ROBOT_RADIUS
-        && position.getX() <= FieldConstants.fieldLength - ROBOT_RADIUS
-        && position.getY() >= ROBOT_RADIUS
-        && position.getY() <= FieldConstants.fieldWidth - ROBOT_RADIUS;
-  }
 }

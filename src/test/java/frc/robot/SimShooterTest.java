@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static edu.wpi.first.units.Units.Meters;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterAll;
@@ -15,6 +16,8 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.data.Constants.PhysicalConstants;
+import frc.robot.subsystems.intake.Intake.ExpanderState;
 import frc.robot.data.FieldConstants;
 import frc.robot.utils.sim.SimField;
 import frc.robot.utils.sim.SimShooter;
@@ -74,8 +77,14 @@ public class SimShooterTest {
     Pose2d truth = RobotContainer.simState.getPose();
     double odometryX = RobotContainer.state.getPose().getX();
     System.out.printf("drove into the wall: truth x %.2f, odometry x %.2f%n", truth.getX(), odometryX);
-    assertTrue(truth.getX() >= 0.4,
-        "the wall should have held the robot on the field, truth pose was " + truth);
+    // The bound follows the footprint rather than a fixed number. The robot is
+    // its real rectangle now, so facing the wall it stops with its centre half a
+    // robot-length away -- closer than the old circle model allowed, and
+    // correctly so.
+    double halfLength = PhysicalConstants.FULL_LENGTH.in(Meters) / 2;
+    assertTrue(truth.getX() >= halfLength - 0.05,
+        "the wall should have held the robot on the field, but its centre reached "
+            + truth.getX() + " m against a half-length of " + halfLength);
 
     SimField.setEnabled(false);
   }
@@ -238,6 +247,35 @@ public class SimShooterTest {
     assertTrue(moved < 0.15,
         "the gap between the tower uprights should be far more open than the "
             + "uprights themselves, but the robot was pushed " + moved + " m");
+  }
+
+  @Test
+  void deployingTheIntakeMakesTheRobotBigger() {
+    // A robot with the intake down really is a longer object, and it is the part
+    // most likely to catch on something. Simulating it at frame size means the
+    // one configuration most likely to collide is the one modelled smallest.
+    SimField.setEnabled(true);
+    SimHarness.releaseAllControls();
+    RobotContainer.drive.setPose(new Pose2d(3.0, 2.5, Rotation2d.kZero));
+
+    RobotContainer.state.setExpanderState(ExpanderState.STOWED);
+    SimHarness.stepSeconds(1.5);
+    double stowed = SimField.getFootprintLength();
+
+    RobotContainer.state.setExpanderState(ExpanderState.EXTENDED);
+    SimHarness.stepSeconds(1.5);
+    double deployed = SimField.getFootprintLength();
+
+    System.out.printf("robot length: %.3f m stowed, %.3f m with the intake out%n",
+        stowed, deployed);
+
+    RobotContainer.state.setExpanderState(ExpanderState.STOWED);
+    SimHarness.stepSeconds(0.5);
+    SimField.setEnabled(false);
+
+    assertTrue(deployed > stowed + 0.1,
+        "deploying the intake should make the robot longer, but it went from "
+            + stowed + " m to " + deployed + " m");
   }
 
   /** Puts the robot inside something solid and checks the field throws it out. */
