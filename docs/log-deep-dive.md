@@ -288,12 +288,80 @@ Ruled out as causes (**cleared**, all measured):
 | Battery / brownout | 10.30 V at overruns vs 10.31 V at normal loops |
 | Shooting | 4.1% overrun rate while shooting vs 5.1% while not |
 | CPU temperature | 43–47 °C |
-| AdvantageScope disconnects | 32 in-match disconnects, but the timing correlation with camera drops is **not distinguishable from chance** |
+| ~~AdvantageScope disconnects~~ | **Retracted — this was the cause. See section 2.4.** |
 
 Note the last one: AdvantageScope *was* connected over the field radio during
 matches and thrashing (32 connect/disconnect cycles in 140 s), alongside Elastic.
 That is worth stopping on its own principle, but the data does not support
 blaming it for the stalls, and I am not going to claim it does.
+
+### 2.4 The cameras never went away — the roboRIO stopped reading them
+
+**Measured**, across all 40 milstein logs.
+
+Both limelights get declared dead on the same loop. That cannot be two cameras
+failing, and the log can prove it: the limelights are NetworkTables *clients* of
+the roboRIO, so their real connection state is recorded independently of what
+the vision code concluded.
+
+In e6, **all 35** camera-dead events happen while that camera's NT client is
+still connected. Across every match, limelight NT drops total **1**. The cameras
+were there the whole time. `LimelightIO` computes `isAlive` from a heartbeat
+robot code has to read, so anything that stops the loop reading NT marks every
+camera dead at once.
+
+What stops it is AdvantageScope attached over the field radio.
+
+| | AdvantageScope attached | detached |
+|---|---|---|
+| e6 loop p50 | 27.3 ms | 21.2 ms |
+| e6 loops over 60 ms | **8.0%** | 1.8% |
+| e6 worst loop | 387 ms | 113 ms |
+| e3 (15:06) loops over 60 ms | **10.5%** | 1.3% |
+| e3 (14:34) loops over 60 ms | **7.6%** | 0.6% |
+
+Same match, same robot, same battery, same radio — compared against itself with
+the dashboard on and off. And the camera deaths are not merely correlated, they
+are locked to the *reconnects*:
+
+| match | camera deaths | within 1 s of a reconnect | chance would give |
+|---|---|---|---|
+| e3 (14:34) | 28 | **27 (96%)** | 0-5 |
+| e3 (15:06) | 43 | **40 (93%)** | 8-18 |
+| e6 | 35 | **35 (100%)** | 6-15 |
+
+Median gap 0.55-0.58 s, which is `LL_HEARTBEAT_MIN_FREQ` exactly.
+
+**When it started.** The dashboard's IP tells the story:
+
+| match | AdvantageScope IP | connect/disconnect cycles | camera deaths |
+|---|---|---|---|
+| through q59 | 10.44.76.200 (static, pit tether) | 0 | 0 |
+| q68 - q105 (May 1) | .24, .25, .26 (**DHCP, over the radio**) | 1 | 0 |
+| q117 | .26 | 9 | 1 |
+| e3, e3, e6 (May 2) | .27, .28, .29 | **47, 83, 117** | 28, 43, 35 |
+
+Someone started leaving AdvantageScope connected over the field WiFi partway
+through May 1, and it got worse every match through elims.
+
+**Why it spirals.** NT4 is subscription-based, so Elastic costs nothing — it
+subscribes to the handful of topics it draws. AdvantageScope subscribes to the
+*entire* AdvantageKit tree, which is the point of it. That does not fit in the
+bandwidth FMS allows, so the connection saturates and drops; on reconnect NT4
+re-announces every topic and dumps initial values, which saturates it again.
+117 cycles in 220 seconds. It cannot ever settle, and each cycle costs the loop
+enough to lose both cameras for half a second.
+
+**The fix is not code.** Do not connect AdvantageScope over the field radio
+during a match. Log to the USB stick and pull it afterwards, which is what
+`WPILOGWriter` is already doing. Tethered in the pit (the .200 address) it
+caused no problems in any log.
+
+Worth noting for later, but not worth changing on its own: a false-dead camera
+makes `LimelightIO.updateInputs` return early, so half a second of perfectly
+good vision is discarded every time this fires — and section 9 is about what
+vision dropouts cost us in autonomous. Raising the heartbeat threshold would
+hide this rather than fix it.
 
 GC does show up elsewhere: `gcMaxMS` is 236–333 ms in **every** match log. Those
 pauses land outside the enabled window in the matches examined, but a 300 ms
@@ -726,7 +794,7 @@ Recorded so they are not believed twice.
 | "`logReview shots` gives balls per second" | It counts rising edges of `Commands/Fire shot` — how often the shooter is *let go*, not how often a ball leaves. Renamed and split by state in `LogReview` (commit `c53b303`). |
 | "The Ontario logs are champs matches" | All ten have `FMSAttached = false`. They are practice sessions dated after the event. |
 | "A feeder dragged to 65% of goal must be passing more material" | Sloppy. The goal went 40 → 65 rps *and* the gains changed, so more droop is expected at the same ball rate. |
-| "AdvantageScope disconnects caused the camera dropouts" | Tested against a null model; **not distinguishable from chance**. |
+| ~~"AdvantageScope disconnects caused the camera dropouts"~~ | **Retracted. It did.** The first test correlated against *disconnects*; the event that costs time is the *reconnect*, which re-announces every topic. Re-tested against reconnects: 96-100% of camera deaths land within 1 s, against a null model of 0-18. See section 2.4. |
 | "Estimate types are 50/50 NONE/MEGATAG" | Counted transitions, not time. Time-weighted it is 96–99% NONE for the frame camera. |
 | "GC pauses cause the loop stalls" | 0 collections during the match examined; 1 of 206 overruns was GC-related. |
 
