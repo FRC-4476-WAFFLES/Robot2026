@@ -49,6 +49,12 @@ public class ModuleIOSim implements ModuleIO {
   private double turnAppliedVolts = 0.0;
   /** Whatever the power manager last applied. Effectively unlimited until it does. */
   private double driveSupplyLimit = 1000.0;
+  /** The stator ceiling the real module configures, from the same constants. */
+  private final double slipCurrent;
+  private final double driveGearRatio;
+  private final double turnGearRatio;
+  /** Steer stator limit, matching what TunerConstants configures. */
+  private static final double TURN_STATOR_LIMIT = 35.0;
   private final String name;
 
   private static int created = 0;
@@ -56,6 +62,9 @@ public class ModuleIOSim implements ModuleIO {
   public ModuleIOSim(
       SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
     name = "Module" + created++;
+    slipCurrent = constants.SlipCurrent;
+    driveGearRatio = constants.DriveMotorGearRatio;
+    turnGearRatio = constants.SteerMotorGearRatio;
     // Create drive and turn sim models
     driveSim = new DCMotorSim(
         LinearSystemId.createDCMotorSystem(
@@ -68,6 +77,44 @@ public class ModuleIOSim implements ModuleIO {
 
     // Enable wrapping for turn PID
     turnController.enableContinuousInput(-Math.PI, Math.PI);
+  }
+
+  /**
+   * The voltage that keeps a motor's stator current inside {@code limit}.
+   *
+   * <p>
+   * For a DC motor the current is {@code (applied - backEMF) / R}, so holding
+   * the current inside a band is holding the voltage inside a band centred on
+   * the back-EMF. Exact for the model being simulated rather than an
+   * approximation that has to be tuned.
+   */
+  private static double clampToStator(double volts, DCMotorSim sim, double gearRatio,
+      DCMotor gearbox, double limit) {
+    double backEmf = sim.getAngularVelocityRadPerSec() * gearRatio / gearbox.KvRadPerSecPerVolt;
+    double headroom = limit * gearbox.rOhms;
+    return MathUtil.clamp(volts, backEmf - headroom, backEmf + headroom);
+  }
+
+  /**
+   * The voltage that keeps a motor's <i>supply</i> current inside {@code limit}.
+   *
+   * <p>
+   * See the call site for the derivation. Signs are resolved along the direction
+   * being driven, so braking — where the back-EMF opposes the applied voltage
+   * and the current is therefore larger — is bounded correctly too.
+   */
+  private static double clampToSupply(double volts, DCMotorSim sim, double gearRatio,
+      DCMotor gearbox, double limit, double bus) {
+    if (volts == 0 || limit <= 0) {
+      return volts;
+    }
+    double sign = Math.signum(volts);
+    double magnitude = Math.abs(volts);
+    double backEmf = sign * sim.getAngularVelocityRadPerSec() * gearRatio
+        / gearbox.KvRadPerSecPerVolt;
+    double root = (backEmf
+        + Math.sqrt(backEmf * backEmf + 4 * limit * gearbox.rOhms * bus)) / 2;
+    return sign * Math.min(magnitude, Math.max(0, root));
   }
 
   @Override
@@ -91,15 +138,35 @@ public class ModuleIOSim implements ModuleIO {
     double bus = SimBattery.getVoltage();
     driveAppliedVolts = MathUtil.clamp(driveAppliedVolts, -bus, bus);
 
-    // Honour the supply current limit the power manager applies. Supply current
-    // is stator current times duty cycle, so the way to respect a supply limit
-    // is to back off the voltage until the product fits under it.
-    double predictedStator = Math.abs(driveSim.getCurrentDrawAmps());
-    double duty = Math.abs(driveAppliedVolts) / Math.max(1.0, bus);
-    double predictedSupply = predictedStator * duty;
-    if (predictedSupply > driveSupplyLimit && predictedSupply > 0.01) {
-      driveAppliedVolts *= Math.sqrt(driveSupplyLimit / predictedSupply);
-    }
+    // Honour the stator limit the real module configures, which this had been
+    // missing entirely: ModuleIOTalonFX sets StatorCurrentLimit to SlipCurrent,
+    // and without it each simulated Kraken pulls stall current. Four of them
+    // then drew about 500 A and pinned the simulated pack at its floor, which
+    // is more than the real robot's worst measured total of 348 A and made
+    // every voltage reading in simulation meaningless.
+    //
+    // Exact for the DC model rather than a fudge: current is (V - backEMF) / R,
+    // so bounding the current is just bounding the voltage either side of the
+    // back-EMF.
+    driveAppliedVolts = clampToStator(driveAppliedVolts, driveSim, driveGearRatio,
+        DRIVE_GEARBOX, slipCurrent);
+    turnAppliedVolts = clampToStator(turnAppliedVolts, turnSim, turnGearRatio,
+        TURN_GEARBOX, TURN_STATOR_LIMIT);
+
+    // Honour the supply current limit the power manager applies.
+    //
+    // Supply current is stator current times duty cycle. Both depend on the
+    // voltage being solved for, so backing off by a single scale factor does not
+    // converge — measured, a 45 A per-module limit still let four modules pull
+    // 666 A. Solving it properly is one quadratic:
+    //
+    // stator = (V - backEMF) / R, duty = V / bus
+    // (V - backEMF) / R * V / bus <= limit
+    // V^2 - backEMF*V - limit*R*bus <= 0
+    //
+    // so V is bounded by the positive root.
+    driveAppliedVolts = clampToSupply(driveAppliedVolts, driveSim, driveGearRatio,
+        DRIVE_GEARBOX, driveSupplyLimit, bus);
 
     driveSim.setInputVoltage(driveAppliedVolts);
     turnSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -bus, bus));

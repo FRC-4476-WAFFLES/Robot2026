@@ -68,6 +68,19 @@ public final class SimBattery {
     return total;
   }
 
+  /**
+   * Every load by name and size, largest first, for working out where the
+   * current is going when the model does something surprising.
+   */
+  public static String describeLoads() {
+    return loads.entrySet().stream()
+        .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+        .limit(8)
+        .map(e -> String.format("%s %.0fA", e.getKey(), e.getValue()))
+        .reduce((a, b) -> a + ", " + b)
+        .orElse("nothing");
+  }
+
   /** The bus voltage under the present load. */
   public static double getVoltage() {
     return Math.max(MINIMUM_VOLTAGE, openCircuit - getTotalCurrent() * resistance);
