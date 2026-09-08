@@ -494,6 +494,24 @@ aimed at the wrong subsystem: across 159 brownouts the feeder's median draw is
 **Do not do this before the power manager is running.** Removing the cap without
 capping the drivetrain gives back the brownouts that motivated it.
 
+### Bound a single vision correction — Open, highest value of the vision items
+
+`Vision.java:163` multiplies standard deviations by 0.1 for the first
+`BUMP_HIGH_TRUST_ESTIMATES = 5` estimates after a bump crossing. Measured across
+6503 s of enabled time, that window is active **12.4% of the time** but accounts
+for **83% of pose jumps over 0.5 m, 88% over 1 m and 89% over 2 m**. The largest
+observed corrections are **9.34 m** and **6.96 m**.
+
+Nothing bounds how far one correction may move the pose — anything passing
+`isValidPose`/`isValidStdevs` is fused.
+
+Two constants compound: the counter decrements only when an estimate is actually
+fused, and `IGNORE_SINGLE_TAG` makes fused estimates scarce, so a "next 5
+estimates" window stretches to an eighth of a match.
+
+This is the best explanation for the two autos that failed outright — ONWEL q8
+took a 1.42 m correction 3.4 s in and scored 3 balls against a median of 55.
+
 ### Debounce `turret.atGoal()` inside `canFire()` — Open
 
 **Half of Houston's fire windows were closed by the turret dropping out of

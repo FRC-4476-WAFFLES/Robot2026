@@ -63,6 +63,7 @@ agrees with the independently measured 75–88% in-tolerance rate.
 | 2b | Half of Houston's fire windows are closed by the turret, not the driver | **Measured** | [Fire rate](#lever-2-fewer-longer-fire-windows) |
 | 2c | The turret's motion profile is computed every loop and discarded | **Attributed** | [Fire rate](#lever-3-the-turrets-motion-profile-is-computed-and-discarded) |
 | 3 | `IGNORE_SINGLE_TAG` throws away nearly all of the frame camera | **Measured** | [Vision](#2-vision-one-constant-is-eating-a-whole-camera) |
+| 3b | The bump high-trust window causes 88% of all pose jumps over a metre, up to 9.34 m | **Measured** | [Vision](#24-the-bump-high-trust-window-causes-multi-metre-teleports) |
 | 4 | Vision "dropouts" are roboRIO loop stalls, not cameras | **Attributed** | [Vision](#22-the-dropouts-are-the-loop-not-the-cameras) |
 | 5 | Half of every loop overrun is outside user code, logging and GC | **Measured**, cause unknown | [Loop](#3-loop-timing) |
 | 6 | Six `periodic()` methods return early inside an `EpochTimer` block | **Attributed** | [Bugs](#4-bugs-found-by-reading-the-code) |
@@ -198,6 +199,54 @@ The inputs object persists between loops, so those keep last-good values.
 Harmless today because `TagCamera` checks `isAlive` and `canSeeTag` in that
 order before touching anything else. It is a trap for the next reader, and it
 violates the repo's own rule that inputs are the source of truth.
+
+---
+
+## 2.4 The bump high-trust window causes multi-metre teleports
+
+**Measured**, across all 25 FMS matches plus practice — 6503 s of enabled time.
+
+`Vision.java:163` deliberately multiplies the standard deviations of the first
+few estimates after a bump crossing by 0.1:
+
+```java
+if (highTrustEstimatesLeft > 0) {
+  chosenDeviations = chosenDeviations.times(0.1); // Essentially teleport to the first few things we see
+  highTrustEstimatesLeft--;
+}
+```
+
+The comment is accurate. It teleports.
+
+| pose jump size | total | of those, with the boost active |
+|---|---|---|
+| > 0.25 m | 1574 | 554 (35%) |
+| > 0.5 m | 195 | **162 (83%)** |
+| > 1.0 m | 60 | **53 (88%)** |
+| > 2.0 m | 19 | **17 (89%)** |
+
+The boost is active **12.4% of enabled time** but accounts for 88% of every
+correction over a metre. The largest observed are **9.34 m** and **6.96 m** —
+more than half the field, in one loop.
+
+**Two constants are compounding.** `BUMP_HIGH_TRUST_ESTIMATES = 5` counts
+*accepted* estimates, and `highTrustEstimatesLeft--` only runs when one is
+actually fused. Section 2.1 shows accepted estimates are scarce, so a window
+meant to cover "the next 5 things we see" stretches out to an eighth of the
+match. Fixing `IGNORE_SINGLE_TAG` would shorten this window as a side effect;
+leaving it alone keeps the window wide open.
+
+**There is no bound on a single correction.** Any estimate passing
+`isValidPose` and `isValidStdevs` is fused however far it moves the robot.
+
+This is also the best available explanation for the two failed autonomous
+routines (section 7): ONWEL q8 took a **1.42 m** correction 3.4 s into auto and
+scored 3 balls against a median of 55; Houston q4 took four corrections of
+0.33-0.43 m in the first 6 s and scored 5.
+
+Cheapest guard: reject, or heavily de-weight, any correction that moves the pose
+more than some bound in one step while odometry is otherwise healthy — and do
+not apply the 10x boost during autonomous at all.
 
 ---
 
@@ -636,12 +685,15 @@ In the order I would do them.
    roughly the same size, and half of Houston's fire windows died to it.
 4. **Fix the six `EpochTimer` early returns.** Ten minutes, and it makes the
    timing telemetry trustworthy — which matters because of finding 5.
-5. **Decide `IGNORE_SINGLE_TAG` deliberately.** The guards to make single-tag
+5. **Bound a single vision correction, and drop the 10x bump boost in auto.**
+   88% of every correction over a metre comes from that window, and it is the
+   best explanation we have for the two autos that failed.
+6. **Decide `IGNORE_SINGLE_TAG` deliberately.** The guards to make single-tag
    safe already exist and are dead. This is worth an experiment on the practice
    field, not a code change made blind.
-6. **Separate "camera dead" from "we were late"** in `LimelightIO`. Compare
+7. **Separate "camera dead" from "we were late"** in `LimelightIO`. Compare
    heartbeat progression against loops actually run, rather than wall clock.
-7. **Pass a real period to `ChassisSpeeds.discretize`.**
-8. **Stop running AdvantageScope over the field radio during matches.** The data
+8. **Pass a real period to `ChassisSpeeds.discretize`.**
+9. **Stop running AdvantageScope over the field radio during matches.** The data
    does not blame it for the stalls, but there is no upside and the client was
    thrashing 32 times in 140 seconds.
