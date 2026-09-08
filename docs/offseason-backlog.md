@@ -6,6 +6,7 @@ Most entries came from reading two public codebases against ours:
 
 - [frc1678/C2026-Public](https://github.com/frc1678/C2026-Public) — same game, no AdvantageKit, strong shooting and vision filtering
 - [team581/frc-2026](https://github.com/team581/frc-2026) — multi-robot monorepo, state-machine architecture, unusually good docs
+- [FRCTeam2910/2026CompetitionRobot-Public](https://github.com/FRCTeam2910/2026CompetitionRobot-Public) — same game, CTRE swerve API, a two-layer `SuperStructure` state machine, and maple-sim for physics
 
 **Do not treat "they do X" as a reason on its own.** Several of their ideas were
 measured against our logs and rejected, and two of their most interesting files
@@ -572,6 +573,70 @@ shooting on the move.
 structure is between the robot and the target. 1678 wrote the same thing and
 never called it. Only worth it if blocked shots are actually costing points.
 
+### Operator bypass on the shot gate — Open
+
+The gate we shipped has no override. Every worry we had while building it — that
+it chatters, that it never opens on a sagged battery, that it refuses a shot the
+drive team can see is fine — ends the same way: the drive team cannot shoot and
+there is no way out but a redeploy.
+
+2910 carry a single `ignoreShootingTolerances` flag that short-circuits every
+tolerance in `isReadyToScore`, logged alongside the individual conditions so the
+log still says which one was failing.
+
+This is the cheapest item in this document and it is insurance against our own
+gate. Effort: ~15 minutes.
+
+### Latch "seen a tag" for the duration of a shot — Open
+
+2910 require a vision observation before firing, but latch it rather than
+sampling it:
+
+```java
+private boolean hasSeenAprilTagForShot() {
+    return visionObservationLatch |= !robotState.getVisionObservation().isEmpty();
+}
+```
+
+It clears when the scoring state is left. That is the same anti-chatter job our
+falling debouncer does, without a time constant to tune — the condition cannot
+flicker because inside a shot it only ever goes one way.
+
+Worth comparing against what we built rather than adopting blind: our debouncer
+also covers the flywheel dropping out, which a latch would wrongly hold open. The
+latch shape suits the vision term specifically. Effort: ~1 hour.
+
+### Minimum distance to shoot — Open
+
+2910 refuse to fire inside `MINIMUM_DISTANCE_TO_SHOOT = 1.5` m of the hub. We
+have no lower bound at all.
+
+Check the logs before adding it: `logReview shots` reports the distance
+distribution, so whether we ever actually fire from that close is a question with
+an answer. Effort: ~15 minutes plus the check.
+
+### Live RPM trim from the dashboard — Open
+
+2910 multiply every interpolated flywheel setpoint by a slider:
+
+```java
+public double getRPMMultiplier() {
+    return 1.0 + (shooterPercentAdder.getEntry().getDouble(0.0) / 100.0);
+}
+```
+
+A separate one for passing. This is the direct answer to what was measured on the
+ONWEL logs — shots at 1:34 landing 60-70 cm short — a systematic offset the drive
+team can see between matches and currently cannot correct without a redeploy.
+
+`MANUAL_SHOOTER_TUNING` is not the same thing: it is a `CodeConstants` flag that
+replaces the whole map with hand-entered values, for bench tuning. This is a
+percentage trim on top of a map we still trust.
+
+It reads NetworkTables, which our logging rules ban in a control path. Route it
+through `LoggedNetworkNumber` so the trim in force is in the log — otherwise a
+replay silently uses a different setpoint than the match did. Effort: ~1 hour.
+
 ---
 
 ## Autonomous
@@ -742,6 +807,33 @@ what makes the real robot hard is that the flywheel's own draw is what starves i
 to a current limit or a debounce can be judged without waiting for a field. That
 is the only reason it is worth the effort.
 
+**Since written, most of this has landed.** `SimBattery`, a refitted
+`FlywheelIOSim`, `SimShooter`, and the third layer — `SimRobot` for momentum and
+traction, `SimField` for the real field geometry.
+
+#### Investigate: maple-sim — Investigate
+
+2910 use [maple-sim](https://github.com/Shenzhen-Robotics-Alliance/maple-sim)
+(`org.ironmaple`) for exactly the ground we covered by hand: rigid-body
+drivetrain simulation with a wheel coefficient of friction and bumper collision,
+per-module motor simulation on a shared simulated battery, and a
+`seasonspecific.rebuilt2026` package with `RebuiltFuelOnFly` for projectiles.
+
+Two questions worth answering before deciding anything:
+
+1. **Does its 2026 arena ship the real field collision map?** If it does, that
+   settles the geometry `SimField` currently asserts by hand — whether the
+   trenches and towers are solid, and where the ramps actually are. Those are our
+   guesses, and a maintained library's are better sourced.
+2. **What would it cost?** They run it under the CTRE swerve API. We have our own
+   `Module` / `ModuleIO` layer deliberately, because vendor drivetrain APIs
+   bypass the IO layer and break replay. A port that reintroduces that is not
+   worth any amount of physics.
+
+The honest framing: ours is fitted to our own logs — the traction, the bump grip,
+the flywheel constants all came from `LogReview` — and a library's defaults will
+not be. This is a read, not a plan. Effort: ~half a day to read and report.
+
 ### Generic motor subsystem base — Open
 
 Homing is hand-rolled three times — `Intake`, `Hood`, `TurretIOTalonFX` — each
@@ -751,6 +843,28 @@ and does it once.
 Do this **after** the units work, or the unit confusion gets baked into the new
 abstraction. Must preserve our `@AutoLog` inputs contract; 1678's version has no
 AdvantageKit, so it is a port rather than a copy.
+
+2910 have one too, and most of it is API-echo logging boilerplate not worth
+copying. Two parts are worth it:
+
+- `home(homingDutyCycle, velocityThreshold, settleTimeSeconds, homedPosition)`,
+  which disables the soft limits before homing and restores them to their
+  original config after, and returns `true` immediately in simulation.
+- Simulation parameters — moment of inertia, friction voltage, position and
+  velocity standard deviations — living on the same config object as the real
+  ones, defaulted so a subsystem that does not care never mentions them.
+
+### Refresh slow CAN signals less often — Investigate
+
+Every registered status signal is refreshed every loop through the single grouped
+`TalonFXIO` refresh. 2910's `StatusSignalRefresher` takes a delay count per
+signal — 0 is every loop, 1 every other, 2 every third — and precomputes the array
+to refresh on each cycle so there is no per-loop allocation.
+
+Plenty of what we refresh does not change at 50 Hz: device temperature, supply
+voltage, fault flags. But this is only worth doing if CAN bandwidth is actually
+costing us something, and we already have the tool to find out —
+`./gradlew logReview --args="bandwidth <dir>"`. Measure before porting.
 
 ### Subsystem bringup checklist — Open
 
@@ -833,4 +947,6 @@ Recorded so they are not re-derived.
 | **Explicit-dt PID for replay determinism** | 1678's own convenience overload calls `getFPGATimestamp()`, the exact call our logging rules ban. |
 | **Porting Trailblazer** | Our autopilot path following works and is competition-proven, and the adaptable system composes autos at runtime — 581 hand-writes every combination. The transferable idea is their tracker/follower separation, not the library. |
 | **State machines instead of commands** | 581 rejects long-running commands after being burned by command bugs. The critique of `configureBindings()` lands, but converting is a rewrite, not a refactor. |
+| **2910's shoot-on-the-move** | Not shoot-on-move. `SCORING_ON_MOVE_SPEED_TOLERANCE` is 0.15 m/s, so it gates on nearly stopped, and `scoringOnTheMove` aims at the hub from the *current* translation with no lead at all. They extrapolate only for passing, using a time-of-flight lookup table. Our `ShotPlanner` solves the lead iteratively with a closed-form bearing rate; it is ahead of theirs. |
+| **2910's `RobotState`** | 97 lines, essentially a newest-timestamp-wins pose latch plus the FMS game-specific message. Ours already carries more. |
 | **"Simulated vision is metres off"** | Retracted. It was measured with a harness missing `HAL.simPeriodicBefore/After` and against a stale logged pose, because WPILOG only records values on change. With both fixed, the fused pose tracks sim truth to ~5 cm. |
