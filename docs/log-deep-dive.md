@@ -716,7 +716,7 @@ debounce, almost exactly. It cannot touch hub shots.
 
 ---
 
-## 9. Corrections to things stated earlier in this repo
+## 12. Corrections to things stated earlier in this repo
 
 Recorded so they are not believed twice.
 
@@ -732,10 +732,85 @@ Recorded so they are not believed twice.
 
 ---
 
-## 9a. The gyro thinks it is on the bump when it is braking
+## 9. Why autonomous gets stuck on the bump
 
-**Measured**, and it explains four autonomous failures the drive team reported
-independently: q44, q59, q76 and e6 (which is `2026mil_sf6m1`).
+**Measured**, on e6 (`2026mil_sf6m1`), the match the drive team reported.
+
+The robot sits motionless for **5.2 seconds**, commanded to rotate but not
+translate, then the pose snaps **0.71 m backwards** the instant vision returns:
+
+| t | x | onBump | tilt | speed | cmd vx | cmd omega | vision age |
+|---|---|---|---|---|---|---|---|
+| 8.53 | 13.44 | YES | 9.6 | 0.16 | -0.04 | 0.51 | 1.34 s |
+| 10.70 | 13.54 | YES | 17.6 | **0.06** | 0.04 | 2.20 | 3.51 s |
+| 12.36 | 13.54 | YES | 11.3 | **0.05** | -0.07 | -0.44 | 5.17 s |
+| 13.28 | 13.54 | YES | 22.7 | 0.07 | 0.06 | -1.60 | **6.08 s** |
+| 13.70 | **12.83** | YES | 16.2 | 0.35 | -0.89 | -0.80 | 0.19 s |
+
+The chain:
+
+1. The bump costs about a third of wheel travel (section 9c), so odometry
+   **over-reports** how far the robot has come.
+2. The path follower therefore believes it has **arrived**, and stops commanding
+   translation — `cmd vx` is ~0 for the whole stall while `cmd omega` swings.
+   It only rotates.
+3. It is really 0.7 m short, still against the ramp.
+4. Vision does not correct it, for 6 seconds.
+
+**Step 4 is the fixable one, and it is not that the tags were missing.**
+
+| camera | tags in view during the stall | Z solve | why it was rejected |
+|---|---|---|---|
+| **frame** | **1, continuously** | **0.148 m, stable** | **`IGNORE_SINGLE_TAG`** |
+| turret | 1-2 | 0.57 - 2.32 m | `MAX_Z_ERROR`, correctly — those solves are garbage |
+
+The frame camera had a good, geometrically consistent single-tag fix for the
+entire stall and every frame was discarded. This is the concrete case for
+accepting single-tag estimates at a reduced confidence rather than not at all.
+
+**A second problem sits behind it.** The frame camera's Z baseline is 0.148 m and
+`MAX_Z_ERROR` is 0.20, leaving 0.05 m of margin. The ramp is 0.165 m tall, so a
+robot genuinely on the bump reads about 0.31 m and is rejected — visible at
+t = 13.57 and 13.99 where frame Z reaches 0.242 and is dropped exactly as the
+robot reaches the ramp. The check that is meant to reject bad solves also
+rejects good ones taken on the one piece of geometry that matters.
+
+### Correction: `onBump` is not mainly firing when it should not
+
+An earlier version of this section claimed 16% of autonomous was spent at half
+acceleration because `onBump` was falsely set. **That was wrong**, and wrong by a
+circularity worth recording: it classified "falsely on the bump" by asking
+whether the *logged pose* was inside the ramp bands, when the pose is odometry
+and odometry is precisely what fails there. A robot over-reporting its travel
+reads as past the ramp while still on it, and got scored as a false positive when
+`onBump` was right and the pose was wrong.
+
+Re-run using only moments where an accepted vision pose landed within 0.3 s, so
+the pose is anchored to something absolute:
+
+| | agree | false positive | false negative |
+|---|---|---|---|
+| autonomous | 90% | **3%** | **6%** |
+| whole match | 94% | 2% | 3% |
+
+False negatives — on the ramp, `onBump` says no — are **twice as common** as
+false positives. The drive team's read was right and mine was not.
+
+Note what this cannot see: **40% of autonomous has no fresh vision anchor at
+all**, and that is exactly where the failures live. The honest position is that
+`onBump` is roughly right when the pose is trustworthy, and that nobody, robot
+or analyst, knows where the robot is the rest of the time.
+
+The gyro problems below are still real — they were measured from the tilt signal
+directly — but they are a smaller effect than claimed, and they are not the
+reason autonomous fails at the bump.
+
+---
+
+## 9a. The gyro reads 7 degrees flat, and cannot tell braking from a ramp
+
+**Measured.** A contributing problem rather than the main one — see the
+correction above.
 
 `GyroIOPigeon2.getTiltMagnitude()`:
 
@@ -842,7 +917,7 @@ moved once fixed, but the sample went from 174 to 1228.
 
 ---
 
-## 9b. Simulation limitations worth knowing
+## 9d. Simulation limitations worth knowing
 
 Recorded because a simulation you trust past its limits is worse than none.
 

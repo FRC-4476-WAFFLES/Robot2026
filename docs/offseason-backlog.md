@@ -512,7 +512,33 @@ estimates" window stretches to an eighth of a match.
 This is the best explanation for the two autos that failed outright — ONWEL q8
 took a 1.42 m correction 3.4 s in and scored 3 balls against a median of 55.
 
-### The gyro reads 7 degrees flat, and thinks braking is a bump — Open, highest value in autonomous
+### Accept single-tag vision at reduced confidence — Open, highest value in autonomous
+
+Demonstrated on e6 (`2026mil_sf6m1`), the match the drive team reported as stuck
+on the bump in auto.
+
+The robot sat motionless for **5.2 seconds**, commanded to rotate but not
+translate: the bump costs ~32% of wheel travel, odometry over-reported, and the
+path follower believed it had arrived. It was 0.7 m short, still against the
+ramp. When vision finally returned the pose snapped **0.71 m** backwards.
+
+Throughout those 5.2 seconds the **frame camera had one tag in view
+continuously, with a stable and sane Z solve of 0.148 m** — and every frame was
+discarded by `IGNORE_SINGLE_TAG`. The turret camera's frames were rejected by
+`MAX_Z_ERROR`, correctly: its Z solves ranged 0.57 to 2.32 m.
+
+So the fix is not more cameras or more tags. It is accepting the single-tag
+estimate at a confidence that reflects what it is worth. The guards written to
+make that safe — `isAmbiguityAcceptable`, `MIN_TAG_AREA_SINGLE_TAG`,
+`isYawDifferenceAcceptable` — are already in `TagCamera` and unreachable.
+
+**Related and worth fixing at the same time:** the frame camera's Z baseline is
+0.148 m against a `MAX_Z_ERROR` of 0.20, leaving 0.05 m of margin, and the ramp
+is 0.165 m tall. A robot genuinely on the bump reads ~0.31 m and is rejected —
+the check meant to catch bad solves also rejects good ones taken on the one
+piece of geometry where the pose matters most.
+
+### The gyro reads 7 degrees flat, and thinks braking is a bump — Open, contributing
 
 `GyroIOPigeon2.getTiltMagnitude()` is `acos(gravityVectorZ)`. Two measured
 problems: it reads a median **7.0°** stationary and level (12,708 samples)
@@ -524,9 +550,12 @@ threshold under hard acceleration** while nowhere near a ramp.
 then halves the autopilot acceleration limit in auto (15 → 7), forces
 `TARGET_TAG`, and disables the shot lead.
 
-Across the four autos the drive team reported as failures — q44, q59, q76 and
-e6 (`2026mil_sf6m1`) — **16% of autonomous is spent at half acceleration
-believing the robot is on a ramp it is nowhere near.** e6 is 27%.
+**An earlier version of this entry claimed 16% of autonomous was spent at half
+acceleration on a false `onBump`. That was wrong** — it classified against the
+logged pose, which is odometry, the very thing that fails on the bump. Anchored
+to fresh vision: 3% false positive, 6% false negative. Being *on* the ramp while
+`onBump` reads false is twice as common as the reverse, so this is a
+contributing problem and not the cause of the autonomous failures.
 
 **A debounce does not fix it**, measured: real and false episodes have the same
 duration distribution (p50 0.392 s vs 0.369 s), and a 0.20 s debounce keeps 93%
