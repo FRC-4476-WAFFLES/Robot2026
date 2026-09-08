@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.data.FieldConstants;
 import frc.robot.utils.sim.SimField;
@@ -62,7 +63,7 @@ public class SimShooterTest {
     SimField.setEnabled(true);
     RobotContainer.simState.resetSlipTracking();
     // Start close to a wall and drive at it, so it is actually reached.
-    RobotContainer.drive.setPose(new Pose2d(1.2, 4.0, Rotation2d.kZero));
+    RobotContainer.drive.setPose(new Pose2d(1.2, 2.5, Rotation2d.kZero));
     SimHarness.step(5);
 
     // Stick forward is +X, so this drives back towards the near wall.
@@ -85,17 +86,14 @@ public class SimShooterTest {
     // before: TARGET_TAG while crossing, the turret's tilt offset, and arming
     // the post-crossing vision recovery.
     //
-    // Swept rather than aimed at one coordinate. The bump sits at a
-    // blue-relative X and the simulator defaults to red, so a fixed coordinate
-    // means one place or another depending on how promptly the alliance
-    // propagates -- which made an earlier version of this test flaky rather
-    // than wrong.
+    // Swept rather than aimed at one coordinate, so this keeps working whatever
+    // the field geometry says about where the ramps are.
     SimField.setEnabled(true);
     double tiltedAt = Double.NaN;
-    // Along the side of the field, clear of the hub -- which sits on the centre
-    // line and would push the robot back out of any pose placed inside it.
+    // Down the right-hand ramp, beside the hub -- the hub itself sits on the
+    // centre line and would push the robot out of any pose placed inside it.
     for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.25) {
-      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
+      RobotContainer.drive.setPose(new Pose2d(x, 2.5, Rotation2d.kZero));
       SimHarness.step(3);
       if (!RobotContainer.drive.isLevelOnGround()) {
         tiltedAt = x;
@@ -108,7 +106,7 @@ public class SimShooterTest {
 
     // And it must be level again on the far side, or every behaviour gated on
     // being level would stay off for the rest of the match.
-    RobotContainer.drive.setPose(new Pose2d(tiltedAt + 3.0, 1.5, Rotation2d.kZero));
+    RobotContainer.drive.setPose(new Pose2d(tiltedAt + 3.0, 2.5, Rotation2d.kZero));
     SimHarness.step(3);
     assertTrue(RobotContainer.drive.isLevelOnGround(),
         "the robot should be level again well past the bump");
@@ -130,8 +128,11 @@ public class SimShooterTest {
     // no tag in view to fix it.
     SimField.setEnabled(true);
     RobotContainer.simState.resetSlipTracking();
-    RobotContainer.drive.setPose(new Pose2d(2.5, 4.0, Rotation2d.kZero));
-    SimHarness.step(5);
+    SimHarness.releaseAllControls();
+    RobotContainer.drive.setPose(new Pose2d(2.5, 2.5, Rotation2d.kZero));
+    // Long enough for vision estimates taken before the robot was placed to
+    // wash out, or the baseline carries whatever the last test left behind.
+    SimHarness.stepSeconds(1.0);
     double baseline = odometryError();
 
     double peak = 0;
@@ -179,12 +180,48 @@ public class SimShooterTest {
   }
 
   @Test
-  void theBumpPushesTheRobotBackDown() {
-    // Gravity acts on the robot the way it acts on a ball. The bump used to tilt
-    // the robot and take grip away and nothing else, so it climbed at exactly
-    // the speed it drove anywhere -- while a ball on the same slope rolled back.
+  void theFieldElementsAreSolid() {
+    // Walls and the hub were the only things the simulated robot could not drive
+    // through. Everything else on the field it went straight through, which
+    // matters most for the towers -- they sit right where autos line up.
+    SimField.setEnabled(true);
+    SimHarness.releaseAllControls();
+
+    assertPushedOut("hub", FieldConstants.LinesVertical.hubCenter,
+        FieldConstants.fieldWidth / 2);
+    assertPushedOut("opposing hub", FieldConstants.LinesVertical.oppHubCenter,
+        FieldConstants.fieldWidth / 2);
+    assertPushedOut("tower", FieldConstants.Tower.frontFaceX / 2,
+        FieldConstants.Tower.centerPoint.getY());
+    assertPushedOut("left trench", FieldConstants.LinesVertical.hubCenter,
+        FieldConstants.fieldWidth - 0.3);
+    assertPushedOut("right trench", FieldConstants.LinesVertical.hubCenter, 0.3);
+
+    SimField.setEnabled(false);
+    SimHarness.levelOut();
+  }
+
+  /** Puts the robot inside something solid and checks the field throws it out. */
+  private void assertPushedOut(String what, double x, double y) {
+    RobotContainer.drive.setPose(new Pose2d(x, y, Rotation2d.kZero));
+    SimHarness.step(3);
+    Pose2d truth = RobotContainer.simState.getPose();
+    double moved = truth.getTranslation().getDistance(new Translation2d(x, y));
+    System.out.printf("placed inside the %s, pushed %.2f m to %.2f, %.2f%n",
+        what, moved, truth.getX(), truth.getY());
+    assertTrue(moved > 0.1, "the " + what + " should be solid, but the robot stayed at " + truth);
+  }
+
+  @Test
+  void theBumpCostsTheRobotGrip() {
+    // Gravity acts on the robot the way it acts on a ball, and the ramp is
+    // worse to drive on than carpet. Both come out of the same grip budget: the
+    // wheels pay for holding the robot on the slope first and get whatever is
+    // left over for going anywhere, on a surface that has less to give.
     //
-    // Parked on the slope with no drive input, the robot should slide.
+    // So the same stick, from a standstill, has to move the robot less up the
+    // bump than it does on the flat. That is the whole of beaching, without it
+    // being written in anywhere.
     SimField.setEnabled(true);
     RobotContainer.simState.resetSlipTracking();
     SimHarness.releaseAllControls();
@@ -193,7 +230,7 @@ public class SimShooterTest {
     // simulator happens to have picked.
     double onBumpX = Double.NaN;
     for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.2) {
-      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
+      RobotContainer.drive.setPose(new Pose2d(x, 2.5, Rotation2d.kZero));
       SimHarness.step(3);
       if (!RobotContainer.drive.isLevelOnGround()) {
         onBumpX = x;
@@ -202,18 +239,30 @@ public class SimShooterTest {
     }
     assertTrue(!Double.isNaN(onBumpX), "setup: never found the bump");
 
-    double before = RobotContainer.simState.getPose().getX();
-    SimHarness.stepSeconds(1.5);
-    double after = RobotContainer.simState.getPose().getX();
+    double onBump = distanceCoveredFrom(onBumpX);
+    double onFlat = distanceCoveredFrom(onBumpX - 1.5);
 
-    System.out.printf("parked on the bump at x %.2f, slid to %.2f (%.2f m)%n",
-        before, after, after - before);
+    System.out.printf("half a second of full stick: %.3f m on the flat, %.3f m on the bump%n",
+        onFlat, onBump);
     SimField.setEnabled(false);
     SimHarness.levelOut();
+    SimHarness.releaseAllControls();
 
-    assertTrue(Math.abs(after - before) > 0.05,
-        "a robot sitting on the slope with no drive should slide, moved "
-            + (after - before) + " m");
+    assertTrue(onBump < onFlat * 0.9,
+        "climbing the bump should cost the robot ground against the same stick on the flat, "
+            + onBump + " m against " + onFlat + " m");
+  }
+
+  /** How far full forward stick moves the robot in half a second from a standstill. */
+  private double distanceCoveredFrom(double startX) {
+    RobotContainer.drive.setPose(new Pose2d(startX, 2.5, Rotation2d.kZero));
+    SimHarness.step(3);
+    double before = RobotContainer.simState.getPose().getX();
+    // Stick forward is -Y on the gamepad and +X on the field.
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, -1.0);
+    SimHarness.stepSeconds(0.5);
+    SimHarness.setAxis(SimHarness.DRIVER, XboxController.Axis.kLeftY.value, 0.0);
+    return RobotContainer.simState.getPose().getX() - before;
   }
 
   @Test
@@ -230,7 +279,7 @@ public class SimShooterTest {
     double peakHeight = 0;
     double peakPitchDegrees = 0;
     for (double x = 1.0; x < FieldConstants.fieldLength - 1.0; x += 0.15) {
-      RobotContainer.drive.setPose(new Pose2d(x, 1.5, Rotation2d.kZero));
+      RobotContainer.drive.setPose(new Pose2d(x, 2.5, Rotation2d.kZero));
       SimHarness.step(3);
       var pose = SimField.getRobotPose3d();
       if (Double.isNaN(flatHeight)) {

@@ -103,10 +103,15 @@ public final class SimRobot {
     double dt = CodeConstants.PERIODIC_LOOP_TIME;
 
     // What the wheels are asking the robot to do, and what it would take to
-    // achieve it this loop.
+    // achieve it this loop. Gravity along the slope has to be paid for out of
+    // the same grip budget: the modules run closed loop on velocity, so holding
+    // still on a ramp is work, and the wheels only get what is left over for
+    // going anywhere. Without that term a robot on a slope could never hold
+    // position — it crept downhill forever at whatever speed one loop of
+    // gravity gave it, which is what made the bump feel like ice.
     Translation2d wanted = new Translation2d(
         wheelSpeeds.vxMetersPerSecond, wheelSpeeds.vyMetersPerSecond);
-    Translation2d needed = wanted.minus(velocity).div(dt);
+    Translation2d needed = wanted.minus(velocity).div(dt).minus(slopeAcceleration);
 
     // The tyres can only pull so hard. Ask for more and they slip, which is
     // where hard acceleration and hard turns lose grip without being special
