@@ -65,14 +65,33 @@ public final class SimShooter {
   private static final double HOOD_MIN_DEGREES = 58.0;
   private static final double HOOD_MAX_DEGREES = 70.0;
   /*
-   * How balls actually come out, measured over 101 gaps in the ONWEL match logs:
-   * a median of 0.30 s, a quartile range of 0.19 to 0.84 s. Real bursts are
-   * irregular — the feeder catches, the wheel has to come back — so a metronome
-   * would look nothing like one.
+   * How balls actually come out.
+   *
+   * The first version of this was fitted to the wrong thing. It used the gaps
+   * between the "Fire shot" command starting, which is how often the shooter is
+   * let go, not how often a ball leaves — a held trigger is one command and
+   * twenty balls. So the simulation fired roughly one ball for every burst the
+   * real robot fired.
+   *
+   * These come from counting the balls themselves, as peaks in the flywheel's
+   * stator current: a ball takes fixed momentum out of the wheel and the
+   * controller has to put it back, which the speed dip does not measure honestly
+   * once flywheel mass is added. Across 3230 gaps in the Houston logs, which is
+   * the code this repository actually runs:
+   *
+   * p25 0.118 s p50 0.190 s p75 0.284 s p95 0.496 s -> 3.5 balls/s
+   *
+   * Right-skewed, not symmetric — bursts have a floor and a long tail, because
+   * the feeder catches and the wheel has to come back. A lognormal reproduces it
+   * closely (0.127 / 0.190 / 0.283 / 0.501), where the old clamped Gaussian
+   * could not: it needed a spread as wide as its own median and still had to be
+   * clipped off at the bottom.
    */
-  private static final double SHOT_INTERVAL = 0.30;
-  private static final double SHOT_INTERVAL_SPREAD = 0.22;
-  private static final double SHOT_INTERVAL_MINIMUM = 0.12;
+  private static final double SHOT_INTERVAL = 0.190;
+  /** Shape of the lognormal, fitted to the quartile ratio of those same gaps. */
+  private static final double SHOT_INTERVAL_SIGMA = 0.59;
+  /** The 5th percentile: two balls are never closer than this. */
+  private static final double SHOT_INTERVAL_MINIMUM = 0.067;
 
   /**
    * Shot-to-shot scatter, as a fraction of exit speed and degrees of heading.
@@ -256,7 +275,7 @@ public final class SimShooter {
     }
     lastShot = now;
     nextInterval = Math.max(SHOT_INTERVAL_MINIMUM,
-        SHOT_INTERVAL + SCATTER.nextGaussian() * SHOT_INTERVAL_SPREAD);
+        SHOT_INTERVAL * Math.exp(SCATTER.nextGaussian() * SHOT_INTERVAL_SIGMA));
     fire();
   }
 
