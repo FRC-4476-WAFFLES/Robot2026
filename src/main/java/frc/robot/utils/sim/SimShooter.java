@@ -339,9 +339,26 @@ public final class SimShooter {
     // The robot's own motion carries into the shot, which is the whole reason
     // shoot-on-move exists. Leaving it out would make the simulation flatter
     // than reality in exactly the case worth watching.
+    //
+    // It is the turret's velocity and not the robot centre's. The turret sits
+    // 0.24 m off centre, so when the robot spins it travels faster than its
+    // middle does -- a quarter of a metre per second at one radian per second.
+    // The shot planner already leads by the turret's velocity, so giving the
+    // simulated ball the centre's instead disagreed with the code under test by
+    // exactly that much, and only while rotating. That is the case the drive
+    // team reports going wrong, so it is the one case the simulation had to get
+    // right before it could say anything useful about it.
     var robotVelocity = RobotContainer.state.getFieldVelocity();
+    double robotAngle = robot.getRotation().getRadians();
+    double offsetX = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getX();
+    double offsetY = PhysicalConstants.ROBOT_TO_TURRET_CENTER.getY();
+    double omega = robotVelocity.omegaRadiansPerSecond;
     velocity = velocity.plus(new Translation3d(
-        robotVelocity.vxMetersPerSecond, robotVelocity.vyMetersPerSecond, 0));
+        robotVelocity.vxMetersPerSecond
+            - omega * (offsetX * Math.sin(robotAngle) + offsetY * Math.cos(robotAngle)),
+        robotVelocity.vyMetersPerSecond
+            + omega * (offsetX * Math.cos(robotAngle) - offsetY * Math.sin(robotAngle)),
+        0));
 
     FuelSim.getInstance().spawnFuel(origin, velocity);
     shotsFired++;

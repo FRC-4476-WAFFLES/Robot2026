@@ -12,6 +12,7 @@ import org.littletonrobotics.junction.Logger;
 import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
@@ -69,6 +70,32 @@ public class ShotPlanner {
    * lead becomes meaningless. Nobody shoots from here anyway.
    */
   private static final double MINIMUM_RANGE_FOR_LEAD = 0.5;
+  /**
+   * How long the flywheel takes to answer a change in its setpoint, in seconds.
+   *
+   * <p>
+   * Measured from 23 clean step changes in the goal while not firing, so the
+   * dips from balls passing through do not contaminate it: the time to cover
+   * 63% of the step is 0.25 s at the median and 0.93 s at the 90th percentile.
+   * Spinning down is quicker, 0.11 s, which is why driving toward the goal
+   * causes no trouble and driving away does.
+   *
+   * <p>
+   * A first-order system tracking a ramp settles exactly this far behind it, so
+   * asking for the speed the robot will need one time constant from now cancels
+   * the lag rather than merely reducing it.
+   */
+  private static final double FLYWHEEL_RESPONSE_SECONDS = 0.25;
+  /**
+   * The most the flywheel lead may move the lookup, in metres.
+   *
+   * <p>
+   * The range rate is differentiated from a pose that occasionally jumps when
+   * vision corrects it. Without a bound, one jump becomes a wild flywheel
+   * command; 1 m covers closing or opening at 4 m/s, which is faster than the
+   * robot goes.
+   */
+  private static final double MAX_FLYWHEEL_LEAD_METRES = 1.0;
 
   private static Rotation2d lastTurretAngle;
   /** When the current pose recovery attempt began, or -1 if none is running. */
@@ -193,10 +220,34 @@ public class ShotPlanner {
         Logger.recordOutput("Turret/Bearing Rate", turretVelocity);
       }
 
+      // Lead the flywheel by its own response time, the way the aim is already
+      // led by the ball's flight time.
+      //
+      // Driving away from the goal, the setpoint is right and the wheel is
+      // simply not there yet. Measured across the Houston matches, shots taken
+      // while the range opened at 0.7 to 1.5 m/s went out a median 2.9 rps
+      // short -- which is the whole of the tolerance at 3 m, leaving nothing
+      // for the hood, the turret or the ball. Closing does not suffer, because
+      // the wheel comes down in half the time and arrives slightly fast, which
+      // the tolerance absorbs.
+      double flywheelDistance = distanceToTarget;
+      if (CodeConstants.SHOOT_ON_MOVE) {
+        Translation2d toTarget = fieldTarget.minus(adjustedPose);
+        double range = toTarget.getNorm();
+        if (range > MINIMUM_RANGE_FOR_LEAD) {
+          // Positive while the range is opening.
+          double rangeRate = -(integratedVelocity.getX() * toTarget.getX()
+              + integratedVelocity.getY() * toTarget.getY()) / range;
+          flywheelDistance += MathUtil.clamp(rangeRate * FLYWHEEL_RESPONSE_SECONDS,
+              -MAX_FLYWHEEL_LEAD_METRES, MAX_FLYWHEEL_LEAD_METRES);
+        }
+        Logger.recordOutput("Turret/Flywheel Lead Distance", flywheelDistance - distanceToTarget);
+      }
+
       parameters = new ShootingParameters(
           new TurretSetpoint(turretAngle, turretVelocity),
           hoodAngle.interpolate(distanceToTarget),
-          flywheelSpeeds.interpolate(distanceToTarget),
+          flywheelSpeeds.interpolate(flywheelDistance),
           distanceToTarget
       );
 

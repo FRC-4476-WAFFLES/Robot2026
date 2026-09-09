@@ -37,6 +37,49 @@ public class ShotLeadTest {
             / (range * range));
   }
 
+  /** How far to shift the flywheel lookup, given the same geometry. */
+  private static double flywheelLead(Translation2d lineOfSight, Translation2d velocity,
+      double responseSeconds) {
+    double range = lineOfSight.getNorm();
+    double rangeRate = -(velocity.getX() * lineOfSight.getX()
+        + velocity.getY() * lineOfSight.getY()) / range;
+    return rangeRate * responseSeconds;
+  }
+
+  @Test
+  void drivingAwayAsksTheFlywheelForMoreThanItNeedsNow() {
+    // The complement of the bearing rate: closing head on changes the range and
+    // not the bearing, so it is the flywheel rather than the turret that has to
+    // move. Measured across the Houston matches, shots taken while the range
+    // opened at 0.7 to 1.5 m/s went out a median 2.9 rps short -- the whole
+    // tolerance at 3 m -- because the setpoint was right and the wheel had not
+    // reached it.
+    var lineOfSight = new Translation2d(4.0, 0);
+    double lead = flywheelLead(lineOfSight, new Translation2d(-1.0, 0), 0.25);
+    System.out.printf("opening at 1.0 m/s leads the lookup by %.3f m%n", lead);
+    assertTrue(lead > 0, "driving away must ask for a longer shot, got " + lead);
+    assertEquals(0.25, lead, 1e-6);
+  }
+
+  @Test
+  void drivingTowardAsksForLess() {
+    var lineOfSight = new Translation2d(4.0, 0);
+    double lead = flywheelLead(lineOfSight, new Translation2d(1.0, 0), 0.25);
+    assertTrue(lead < 0, "closing must ask for a shorter shot, got " + lead);
+    assertEquals(-0.25, lead, 1e-6);
+  }
+
+  @Test
+  void crossingTheTargetDoesNotMoveTheFlywheel() {
+    // Pure tangential motion changes the bearing and not the range, so this is
+    // the turret's job entirely. A lead here would be the sign of a dot product
+    // written as a cross product.
+    var lineOfSight = new Translation2d(4.0, 0);
+    double lead = flywheelLead(lineOfSight, new Translation2d(0, 3.0), 0.25);
+    System.out.printf("crossing at 3.0 m/s leads the lookup by %.3f m%n", lead);
+    assertEquals(0.0, lead, 1e-9);
+  }
+
   @Test
   void drivingStraightAtATargetNeedsNoLead() {
     // Closing head on changes the range and not the bearing, so the turret
