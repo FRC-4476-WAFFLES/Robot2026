@@ -31,6 +31,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -256,6 +257,12 @@ public class Drive extends ExpandedSubsystem implements PowerManaged {
 
       // Update pose history buffers
       RobotContainer.state.updateOdometry(Timer.getTimestamp(), getPose(), getChassisSpeeds(), gyroInputs.tipAngle);
+      // Which way up is, for anything that has to reason about being tilted.
+      // Passed as the vector rather than an angle because the magnitude alone
+      // cannot say which way the robot is leaning, and the shot correction is
+      // opposite for the two.
+      RobotContainer.state.setGravityVector(new Translation3d(
+          gyroInputs.gravityVectorX, gyroInputs.gravityVectorY, gyroInputs.gravityVectorZ));
 
     }
     EpochTimer.EndEpoch("Drive");

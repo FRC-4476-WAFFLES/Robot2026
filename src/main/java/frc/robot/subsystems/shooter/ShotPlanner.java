@@ -33,6 +33,7 @@ import frc.robot.subsystems.shooter.turret.Turret.TurretSetpoint;
 import frc.robot.utils.lib.EpochTimer;
 import frc.robot.utils.lib.SplineMonotone1D;
 import frc.robot.utils.lib.WafflesUtilities;
+import frc.robot.utils.lib.TiltedShot;
 
 public class ShotPlanner {
   public static record ShootingParameters(
@@ -244,10 +245,54 @@ public class ShotPlanner {
         Logger.recordOutput("Turret/Flywheel Lead Distance", flywheelDistance - distanceToTarget);
       }
 
+      double hoodPosition = hoodAngle.interpolate(distanceToTarget);
+      double flywheelRps = flywheelSpeeds.interpolate(flywheelDistance);
+
+      // Aiming from a slope.
+      //
+      // Tilt does one thing to a shot: it rotates the direction the ball leaves
+      // in. Measured across seven ranges and five tilts, a robot firing from the
+      // bump lands 7 shots of 35; solving for the tilt lands 35 of 35. At the
+      // 9.2 degrees the bump produces, the ball leaves nine degrees steeper than
+      // intended and falls a third short.
+      //
+      // The hood cannot fix it alone -- its whole travel is twelve degrees and
+      // the tilt eats nine -- so it takes what the hood can give and hands the
+      // rest to the flywheel.
+      if (CodeConstants.COMPENSATE_FOR_TILT) {
+        Rotation2d heading = RobotContainer.state.getRotation();
+        var solved = TiltedShot.solve(
+            RobotContainer.state.getGravityVector(),
+            turretAngle.minus(heading).getRadians(),
+            HoodConstants.elevationFor(hoodPosition),
+            HoodConstants.ELEVATION_AT_FLATTEST_DEGREES,
+            HoodConstants.ELEVATION_AT_ZERO_DEGREES);
+
+        turretAngle = heading.plus(Rotation2d.fromRadians(solved.turretAzimuthRadians()));
+        hoodPosition = HoodConstants.positionFor(solved.hoodElevationDegrees());
+
+        // Speed as a ratio rather than an absolute, so the conversion from
+        // rotations per second to metres per second never has to be known: the
+        // map's own speed already reaches this distance at the map's own angle,
+        // and both terms scale with it identically, so it cancels.
+        double climb = FieldConstants.Hub.topCenterPoint.getZ()
+            - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getZ();
+        double atMapAngle = TiltedShot.requiredSpeed(distanceToTarget,
+            HoodConstants.elevationFor(hoodPosition), climb);
+        double atRealAngle = TiltedShot.requiredSpeed(distanceToTarget,
+            solved.launchElevationDegrees(), climb);
+        if (atMapAngle > 0 && atRealAngle > 0
+            && !Double.isNaN(atMapAngle) && !Double.isNaN(atRealAngle)) {
+          flywheelRps *= atRealAngle / atMapAngle;
+        }
+        Logger.recordOutput("Turret/Tilt Launch Elevation", solved.launchElevationDegrees());
+        Logger.recordOutput("Turret/Tilt Hood Clamped", solved.hoodWasClamped());
+      }
+
       parameters = new ShootingParameters(
           new TurretSetpoint(turretAngle, turretVelocity),
-          hoodAngle.interpolate(distanceToTarget),
-          flywheelSpeeds.interpolate(flywheelDistance),
+          hoodPosition,
+          flywheelRps,
           distanceToTarget
       );
 

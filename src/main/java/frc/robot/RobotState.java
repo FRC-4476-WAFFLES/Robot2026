@@ -18,6 +18,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -134,6 +135,23 @@ public class RobotState {
 
   @Getter
   private double latestTilt = 0;
+
+  /**
+   * Which way "up" is, in the robot's own frame, straight off the gyro.
+   *
+   * <p>
+   * Level is (0, 0, 1). Everything about aiming from a slope follows from this
+   * one vector, and unlike the tilt magnitude it says which way the lean goes —
+   * the difference between a shot that leaves too steep and one that leaves too
+   * flat.
+   */
+  @Getter
+  private Translation3d gravityVector = new Translation3d(0, 0, 1);
+
+  /** Told by {@code Drive}, which is the only thing that reads the gyro. */
+  public void setGravityVector(Translation3d gravity) {
+    this.gravityVector = gravity;
+  }
 
   private final BeachDetector beachDetector = new BeachDetector();
   private ChassisSpeeds autopilotCommandedSpeeds = new ChassisSpeeds();

@@ -248,6 +248,25 @@ public final class Constants {
     public static final boolean LIMIT_TO_HUB_SHIFTS = true;
     public static final boolean MANUAL_SHOOTER_TUNING = true;
     public static final boolean SHOOT_ON_MOVE = true;
+    /**
+     * Correct the shot for the robot being tilted.
+     *
+     * <p>
+     * Measured across seven ranges and five tilts through the real shot maps, a
+     * robot firing from the bump lands 7 of 35; solving for the tilt lands 35
+     * of 35. At the 9.2 degrees the bump actually produces, nothing goes in --
+     * the ball leaves nine degrees steeper than intended and falls a third
+     * short.
+     *
+     * <p>
+     * <b>This assumes the gyro is telling the truth about level.</b> Today's
+     * Pigeon reads seven degrees sitting flat because no mount pose is
+     * configured, and until that is fixed this will correct a robot that does
+     * not need correcting -- spoiling level shots to fix the ones on the ramp.
+     * In simulation the gravity vector is exact, so it is honest there now.
+     * Turn this off if the mount calibration slips.
+     */
+    public static final boolean COMPENSATE_FOR_TILT = true;
 
     public enum ManualOverrideTarget {
       FRONT_CLOSE(Rotation2d.kZero, 3.2),
@@ -730,6 +749,37 @@ public final class Constants {
   public static class HoodConstants {
     public static final double MIN_POSITION_ROTATIONS = Units.degreesToRotations(0);
     public static final double MAX_POSITION_ROTATIONS = Units.degreesToRotations(20);
+
+    /**
+     * What a hood position means as an angle above horizontal.
+     *
+     * <p>
+     * The hood runs backwards: position zero is the steepest shot and the
+     * numbers grow as it flattens. This lived only in the simulation, which was
+     * the wrong home for it -- it is a fact about the machine, and the shot
+     * planner needs it to work out what a tilted robot will actually do.
+     *
+     * <p>
+     * Note how little there is: twelve degrees of authority in total, which is
+     * less than the bump tilts the robot by.
+     */
+    public static final double ELEVATION_AT_ZERO_DEGREES = 70.0;
+    public static final double ELEVATION_AT_FLATTEST_DEGREES = 58.0;
+    public static final double POSITION_AT_FLATTEST = 21.0;
+
+    /** Launch elevation for a hood position, degrees above horizontal. */
+    public static double elevationFor(double position) {
+      double fraction = Math.min(1.0, Math.max(0.0, position / POSITION_AT_FLATTEST));
+      return ELEVATION_AT_ZERO_DEGREES
+          - fraction * (ELEVATION_AT_ZERO_DEGREES - ELEVATION_AT_FLATTEST_DEGREES);
+    }
+
+    /** Hood position that gives an elevation. The inverse of the above. */
+    public static double positionFor(double elevationDegrees) {
+      return POSITION_AT_FLATTEST
+          * (ELEVATION_AT_ZERO_DEGREES - elevationDegrees)
+          / (ELEVATION_AT_ZERO_DEGREES - ELEVATION_AT_FLATTEST_DEGREES);
+    }
 
     public static final double MAX_VELOCITY = 2;
     public static final double MAX_ACCELERATION = 30;

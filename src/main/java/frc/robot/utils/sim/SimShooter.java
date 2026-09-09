@@ -14,6 +14,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.RobotContainer;
+import frc.robot.data.Constants.HoodConstants;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.Constants.TurretConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
@@ -425,25 +426,29 @@ public final class SimShooter {
     return wheelRps * 2 * Math.PI * WHEEL_RADIUS * SLIP_FACTOR;
   }
 
-  /** Launch elevation for a hood position, as the simulation models it. */
+  /**
+   * Launch elevation for a hood position.
+   *
+   * <p>
+   * Defers to {@link HoodConstants}, where the mapping now lives: it is a fact
+   * about the machine and the shot planner needs it too, so the simulation
+   * keeping its own copy was how the two would come to disagree.
+   */
   public static double launchElevationFor(double hoodRotations) {
-    double fraction = Math.min(1.0, Math.max(0, hoodRotations / HOOD_ROTATIONS_AT_MAX));
-    return HOOD_MAX_DEGREES - fraction * (HOOD_MAX_DEGREES - HOOD_MIN_DEGREES);
+    return HoodConstants.elevationFor(hoodRotations);
   }
 
   /** Hood position that produces a launch elevation, the inverse of the above. */
   public static double hoodRotationsFor(double elevationDegrees) {
-    return HOOD_ROTATIONS_AT_MAX
-        * (HOOD_MAX_DEGREES - elevationDegrees) / (HOOD_MAX_DEGREES - HOOD_MIN_DEGREES);
+    return HoodConstants.positionFor(elevationDegrees);
   }
 
-  /** The flattest and steepest the hood can launch, in degrees. */
   public static double hoodMinElevation() {
-    return HOOD_MIN_DEGREES;
+    return HoodConstants.ELEVATION_AT_FLATTEST_DEGREES;
   }
 
   public static double hoodMaxElevation() {
-    return HOOD_MAX_DEGREES;
+    return HoodConstants.ELEVATION_AT_ZERO_DEGREES;
   }
 
   /** The hood's commanded travel, as a launch angle above horizontal. */
