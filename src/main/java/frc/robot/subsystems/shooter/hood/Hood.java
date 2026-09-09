@@ -57,13 +57,25 @@ public class Hood extends SubsystemBase {
 
   }
 
-  @AutoLogOutput(key = "Hood/Position")
-
-  /** The position the hood is being asked to hold, in rotations. */
+  /** The position the hood is being asked to hold. */
+  @AutoLogOutput(key = "Hood/Goal Position")
   public double getGoalPosition() {
     return setpoint;
   }
 
+  /**
+   * Where the hood actually is.
+   *
+   * <p>
+   * The key on this used to sit above {@link #getGoalPosition()}, separated by
+   * a blank line and a comment, which reads as though it belongs to whatever is
+   * above it. Java binds an annotation to the next declaration regardless, so
+   * "Hood/Position" was the goal under a name that says otherwise, and the real
+   * position was never an output at all. Nothing failed -- the hood tracked
+   * perfectly well -- but hood tracking error could not be seen, which is
+   * exactly the signal wanted for shooting on the move.
+   */
+  @AutoLogOutput(key = "Hood/Position")
   public double getPosition() {
     return inputs.hoodMotor.position() * 360;
   }
