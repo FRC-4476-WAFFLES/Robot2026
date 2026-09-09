@@ -59,6 +59,15 @@ public class GyroIOSim implements GyroIO {
     double heading = SimRobot.getPose().getRotation().getRadians();
     inputs.pitchDegrees = tiltDegrees * Math.cos(heading);
     inputs.rollDegrees = tiltDegrees * Math.sin(heading);
+    // And the vector those come from, consistent with them, so that anything
+    // computing tilt from gravity gets the same answer here as on the robot.
+    // Left at its default a simulated robot reports dead level on the steepest
+    // ramp, which is the sort of quiet disagreement between simulation and
+    // hardware that only shows up at an event.
+    double tiltRad = Math.toRadians(tiltDegrees);
+    inputs.gravityVectorX = Math.sin(tiltRad) * Math.cos(heading);
+    inputs.gravityVectorY = Math.sin(tiltRad) * Math.sin(heading);
+    inputs.gravityVectorZ = Math.cos(tiltRad);
     // The real gyro logs this from GyroIOPigeon2.getTiltMagnitude, so log it
     // here too or the tilt is invisible in AdvantageScope during a sim run.
     Logger.recordOutput("TiltDeg", tiltDegrees);
