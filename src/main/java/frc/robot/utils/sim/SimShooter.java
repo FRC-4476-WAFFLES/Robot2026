@@ -330,11 +330,24 @@ public final class SimShooter {
 
     // A robot on the bump launches along its own tilted axis, which is exactly
     // the case the drive team reports missing from.
-    double pitch = Units.degreesToRadians(hoodDegrees + GyroIOSim.getTilt());
-    Translation3d velocity = new Translation3d(
-        speed * Math.cos(pitch) * turretHeading.getCos(),
-        speed * Math.cos(pitch) * turretHeading.getSin(),
-        speed * Math.sin(pitch));
+    //
+    // This used to add the tilt to the hood angle. That is only right when the
+    // robot happens to be pointing straight up the slope: tilt is a rotation,
+    // and adding a scalar makes every shot steeper no matter which way the ramp
+    // runs, when a robot standing across it should have its aim swung sideways
+    // instead. Building the direction in the robot's own frame and rotating it
+    // out handles both, and matches what TiltedShot solves against.
+    double azimuthInRobot = turretHeading.minus(robot.getRotation()).getRadians();
+    double elevation = Units.degreesToRadians(hoodDegrees);
+    Translation3d alongBarrel = new Translation3d(
+        Math.cos(elevation) * Math.cos(azimuthInRobot),
+        Math.cos(elevation) * Math.sin(azimuthInRobot),
+        Math.sin(elevation));
+    Translation3d velocity = alongBarrel
+        .rotateBy(new Rotation3d(0, 0, robot.getRotation().getRadians()))
+        .rotateBy(GyroIOSim.getSurfaceLean())
+        .times(speed);
+    double pitch = Math.asin(velocity.getZ() / Math.max(speed, 1e-9));
 
     // The robot's own motion carries into the shot, which is the whole reason
     // shoot-on-move exists. Leaving it out would make the simulation flatter

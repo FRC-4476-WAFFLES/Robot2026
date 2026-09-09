@@ -7,6 +7,8 @@ package frc.robot.subsystems.drive;
 import org.littletonrobotics.junction.Logger;
 
 import frc.robot.data.Constants;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.utils.sim.SimRobot;
 
 /**
@@ -33,15 +35,54 @@ import frc.robot.utils.sim.SimRobot;
  */
 public class GyroIOSim implements GyroIO {
   private static volatile double tiltDegrees = 0.0;
+  /** Field bearing the surface normal leans toward, which is downhill. */
+  private static volatile double normalAzimuthRadians = 0.0;
 
   /** Tilts the simulated robot. Zero is level. */
   public static void setTilt(double degrees) {
+    setTilt(degrees, 0.0);
+  }
+
+  /**
+   * @param degrees how far off level
+   * @param normalAzimuth the field bearing the surface normal leans toward,
+   *     which is downhill. The bumps run across the field, so this is 0 or pi.
+   */
+  public static void setTilt(double degrees, double normalAzimuth) {
     tiltDegrees = degrees;
+    normalAzimuthRadians = normalAzimuth;
   }
 
   /** Puts the robot back on the flat. */
   public static void reset() {
     tiltDegrees = 0.0;
+    normalAzimuthRadians = 0.0;
+  }
+
+  /**
+   * The surface the robot is standing on, as a unit normal in field
+   * coordinates.
+   *
+   * <p>
+   * Everything about a tilted robot follows from this one vector: which way the
+   * gyro's gravity reading leans, and which way a ball leaves the shooter. They
+   * have to come from the same place or the simulation disagrees with itself.
+   */
+  public static Translation3d getSurfaceNormal() {
+    double t = Math.toRadians(tiltDegrees);
+    return new Translation3d(
+        Math.sin(t) * Math.cos(normalAzimuthRadians),
+        Math.sin(t) * Math.sin(normalAzimuthRadians),
+        Math.cos(t));
+  }
+
+  /** Rotation taking a level frame onto the surface the robot is standing on. */
+  public static Rotation3d getSurfaceLean() {
+    if (tiltDegrees == 0) {
+      return Rotation3d.kZero;
+    }
+    return new Rotation3d(new Translation3d(0, 0, 1).toVector(),
+        getSurfaceNormal().toVector());
   }
 
   /** The tilt currently being simulated, in degrees. */
@@ -56,18 +97,25 @@ public class GyroIOSim implements GyroIO {
     // robot is square to it and roll when it is sideways on. Split the same way
     // the real Pigeon would see it, so the field is populated rather than left
     // at zero for replay.
+    // What the gyro would report: the field's "up", expressed in the robot's
+    // own frame. Derived from the surface rather than written out by hand,
+    // because the hand-written version had the robot's heading in it twice and
+    // a sign the wrong way round.
+    //
+    // The robot's body sits with its Z along the surface normal and its X along
+    // its heading, so the body-to-field rotation is the lean applied after the
+    // yaw. Field up seen from the body is that rotation, inverted, applied to
+    // vertical.
     double heading = SimRobot.getPose().getRotation().getRadians();
-    inputs.pitchDegrees = tiltDegrees * Math.cos(heading);
-    inputs.rollDegrees = tiltDegrees * Math.sin(heading);
-    // And the vector those come from, consistent with them, so that anything
-    // computing tilt from gravity gets the same answer here as on the robot.
-    // Left at its default a simulated robot reports dead level on the steepest
-    // ramp, which is the sort of quiet disagreement between simulation and
-    // hardware that only shows up at an event.
-    double tiltRad = Math.toRadians(tiltDegrees);
-    inputs.gravityVectorX = Math.sin(tiltRad) * Math.cos(heading);
-    inputs.gravityVectorY = Math.sin(tiltRad) * Math.sin(heading);
-    inputs.gravityVectorZ = Math.cos(tiltRad);
+    Translation3d up = new Translation3d(0, 0, 1)
+        .rotateBy(getSurfaceLean().unaryMinus())
+        .rotateBy(new Rotation3d(0, 0, -heading));
+    inputs.gravityVectorX = up.getX();
+    inputs.gravityVectorY = up.getY();
+    inputs.gravityVectorZ = up.getZ();
+    // Pitch and roll as the Pigeon would fuse them, from the same vector.
+    inputs.pitchDegrees = Math.toDegrees(Math.asin(-up.getX()));
+    inputs.rollDegrees = Math.toDegrees(Math.asin(up.getY()));
     // The real gyro logs this from GyroIOPigeon2.getTiltMagnitude, so log it
     // here too or the tilt is invisible in AdvantageScope during a sim run.
     Logger.recordOutput("TiltDeg", tiltDegrees);

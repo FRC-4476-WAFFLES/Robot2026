@@ -187,7 +187,11 @@ public final class SimField {
     boolean onBump = !Double.isNaN(through);
     double tilt = onBump ? tiltAt(through) : 0;
 
-    GyroIOSim.setTilt(tilt);
+    // The normal leans downhill, and the bumps run across the field, so that is
+    // along X: back toward the start on the near face, on toward the far side
+    // past the crest. Same sign as the gravity term below, and taken from the
+    // same place so the two cannot drift apart.
+    GyroIOSim.setTilt(tilt, through < 0.5 ? Math.PI : 0.0);
 
     // Gravity along the surface, pointing down whichever face the robot is on.
     // The bumps run across the field, so that is always along X.
