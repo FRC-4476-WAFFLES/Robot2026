@@ -32,6 +32,17 @@ public class GyroIOPigeon2 implements GyroIO {
   private final Queue<Double> yawPositionQueue;
   private final Queue<Double> yawTimestampQueue;
   private final StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
+  /*
+   * Declared as fields and given a frequency because optimizeBusUtilization()
+   * silences every signal that has not asked for one. Reading these straight
+   * off the device in updateInputs, which is how pitch and roll were being
+   * taken, means reading whatever the last refresh left behind.
+   */
+  private final StatusSignal<Angle> pitch = pigeon.getPitch();
+  private final StatusSignal<Angle> roll = pigeon.getRoll();
+  private final StatusSignal<Double> gravityX = pigeon.getGravityVectorX();
+  private final StatusSignal<Double> gravityY = pigeon.getGravityVectorY();
+  private final StatusSignal<Double> gravityZ = pigeon.getGravityVectorZ();
 
   public GyroIOPigeon2() {
     if (TunerConstants.DrivetrainConstants.Pigeon2Configs != null) {
@@ -43,6 +54,7 @@ public class GyroIOPigeon2 implements GyroIO {
     pigeon.getConfigurator().setYaw(0.0);
     yaw.setUpdateFrequency(Drive.ODOMETRY_FREQUENCY);
     yawVelocity.setUpdateFrequency(50.0);
+    BaseStatusSignal.setUpdateFrequencyForAll(50.0, pitch, roll, gravityX, gravityY, gravityZ);
     pigeon.optimizeBusUtilization();
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(yaw.clone());
@@ -50,7 +62,9 @@ public class GyroIOPigeon2 implements GyroIO {
 
   @Override
   public void updateInputs(GyroIOInputs inputs) {
-    inputs.connected = BaseStatusSignal.refreshAll(yaw, yawVelocity).equals(StatusCode.OK);
+    inputs.connected = BaseStatusSignal
+        .refreshAll(yaw, yawVelocity, pitch, roll, gravityX, gravityY, gravityZ)
+        .equals(StatusCode.OK);
     inputs.yawPosition = Rotation2d.fromDegrees(yaw.getValueAsDouble());
     inputs.yawVelocityRadPerSec = Units.degreesToRadians(yawVelocity.getValueAsDouble());
 
@@ -64,15 +78,18 @@ public class GyroIOPigeon2 implements GyroIO {
     inputs.tipAngle = getTiltMagnitude();
     inputs.levelOnGround = !isOnBumpGravity(inputs.tipAngle);
     // Recorded but not yet acted on -- see GyroIOInputs for why.
-    inputs.pitchDegrees = pigeon.getPitch().getValueAsDouble();
-    inputs.rollDegrees = pigeon.getRoll().getValueAsDouble();
+    inputs.pitchDegrees = pitch.getValueAsDouble();
+    inputs.rollDegrees = roll.getValueAsDouble();
+    inputs.gravityVectorX = gravityX.getValueAsDouble();
+    inputs.gravityVectorY = gravityY.getValueAsDouble();
+    inputs.gravityVectorZ = gravityZ.getValueAsDouble();
   }
 
   public double getTiltMagnitude() {
     // The gravity vector as [X, Y, Z]
     // On a flat surface, X and Y are near 0, and Z is near 1
     // Except we are upside down
-    double gz = pigeon.getGravityVectorZ().getValueAsDouble();
+    double gz = gravityZ.getValueAsDouble();
     double tiltRad = Math.acos(MathUtil.clamp(gz, -1.0, 1.0));
     double tiltDeg = Math.toDegrees(tiltRad);
     Logger.recordOutput("TiltDeg", tiltDeg);

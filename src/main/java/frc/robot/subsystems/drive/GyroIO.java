@@ -42,6 +42,33 @@ public interface GyroIO {
      */
     public double pitchDegrees = 0.0;
     public double rollDegrees = 0.0;
+    /*
+     * The gravity vector itself, so the mounting error can be characterised.
+     *
+     * The 7 degrees is not noise. Across 9543 stationary, flat samples in
+     * eleven matches over three days, the per-match median runs 6.78 to 7.17
+     * degrees -- a range of 0.39 -- with a within-match interquartile spread of
+     * 0.06 to 0.61. That is a fixed mounting error being reported faithfully:
+     * cos(7 degrees) is 0.9925, which is exactly the Z component seen. There is
+     * no MountPose configured anywhere in this project.
+     *
+     * Correcting it needs the X and Y components as well as Z, because a mount
+     * error is a rotation and not a scalar. Subtracting 7 from the angle is
+     * only right when the robot happens to tilt in the same plane as the error;
+     * tilt it across that plane and the true total is the hypotenuse, not the
+     * difference. So log all three, sit the robot still and level, and the
+     * measured vector is the reference to rotate every later reading against.
+     *
+     * Raising ON_BUMP_TILT does not help and was checked: against
+     * vision-anchored positions, 9.5 misses 23% of real bump samples and fires
+     * on 7.4% of fast flat driving, and 12.0 trades that for missing 43% to
+     * gain 2.7 points of false alarms. The distributions overlap because the
+     * gravity vector cannot tell tilting from braking, and no threshold on a
+     * signal like that separates them.
+     */
+    public double gravityVectorX = 0.0;
+    public double gravityVectorY = 0.0;
+    public double gravityVectorZ = 1.0;
   }
 
   public default void updateInputs(GyroIOInputs inputs) {}
