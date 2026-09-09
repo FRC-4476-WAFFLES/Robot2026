@@ -261,10 +261,17 @@ public class ShotPlanner {
       // rest to the flywheel.
       if (CodeConstants.COMPENSATE_FOR_TILT) {
         Rotation2d heading = RobotContainer.state.getRotation();
+        // Taken before anything is reassigned: this is the angle the map's own
+        // speed was calibrated against, and it is the denominator of the ratio
+        // below. Reading it back off hoodPosition after the solve compares the
+        // corrected angle with itself and quietly corrects nothing, which is
+        // exactly what it did until a whole-robot test caught it still missing.
+        double mapElevation = HoodConstants.elevationFor(hoodPosition);
+
         var solved = TiltedShot.solve(
             RobotContainer.state.getGravityVector(),
             turretAngle.minus(heading).getRadians(),
-            HoodConstants.elevationFor(hoodPosition),
+            mapElevation,
             HoodConstants.ELEVATION_AT_FLATTEST_DEGREES,
             HoodConstants.ELEVATION_AT_ZERO_DEGREES);
 
@@ -277,8 +284,7 @@ public class ShotPlanner {
         // and both terms scale with it identically, so it cancels.
         double climb = FieldConstants.Hub.topCenterPoint.getZ()
             - PhysicalConstants.ROBOT_TO_TURRET_CENTER.getZ();
-        double atMapAngle = TiltedShot.requiredSpeed(distanceToTarget,
-            HoodConstants.elevationFor(hoodPosition), climb);
+        double atMapAngle = TiltedShot.requiredSpeed(distanceToTarget, mapElevation, climb);
         double atRealAngle = TiltedShot.requiredSpeed(distanceToTarget,
             solved.launchElevationDegrees(), climb);
         if (atMapAngle > 0 && atRealAngle > 0
