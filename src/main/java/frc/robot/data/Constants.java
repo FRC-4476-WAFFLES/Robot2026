@@ -217,6 +217,24 @@ public final class Constants {
         new NodePoint(3.175, 1.15),
         new NodePoint(4.778, 1.25),
         new NodePoint(5.4, 1.4),
+        // Added because there was nothing between 5.4 m and the 10 m passing
+        // node, so every scoring shot from 5.4 m out had its flight time
+        // interpolated toward a pass. The shot map's scoring range ends at
+        // 7.31 m and 5 to 7 m is more than half hub shots, so that gap sat
+        // right where it could do damage.
+        //
+        // A ball covers its horizontal distance at its horizontal speed, so the
+        // flight time to 7.3 m has to be 7.3 / (v cos theta) for the speed and
+        // hood angle the shot map already commits to there. That comes out at
+        // 1.48 s against the 1.65 the old interpolation gave -- and the lead for
+        // shooting on the move is velocity times this, so 0.17 s of error is
+        // 0.35 m of lead at 2 m/s, which is the whole goal.
+        //
+        // Derived from the shot map rather than measured, so it inherits that
+        // map's slip factor and hood-angle model. The relation it comes from
+        // needs no assumption about how high the goal is, which is what made
+        // the earlier comparison against a hub height ambiguous.
+        new NodePoint(7.3, 1.48),
         new NodePoint(10, 2)
     };
     public static final double MIN_TOF = 0.6;
