@@ -409,15 +409,46 @@ public final class SimShooter {
 
   /** Ball speed leaving the shooter, from the wheel's present surface speed. */
   private static double exitSpeed() {
-    double wheelRps = Math.abs(RobotContainer.flywheel.getVelocity());
+    return exitSpeedFor(Math.abs(RobotContainer.flywheel.getVelocity()));
+  }
+
+  /**
+   * Ball speed for a given wheel speed, as the simulation models it.
+   *
+   * <p>
+   * Exposed so a test can ask what a shot would do without booting a robot, and
+   * so it asks <i>this</i> rather than keeping its own copy of the numbers. A
+   * duplicated launch model drifts, and then the test passes on a shooter that
+   * no longer exists.
+   */
+  public static double exitSpeedFor(double wheelRps) {
     return wheelRps * 2 * Math.PI * WHEEL_RADIUS * SLIP_FACTOR;
+  }
+
+  /** Launch elevation for a hood position, as the simulation models it. */
+  public static double launchElevationFor(double hoodRotations) {
+    double fraction = Math.min(1.0, Math.max(0, hoodRotations / HOOD_ROTATIONS_AT_MAX));
+    return HOOD_MAX_DEGREES - fraction * (HOOD_MAX_DEGREES - HOOD_MIN_DEGREES);
+  }
+
+  /** Hood position that produces a launch elevation, the inverse of the above. */
+  public static double hoodRotationsFor(double elevationDegrees) {
+    return HOOD_ROTATIONS_AT_MAX
+        * (HOOD_MAX_DEGREES - elevationDegrees) / (HOOD_MAX_DEGREES - HOOD_MIN_DEGREES);
+  }
+
+  /** The flattest and steepest the hood can launch, in degrees. */
+  public static double hoodMinElevation() {
+    return HOOD_MIN_DEGREES;
+  }
+
+  public static double hoodMaxElevation() {
+    return HOOD_MAX_DEGREES;
   }
 
   /** The hood's commanded travel, as a launch angle above horizontal. */
   private static double hoodAngleDegrees() {
-    double fraction = Math.min(1.0,
-        Math.max(0, RobotContainer.hood.getGoalPosition() / HOOD_ROTATIONS_AT_MAX));
-    return HOOD_MAX_DEGREES - fraction * (HOOD_MAX_DEGREES - HOOD_MIN_DEGREES);
+    return launchElevationFor(RobotContainer.hood.getGoalPosition());
   }
 
   /**
