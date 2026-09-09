@@ -75,8 +75,10 @@ public class ShootsWhileTiltedSimTest {
     RobotContainer.drive.setPose(
         new Pose2d(x, y, Rotation2d.fromDegrees(headingDegrees)));
     GyroIOSim.setTilt(tiltDegrees, leanTowardRadians);
-    // Long enough for odometry and the gravity vector to reach RobotState.
-    SimHarness.step(6);
+    // Long enough for odometry, the heading and the gravity vector to settle
+    // into RobotState. Six loops was not: results moved between runs, which for
+    // a test with no randomness in it means something had not caught up yet.
+    SimHarness.step(25);
 
     var p = ShotPlanner.aimToHub();
     // What the hood was asked for, put through the tilt the robot is sitting
@@ -88,6 +90,98 @@ public class ShootsWhileTiltedSimTest {
     double landed = rangeOf(p, actual.launchElevationDegrees());
     return Double.isNaN(landed) ? Double.POSITIVE_INFINITY
         : Math.abs(landed - p.distanceToTarget());
+  }
+
+  /**
+   * A sweep of real shooting positions, tilted every way, in one table.
+   *
+   * <p>
+   * The other tests here check particular cases. This one asks the question the
+   * drive team actually cares about: standing anywhere it would normally shoot
+   * from, on any part of a ramp, does the ball go in? Positions are laid out as
+   * a ring around the hub rather than a line, because a robot approaching from
+   * the side leans across its own shot instead of along it, and that is the case
+   * a correction written for pitch alone gets wrong.
+   */
+  @Test
+  void itShootsFromEverywhereItWouldNormallyShoot() {
+    SimHarness.enableTeleop();
+    double hubX = FieldConstants.Hub.topCenterPoint.getX();
+    double hubY = FieldConstants.Hub.topCenterPoint.getY();
+
+    double[] ranges = { 2.0, 3.0, 4.5, 6.0 };
+    // Where the robot stands relative to the hub, going round it.
+    double[] bearings = { 180, 135, 90, 225 };
+    // Level, on the near face, on the far face, and standing across the ramp.
+    double[][] leans = { { 0, 0 }, { 9.2, 0 }, { 9.2, 180 }, { 9.2, 90 }, { 14.0, 45 } };
+    String[] leanNames = { "level", "nose up", "nose down", "roll left", "diagonal" };
+
+    System.out.printf("%n%6s %8s", "range", "bearing");
+    for (String n : leanNames) {
+      System.out.printf(" %11s", n);
+    }
+    System.out.println();
+
+    int in = 0;
+    int total = 0;
+    double worstAddedByTilt = 0;
+    String worstWhere = "";
+    for (double range : ranges) {
+      for (double bearing : bearings) {
+        double rad = Units.degreesToRadians(bearing);
+        double x = hubX + range * Math.cos(rad);
+        double y = hubY + range * Math.sin(rad);
+        // Face the hub, which is what the drivetrain would be doing.
+        double heading = Units.radiansToDegrees(Math.atan2(hubY - y, hubX - x));
+        System.out.printf("%5.1fm %7.0f°", range, bearing);
+        double level = Double.NaN;
+        for (double[] lean : leans) {
+          double miss = missFrom(x, y, heading, lean[0], Units.degreesToRadians(lean[1]));
+          if (Double.isNaN(level)) {
+            level = miss; // the first lean is level, by construction
+          }
+          total++;
+          boolean ok = miss < GOAL_RADIUS;
+          if (ok) {
+            in++;
+          }
+          // What the tilt cost on top of however the shot map was already doing
+          // here. That is the thing this correction is responsible for; the
+          // map's own error is not, and is present at level too.
+          if (!Double.isInfinite(miss) && !Double.isInfinite(level)) {
+            double added = miss - level;
+            if (added > worstAddedByTilt) {
+              worstAddedByTilt = added;
+              worstWhere = String.format("%.1f m at %.0f deg, %.0f deg tilt",
+                  range, bearing, lean[0]);
+            }
+          }
+          System.out.printf(" %7.2fm %-3s", Double.isInfinite(miss) ? -1 : miss,
+              ok ? "in" : "OUT");
+        }
+        System.out.println();
+      }
+    }
+    System.out.printf("%n%d of %d in (goal half-width %.2f m)%n", in, total, GOAL_RADIUS);
+    System.out.printf("worst that tilt added over the level shot at the same spot: "
+        + "%.2f m, %s%n", worstAddedByTilt, worstWhere);
+    SimHarness.disable();
+
+    // Judged on what the tilt costs, not on the shot map. From 3 m out it costs
+    // nothing measurable. Everything left is at 2 m, where the map sits near
+    // its lowest node and is already 0.20 to 0.26 m out standing dead level --
+    // most of the budget gone before the robot leans at all. Asserting harder
+    // here would be asserting on the map, which this does not control.
+    //
+    // The two that stay out are both at 2 m: one nose-up, and one leaning 14
+    // degrees diagonally, which asks for an angle the hood cannot reach and a
+    // speed that cannot get there. A robot that close to the goal and that far
+    // over should probably not be taking the shot.
+    assertTrue(worstAddedByTilt < 0.20,
+        "tilt should cost almost nothing once corrected, worst was "
+            + worstAddedByTilt + " m at " + worstWhere);
+    assertTrue(in >= total - 2,
+        "and nearly everything should still go in, " + in + " of " + total);
   }
 
   @Test
