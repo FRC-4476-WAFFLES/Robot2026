@@ -172,16 +172,20 @@ public class ShootsWhileTiltedSimTest {
         + "%.2f m, %s%n", worstAddedByTilt, worstWhere);
     SimHarness.disable();
 
-    // Judged on what the tilt costs, not on the shot map. From 3 m out it costs
-    // nothing measurable. Everything left is at 2 m, where the map sits near
-    // its lowest node and is already 0.20 to 0.26 m out standing dead level --
-    // most of the budget gone before the robot leans at all. Asserting harder
-    // here would be asserting on the map, which this does not control.
+    // Judged on what the tilt costs, not on the absolute miss. The level column
+    // is not zero, and that is the simulation rather than the robot: SimShooter
+    // turns flywheel rps into ball speed with one slip constant, and the map
+    // implies a slip between 0.4396 and 0.4600 across its range against the
+    // 0.445 used. At 6 m that constant is 0.07% off and the level shot reads
+    // 0.01 m; at 2 m it is 3.4% low and reads 0.26 m. The level column is that
+    // residual in order with nothing left over, so asserting on it would be
+    // asserting on the fit, not on the shot map and not on this correction.
     //
-    // The two that stay out are both at 2 m: one nose-up, and one leaning 14
-    // degrees diagonally, which asks for an angle the hood cannot reach and a
-    // speed that cannot get there. A robot that close to the goal and that far
-    // over should probably not be taking the shot.
+    // Both that stay out are at 2 m. The nose-up one starts from 0.26 m of that
+    // residual and tilt adds 0.17 m, which crosses only because of where it
+    // started. The other leans 14 degrees diagonally and asks for an angle the
+    // hood cannot reach at a speed that cannot get there -- a real limit, and a
+    // robot that close and that far over should not be taking the shot.
     assertTrue(worstAddedByTilt < 0.20,
         "tilt should cost almost nothing once corrected, worst was "
             + worstAddedByTilt + " m at " + worstWhere);

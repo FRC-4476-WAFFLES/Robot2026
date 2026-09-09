@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -91,19 +92,32 @@ public class TiltedShotsGoInTest {
     return Double.isNaN(landed) ? Double.POSITIVE_INFINITY : Math.abs(landed - distance);
   }
 
-  /** Miss distance with the tilt solved for and the speed adjusted to suit. */
+  /**
+   * Miss distance with the tilt solved for and the speed adjusted to suit.
+   *
+   * <p>
+   * This fires the map's own flywheel speed scaled by the ratio, which is what
+   * {@code ShotPlanner} does. An earlier version solved outright for the speed
+   * that reaches the target and then checked the ball reached the target — a
+   * tautology that never touched the map and could not miss, and which read as
+   * a perfect correction while the whole-robot test was showing otherwise.
+   */
   private static double missCorrected(double distance, double tilt, double toward) {
     double hoodRot = HOOD.interpolate(distance);
     double elevation = SimShooter.launchElevationFor(hoodRot);
     var g = gravity(tilt, toward);
     var solved = TiltedShot.solve(g, 0.0, elevation,
         SimShooter.hoodMinElevation(), SimShooter.hoodMaxElevation());
-    double needed = TiltedShot.requiredSpeed(distance, solved.launchElevationDegrees(),
-        HUB_HEIGHT - LAUNCH_HEIGHT);
-    if (Double.isNaN(needed)) {
+    double gain = HUB_HEIGHT - LAUNCH_HEIGHT;
+    double atMapAngle = TiltedShot.requiredSpeed(distance, elevation, gain);
+    double atRealAngle = TiltedShot.requiredSpeed(distance,
+        solved.launchElevationDegrees(), gain);
+    if (Double.isNaN(atMapAngle) || Double.isNaN(atRealAngle)) {
       return Double.POSITIVE_INFINITY;
     }
-    double landed = rangeAtGoalHeight(needed, solved.launchElevationDegrees());
+    double speed = SimShooter.exitSpeedFor(FLYWHEEL.interpolate(distance))
+        * atRealAngle / atMapAngle;
+    double landed = rangeAtGoalHeight(speed, solved.launchElevationDegrees());
     return Double.isNaN(landed) ? Double.POSITIVE_INFINITY : Math.abs(landed - distance);
   }
 
@@ -154,11 +168,14 @@ public class TiltedShotsGoInTest {
   @Test
   void aLevelRobotIsUnaffected() {
     // The correction must be inert when there is nothing to correct, or it is
-    // worse than no correction at all.
+    // worse than no correction at all. Inert means it changes nothing, so the
+    // test is that the corrected shot equals the uncorrected one -- not that
+    // either goes in. Whether the level shot goes in is the launch model's
+    // business, and holding this to an absolute miss made it a test of
+    // SimShooter's single slip constant instead of a test of the correction.
     for (double d : new double[] { 2.0, 3.0, 5.0, 7.0 }) {
-      double miss = missCorrected(d, 0.0, 0.0);
-      assertTrue(miss < 0.05,
-          "a level shot at " + d + " m should land where it was aimed, missed by " + miss);
+      assertEquals(missUncorrected(d, 0.0, 0.0), missCorrected(d, 0.0, 0.0), 1e-9,
+          "a level robot should be aimed exactly as it was before, at " + d + " m");
     }
   }
 
