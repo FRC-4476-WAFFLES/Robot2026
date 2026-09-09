@@ -118,7 +118,9 @@ public class ShootsWhileTiltedSimTest {
     // Where the robot stands relative to the hub, going round it.
     double[] bearings = { 180, 135, 90, 225 };
     // Level, on the near face, on the far face, and standing across the ramp.
-    double[][] leans = { { 0, 0 }, { 9.2, 0 }, { 9.2, 180 }, { 9.2, 90 }, { 14.0, 45 } };
+    // The azimuth is where the surface normal leans, which GyroIOSim inverts
+    // into gravity, so 180 is climbing (nose up) and 0 is dropping off.
+    double[][] leans = { { 0, 0 }, { 9.2, 180 }, { 9.2, 0 }, { 9.2, 90 }, { 14.0, 45 } };
     String[] leanNames = { "level", "nose up", "nose down", "roll left", "diagonal" };
 
     System.out.printf("%n%6s %8s", "range", "bearing");
@@ -208,9 +210,10 @@ public class ShootsWhileTiltedSimTest {
   @Test
   void itShootsFromTheBump() {
     SimHarness.enableTeleop();
-    // Nose-up on the ramp, the case that produced nothing but misses.
+    // Nose-up on the ramp, the case that produced nothing but misses. Azimuth
+    // pi is the near face: setTilt takes the surface normal, not gravity.
     for (double tilt : new double[] { 5.0, 9.2, 14.0 }) {
-      double miss = missFrom(9.0, 4.02, 0, tilt, 0.0);
+      double miss = missFrom(9.0, 4.02, 0, tilt, Math.PI);
       System.out.printf("tilted %.1f deg: misses by %.2f m%n", tilt, miss);
       assertTrue(miss < GOAL_RADIUS,
           "a shot tilted " + tilt + " degrees should still go in, missed by " + miss);
