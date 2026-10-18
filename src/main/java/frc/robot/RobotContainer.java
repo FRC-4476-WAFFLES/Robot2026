@@ -470,7 +470,9 @@ public class RobotContainer {
       var parms = ShotPlanner.aimToHub();
 
       var turretSetpoint = parms.turretSetpoint();
-      if (state.onBump && state.shouldFire().getAsBoolean()) {
+      // The hand-tuned bump fudge, only when TiltedShot is not already
+      // correcting for the tilt; applying both corrects it twice.
+      if (!CodeConstants.COMPENSATE_FOR_TILT && state.onBump && state.shouldFire().getAsBoolean()) {
         var chosenOffset = ShotPlanner.getTurretBumpOffset();
         Logger.recordOutput("Turret/Bump Offset", chosenOffset);
         turret.runSetpoint(new TurretSetpoint(turretSetpoint.heading().plus(chosenOffset),
@@ -479,7 +481,7 @@ public class RobotContainer {
         hood.runSetpoint(parms.hoodAngle() + (state.getLatestTilt() - 6)); // ""
       } else {
         turret.runSetpoint(parms.turretSetpoint(), true);
-        flywheel.runSetpoint(parms.flywheelSpeed());
+        flywheel.runSetpoint(parms.flywheelSpeed(), ShotPlanner.getReadyFlywheelSpeed());
         hood.runSetpoint(parms.hoodAngle());
 
       }
@@ -561,9 +563,8 @@ public class RobotContainer {
             .finallyDo(() -> Controls.driverController.setRumble(RumbleType.kBothRumble, 0))
             .withName("Hub Closed Rumble"));
 
-    // Right: the robot has lost track of where it is. Feedback only for now --
-    // nothing moves the turret on the strength of this until it has been watched
-    // across a few practice matches.
+    // Right: the robot has lost track of where it is. StateOrchestrator also
+    // hands the turret to pose recovery on the same signal.
     new Trigger(() -> vision.poseLikelyLost()).and(() -> state.robotEnabled())
         .onTrue(Commands.runOnce(
             () -> Controls.driverController.setRumble(RumbleType.kRightRumble, 1)))

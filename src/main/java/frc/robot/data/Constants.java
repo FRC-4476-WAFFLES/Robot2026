@@ -96,6 +96,13 @@ public final class Constants {
      * within this long, the estimate is too far out to aim with.
      */
     public static final double POSE_RECOVERY_AIM_TIME = 1.5; // seconds
+    /**
+     * How long after the shoot trigger is released before pose recovery may take
+     * the turret. Drivers let go between shots in a cycle; without this every
+     * release parked the flywheel and pointed the turret at a tag, and the next
+     * pull had to wait for both to come back.
+     */
+    public static final double POSE_RECOVERY_SHOOT_GRACE_TIME = 2.0; // seconds
     /** How long a full sweep across the turret's travel takes. */
     public static final double POSE_RECOVERY_SWEEP_PERIOD = 3.0; // seconds
     /** How far either side of straight ahead the sweep goes. */
@@ -265,8 +272,12 @@ public final class Constants {
      * not need correcting -- spoiling level shots to fix the ones on the ramp.
      * In simulation the gravity vector is exact, so it is honest there now.
      * Turn this off if the mount calibration slips.
+     *
+     * <p>
+     * Off until the Pigeon's mount pose is calibrated. While off, the
+     * hand-tuned bump correction in RobotContainer applies instead.
      */
-    public static final boolean COMPENSATE_FOR_TILT = true;
+    public static final boolean COMPENSATE_FOR_TILT = false;
 
     public enum ManualOverrideTarget {
       FRONT_CLOSE(Rotation2d.kZero, 3.2),
@@ -362,23 +373,6 @@ public final class Constants {
     public static final double POSE_AGREEMENT_STALE_TIME = 0.5; // seconds
 
     /**
-     * How far vision and odometry must disagree, and for how long, before the
-     * robot is taken to have lost track of where it is.
-     *
-     * <p>
-     * Replaying the ONWEL logs, a metre held for a second fires about once every
-     * two matches, lasts a couple of seconds, and occasionally runs to sixteen.
-     * That matches what the drive team reports. It is also defensible against the
-     * distribution: the 99th percentile agreement error is 1.64 m, so a full
-     * metre sustained is genuinely abnormal rather than the usual tail.
-     *
-     * <p>
-     * Note this asks the opposite question to {@link #POSE_STABLE_UPDATE_THRESHOLD},
-     * and deliberately. "Have the last hundred estimates all been good" is
-     * unreachable when 19 % of estimates miss by 20 cm, and reports the pose lost
-     * for most of a match. "Has it been badly wrong for a while" does not.
-     */
-    /**
      * How many vision estimates are trusted far above normal after a bump
      * crossing, to pull the pose back after the wheels have slipped.
      *
@@ -390,8 +384,30 @@ public final class Constants {
      */
     public static final int BUMP_HIGH_TRUST_ESTIMATES = 5;
 
+    /**
+     * How far vision and odometry must disagree, and for how long, before the
+     * robot is taken to have lost track of where it is.
+     *
+     * <p>
+     * Replaying the ONWEL logs, a metre held for a second fires about once every
+     * two matches, lasts a couple of seconds, and occasionally runs to sixteen.
+     * That matches what the drive team reports. It is also defensible against the
+     * distribution: the 99th percentile agreement error is 1.64 m, so a full
+     * metre sustained is genuinely abnormal rather than the usual tail.
+     *
+     * <p>
+     * The time was raised from 1 s to 2 s once this started moving the turret,
+     * because the drive team found recovery too touchy. The replay numbers above
+     * are for 1 s and have not been re-measured at 2 s.
+     *
+     * <p>
+     * Note this asks the opposite question to {@link #POSE_STABLE_UPDATE_THRESHOLD},
+     * and deliberately. "Have the last hundred estimates all been good" is
+     * unreachable when 19 % of estimates miss by 20 cm, and reports the pose lost
+     * for most of a match. "Has it been badly wrong for a while" does not.
+     */
     public static final double POSE_LOST_DISTANCE = 1.0; // meters
-    public static final double POSE_LOST_TIME = 1.0; // seconds
+    public static final double POSE_LOST_TIME = 2.0; // seconds
 
     // Used to read from the raw stddevs array returned by a limelight
     public static final int MEGATAG_1_XStdDevIndex = 0;

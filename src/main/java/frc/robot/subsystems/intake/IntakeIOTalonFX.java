@@ -55,6 +55,7 @@ public class IntakeIOTalonFX implements IntakeIO {
         .withStatorCurrentLimit(IntakeConstants.MOTOR_STATOR_CURRENT_LIMIT)
         .withStatorCurrentLimitEnable(true)
         .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLowerTime(0) // Otherwise Phoenix drops to 40 A after 1 s
         .withSupplyCurrentLimitEnable(true);
 
     boolean first = PhoenixHelpers.tryConfig(() -> intake0.getConfigurator().apply(limits));

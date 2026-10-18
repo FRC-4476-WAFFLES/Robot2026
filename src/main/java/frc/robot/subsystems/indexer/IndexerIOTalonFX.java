@@ -81,6 +81,7 @@ public class IndexerIOTalonFX implements IndexerIO {
     // the spindexer needs to break a jam.
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
         .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLowerTime(0) // Otherwise Phoenix drops to 40 A after 1 s
         .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimit(150)
         .withStatorCurrentLimitEnable(true);
@@ -135,6 +136,7 @@ public class IndexerIOTalonFX implements IndexerIO {
     // limit is written alongside it.
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
         .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLowerTime(0) // Otherwise Phoenix drops to 40 A after 1 s
         .withSupplyCurrentLimitEnable(true)
         .withStatorCurrentLimit(120)
         .withStatorCurrentLimitEnable(true);

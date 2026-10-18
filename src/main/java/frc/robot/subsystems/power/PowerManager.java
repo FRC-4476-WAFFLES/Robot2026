@@ -192,6 +192,11 @@ public class PowerManager extends VirtualSubsystem {
     if (turboOverride) {
       return PowerManagerState.TURBO;
     }
+    // Autos drive while they shoot, and the shooting budgets assume a driver
+    // standing still; they would leave path following 10-20 A per motor.
+    if (RobotContainer.state.autonomousEnabled()) {
+      return PowerManagerState.DEFAULT;
+    }
     if (!RobotContainer.state.joysticksFree(ESCAPE_DEMAND)) {
       return PowerManagerState.DEFAULT;
     }

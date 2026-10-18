@@ -114,6 +114,30 @@ public class PowerAndGateSimTest {
   }
 
   @Test
+  void theGateStaysOpenThroughABallDip() {
+    // The check above only looks two loops in, which passes even with the
+    // debounces chained the wrong way round. This holds on past the falling
+    // window, after the wheel has recovered, where that bug shut the gate behind
+    // every ball.
+    RobotContainer.flywheel.runSetpoint(40.0);
+    SimHarness.stepSeconds(3.0);
+    assertTrue(RobotContainer.flywheel.atSetpoint(), "gate never opened, so this proves nothing");
+
+    // Twice the loosest tolerance, so the dip is out of tolerance at any range.
+    SimHarness.takeShot(FlywheelConstants.MAX_VELOCITY_TOLERANCE * 2);
+    assertTrue(Math.abs(40.0 - RobotContainer.flywheel.getVelocity()) > RobotContainer.flywheel.velocityTolerance(),
+        "setup: the shot did not take the wheel out of tolerance");
+    for (int i = 0; i < 30; i++) {
+      SimHarness.step(1);
+      assertTrue(RobotContainer.flywheel.atSetpoint(),
+          "the gate shut " + (i + 1) * 20 + " ms after a brief dip the wheel had already recovered from");
+    }
+
+    RobotContainer.flywheel.runSetpoint(0.0);
+    SimHarness.stepSeconds(0.5);
+  }
+
+  @Test
   void theDriverIsNotToldToHoldFireWhenNotAskingToShoot() {
     // The rumble means "you asked and I refused". It must not fire simply
     // because the flywheel is idle, or it would buzz for the whole match.

@@ -123,8 +123,9 @@ public class Controls {
   public static double applyDeadzone(double input, double OuterDeadzone, double InnerDeadzone) {
     return Math.abs(input) > OuterDeadzone ? input
         : (Math.abs(input) < InnerDeadzone ? 0
-            : (WafflesUtilities.Lerp(0, input,
-                WafflesUtilities.InvLerp(InnerDeadzone, OuterDeadzone, input))
+            // Shaped on the magnitude, then the sign put back, so it is symmetric.
+            : (WafflesUtilities.Lerp(0, Math.abs(input),
+                WafflesUtilities.InvLerp(InnerDeadzone, OuterDeadzone, Math.abs(input)))
                 * Math.signum(input)));
   }
 

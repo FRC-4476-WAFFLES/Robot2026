@@ -252,21 +252,20 @@ public class TagCamera {
         return Optional.empty();
       }
 
-      // Don't check min tag area when disabled and seeding
-      // ie. angle does not yet match
-      if (RobotContainer.state.robotEnabled() || isYawDifferenceAcceptable(megatagResult)) {
-        if (megatagResult.avgTagArea() < VisionConstants.MIN_TAG_AREA_SINGLE_TAG) {
-          return Optional.empty();
-        }
-
-        // For small tags, also check yaw difference
-        if (megatagResult.avgTagArea() < VisionConstants.MIN_TAG_AREA_FOR_YAW_CHECK) {
-          if (!isYawDifferenceAcceptable(megatagResult)) {
-            return Optional.empty();
-          }
-        }
+      // Always checked. This used to be skipped while disabled to let a single tag
+      // seed the heading, but a single tag's heading is no longer trusted (below),
+      // so the bypass only let through the small, disagreeing tags most likely to
+      // be a flipped solution.
+      if (megatagResult.avgTagArea() < VisionConstants.MIN_TAG_AREA_SINGLE_TAG) {
+        return Optional.empty();
       }
 
+      // For small tags, also check yaw difference
+      if (megatagResult.avgTagArea() < VisionConstants.MIN_TAG_AREA_FOR_YAW_CHECK) {
+        if (!isYawDifferenceAcceptable(megatagResult)) {
+          return Optional.empty();
+        }
+      }
     }
 
     if (Math.abs(RobotContainer.state.getYawVelocityAtTimestamp(
@@ -300,6 +299,13 @@ public class TagCamera {
       estimationStdDevs = VecBuilder.fill(xyStd, xyStd, yawStd);
     } else {
       estimationStdDevs = VisionHelpers.calculateStdDevsMegatag(megatagResult, inputs.rawFiducials);
+    }
+
+    // A single tag's heading can flip between two ambiguous solutions, so use its
+    // position only and leave the heading to the gyro.
+    if (megatagResult.tagCount() == 1) {
+      estimationStdDevs = VecBuilder.fill(
+          estimationStdDevs.get(0, 0), estimationStdDevs.get(1, 0), VisionConstants.LARGE_VARIANCE);
     }
 
     // Logger.recordOutput("Vision" + cameraName + "/Megatag STDDevs",

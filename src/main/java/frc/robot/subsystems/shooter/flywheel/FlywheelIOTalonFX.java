@@ -67,6 +67,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         .withStatorCurrentLimit(statorCurrentLimit)
         .withStatorCurrentLimitEnable(true)
         .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLowerTime(0) // Otherwise Phoenix drops to 40 A after 1 s
         .withSupplyCurrentLimitEnable(true);
 
     boolean first = PhoenixHelpers.tryConfig(() -> flywheel0.getConfigurator().apply(limits));

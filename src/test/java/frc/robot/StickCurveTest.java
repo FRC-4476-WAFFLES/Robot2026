@@ -42,6 +42,20 @@ public class StickCurveTest {
   }
 
   @Test
+  void theDeadzoneIsSymmetricAndMonotonic() {
+    // It used to shape negative inputs wrongly: -0.10 came out as -0.16 while
+    // +0.10 came out as +0.04, with a surge at the edge of the deadzone.
+    double previous = Controls.applyDeadzone(0.0);
+    for (double input = 0.0; input <= 1.0; input += 0.005) {
+      double output = Controls.applyDeadzone(input);
+      assertEquals(-output, Controls.applyDeadzone(-input), 1e-12,
+          String.format("the deadzone is not symmetric at %.3f", input));
+      assertTrue(output >= previous, String.format("the deadzone is not monotonic near %.3f", input));
+      previous = output;
+    }
+  }
+
+  @Test
   void theCurveIsMonotonic() {
     // A curve that dips would mean pushing the stick further sometimes slows the
     // robot down, which is far worse than any amount of twitchiness.

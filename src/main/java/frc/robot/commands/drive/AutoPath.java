@@ -84,7 +84,8 @@ public class AutoPath {
       } else {
         var current = RobotContainer.state.getPose();
         var target = targets[targets.length - 1].getFieldRelativePose();
-        var lastTarget = targets[targets.length - 2].getFieldRelativePose();
+        // A one-target path has no previous target; it started from startingPose.
+        var lastTarget = targets.length > 1 ? targets[targets.length - 2].getFieldRelativePose() : startingPose;
 
         return ShouldAdvanceToNextTarget(current, target, lastTarget);
       }

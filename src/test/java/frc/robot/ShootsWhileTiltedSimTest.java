@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,6 +15,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.PhysicalConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
@@ -41,6 +43,9 @@ public class ShootsWhileTiltedSimTest {
 
   @BeforeAll
   static void boot() {
+    // These judge the tilt correction, so they have nothing to test while it is
+    // off.
+    assumeTrue(CodeConstants.COMPENSATE_FOR_TILT, "tilt compensation is turned off");
     SimHarness.boot();
     SimHarness.setAlliance(Alliance.Blue);
   }

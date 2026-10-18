@@ -182,6 +182,7 @@ public class ModuleIOTalonFX implements ModuleIO {
         .withStatorCurrentLimit(constants.SlipCurrent)
         .withStatorCurrentLimitEnable(true)
         .withSupplyCurrentLimit(supplyCurrentLimit)
+        .withSupplyCurrentLowerTime(0) // Otherwise Phoenix drops to 40 A after 1 s
         .withSupplyCurrentLimitEnable(true);
 
     return PhoenixHelpers.tryConfig(() -> driveTalon.getConfigurator().apply(limits));

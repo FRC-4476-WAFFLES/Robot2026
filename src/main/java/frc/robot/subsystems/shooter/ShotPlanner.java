@@ -45,6 +45,7 @@ public class ShotPlanner {
   ) {}
 
   private static ShootingParameters parameters = null;
+  private static double readyFlywheelRps = 0;
   private static final SplineMonotone1D flywheelSpeeds = new SplineMonotone1D(FlywheelConstants.DistanceMap);
   private static final SplineMonotone1D hoodAngle = new SplineMonotone1D(HoodConstants.DistanceMap);
   private static final SplineMonotone1D timeOfFlightMap = new SplineMonotone1D(CodeConstants.TimeofFlightMap);
@@ -247,6 +248,9 @@ public class ShotPlanner {
 
       double hoodPosition = hoodAngle.interpolate(distanceToTarget);
       double flywheelRps = flywheelSpeeds.interpolate(flywheelDistance);
+      // The speed for the range right now. The led goal above is meant to be
+      // ahead of the wheel, so readiness is judged against this instead.
+      double readyRps = flywheelSpeeds.interpolate(distanceToTarget);
 
       // Aiming from a slope.
       //
@@ -290,6 +294,7 @@ public class ShotPlanner {
         if (atMapAngle > 0 && atRealAngle > 0
             && !Double.isNaN(atMapAngle) && !Double.isNaN(atRealAngle)) {
           flywheelRps *= atRealAngle / atMapAngle;
+          readyRps *= atRealAngle / atMapAngle;
         }
         Logger.recordOutput("Turret/Tilt Launch Elevation", solved.launchElevationDegrees());
         Logger.recordOutput("Turret/Tilt Hood Clamped", solved.hoodWasClamped());
@@ -301,6 +306,7 @@ public class ShotPlanner {
           flywheelRps,
           distanceToTarget
       );
+      readyFlywheelRps = readyRps;
 
       // Logger.recordOutput("Turret/DEBUG ANGLE", turretAngle);
       // Logger.recordOutput("Turret/DEBUG VEL", turretVelocity);
@@ -389,8 +395,11 @@ public class ShotPlanner {
     }
 
     Logger.recordOutput("Turret/Pose Recovery Sweeping", false);
+    // aimAtField answers in field terms, but the recovery binding drives the
+    // turret robot-relative, as the sweep above needs.
     var aimed = aimAtField(nearestTagTranslation());
-    return new ShootingParameters(aimed.turretSetpoint(), 0, 0, aimed.distanceToTarget());
+    Rotation2d robotRelative = aimed.turretSetpoint().heading().minus(RobotContainer.state.getRotation());
+    return new ShootingParameters(new TurretSetpoint(robotRelative, 0), 0, 0, aimed.distanceToTarget());
   }
 
   /** Clears the recovery timer so the next attempt aims before it sweeps. */
@@ -453,5 +462,10 @@ public class ShotPlanner {
   /** Distance the current shot is planned for, or 0 if nothing is planned yet. */
   public static double distanceToTarget() {
     return parameters == null ? 0 : parameters.distanceToTarget;
+  }
+
+  /** The latest shot's flywheel speed without the response-time lead. */
+  public static double getReadyFlywheelSpeed() {
+    return readyFlywheelRps;
   }
 }

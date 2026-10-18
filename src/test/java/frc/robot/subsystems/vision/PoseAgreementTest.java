@@ -52,7 +52,9 @@ public class PoseAgreementTest {
     SimHarness.step(1);
 
     Vision vision = RobotContainer.vision;
-    // A wildly wrong estimate resets the counter to a known zero.
+    // An agreeing estimate first, so a pose an earlier test left lost does not
+    // carry over. The wildly wrong one then resets the counter to a known zero.
+    vision.updatePoseAgreement(ROBOT_POSE);
     vision.updatePoseAgreement(ROBOT_POSE.plus(
         new edu.wpi.first.math.geometry.Transform2d(new Translation2d(50, 50), Rotation2d.kZero)));
     return vision;
@@ -147,6 +149,17 @@ public class PoseAgreementTest {
   }
 
   @Test
+  void aSingleBadEstimateFollowedBySilenceDoesNotEither() {
+    // The camera going quiet after one outlier used to let the clock run out
+    // with nothing more to say the robot was still lost.
+    Vision vision = atKnownPose();
+    vision.updatePoseAgreement(offsetBy(VisionConstants.POSE_LOST_DISTANCE * 3));
+    SimHarness.advanceClockOnly(VisionConstants.POSE_LOST_TIME + 0.3);
+    assertFalse(vision.poseLikelyLost(),
+        "one outlier and then no estimates at all must not declare the pose lost");
+  }
+
+  @Test
   void aDisagreementHeldPastTheTimeoutDoes() {
     Vision vision = atKnownPose();
     holdADisagreement(vision);
@@ -218,6 +231,8 @@ public class PoseAgreementTest {
     assertFalse(RobotContainer.drive.isLevelOnGround(), "setup: the robot should read as tilted");
     assertTrue(RobotContainer.state.onBump, "setup: and as on the bump");
     vision.highTrustEstimatesLeft = 0;
+    // A slow crossing, the kind that needs the recovery, stays tilted a while.
+    SimHarness.stepSeconds(0.6);
 
     // Back down, but still inside the bump band by position.
     SimHarness.levelOut();
@@ -228,6 +243,25 @@ public class PoseAgreementTest {
         "becoming level should arm the recovery even though the position test has not noticed");
 
     SimHarness.levelOut();
+    SimHarness.disable();
+  }
+
+  @Test
+  void aMomentaryTiltDoesNotArmTheRecovery() {
+    // Hard braking tips the gravity vector past the threshold for a moment.
+    // Inside the bump band, so only the tilt trigger could arm it.
+    SimHarness.enableTeleop();
+    Vision vision = RobotContainer.vision;
+
+    RobotContainer.drive.setPose(new Pose2d(4.5, 4.0, Rotation2d.kZero));
+    SimHarness.step(3);
+    vision.highTrustEstimatesLeft = 0;
+
+    SimHarness.tiltOntoBump();
+    SimHarness.levelOut();
+    assertTrue(RobotContainer.state.onBump, "setup: still in the bump band by position");
+    assertEquals(0, vision.highTrustEstimatesLeft,
+        "a tilt lasting a few loops should not arm the high-trust window");
     SimHarness.disable();
   }
 

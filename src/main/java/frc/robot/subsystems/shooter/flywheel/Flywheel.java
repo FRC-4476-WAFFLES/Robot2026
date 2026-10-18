@@ -28,6 +28,14 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
   @AutoLogOutput(key = "Flywheel/Flywheel Goal Velocity")
   private double flywheelGoalVelocity = 0;
 
+  /*
+   * The speed readiness is judged against. Usually the goal, but a goal led by
+   * the wheel's response time is meant to be ahead of the wheel, so the shot is
+   * ready when the wheel matches the speed for right now.
+   */
+  @AutoLogOutput(key = "Flywheel/Flywheel Ready Velocity")
+  private double readyVelocity = 0;
+
   private static final double RECOVERY_FF_PER_RPS = 10;
   private static final double RECOVERY_ENTER_THRESHOLD = 3.0;
   private static final double RECOVERY_EXIT_THRESHOLD = 2.0;
@@ -41,18 +49,24 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
    * for {@code READY_FALLING_DEBOUNCE} before it goes false again — so the dip a
    * ball causes on its way out, which happens after the ball has gone, does not
    * shut the gate behind it.
+   *
+   * <p>
+   * The falling debounce has to come first. The other way round, the rising
+   * debounce turns a 0.1 s dip into dip plus its own 0.25 s wait before the
+   * falling one sees it, which is always longer than the falling window, so the
+   * gate shut after every ball. That cost 13-22 % of trigger time on 2026-10-18.
    */
   private final Trigger flywheelAtSetpoint = new Trigger(
-      () -> Math.abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < velocityTolerance())
-      .debounce(FlywheelConstants.READY_RISING_DEBOUNCE, DebounceType.kRising)
-      .debounce(FlywheelConstants.READY_FALLING_DEBOUNCE, DebounceType.kFalling);
+      () -> Math.abs(inputs.flywheelMotorData0.velocity() - readyVelocity) < velocityTolerance())
+      .debounce(FlywheelConstants.READY_FALLING_DEBOUNCE, DebounceType.kFalling)
+      .debounce(FlywheelConstants.READY_RISING_DEBOUNCE, DebounceType.kRising);
 
   /**
    * Ready enough to pass with. Passing aims at a region of floor rather than a
    * goal, so it keeps the old fixed 20 rps window.
    */
   private final Trigger flywheelAtLooseSetpoint = new Trigger(() -> Math
-      .abs(inputs.flywheelMotorData0.velocity() - flywheelGoalVelocity) < (FlywheelConstants.RPM_RANGE / 60.0))
+      .abs(inputs.flywheelMotorData0.velocity() - readyVelocity) < (FlywheelConstants.RPM_RANGE / 60.0))
       .debounce(FlywheelConstants.READY_RISING_DEBOUNCE);
 
   public Flywheel(FlywheelIO io) {
@@ -91,7 +105,13 @@ public class Flywheel extends SubsystemBase implements PowerManaged {
   }
 
   public void runSetpoint(double velocity) {
+    runSetpoint(velocity, velocity);
+  }
+
+  /** Runs to a goal while judging readiness against a different, unled speed. */
+  public void runSetpoint(double velocity, double readyVelocity) {
     flywheelGoalVelocity = velocity;
+    this.readyVelocity = readyVelocity;
   }
 
   @AutoLogOutput(key = "Flywheel/At Setpoint")

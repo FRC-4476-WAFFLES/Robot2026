@@ -11,6 +11,7 @@ import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -55,6 +56,7 @@ public class Vision extends VirtualSubsystem {
   private int poseStableUpdates = 0;
   /** When the agreement error last became large, or -1 if it is not. */
   private double poseBadSince = -1;
+  private double poseBadLatest = -1;
 
   private double lastAgreementTimestamp = -1;
   /*
@@ -79,9 +81,17 @@ public class Vision extends VirtualSubsystem {
     return !RobotContainer.state.onBump;
   }).onTrue(Commands.runOnce(this::armBumpRecovery));
 
+  /*
+   * Fires on coming level only after a sustained tilt. Hard braking also tips the
+   * gravity vector past the threshold, but only for a moment; a crossing slow
+   * enough to need the recovery stays tilted for well over this long.
+   */
+  private static final double SUSTAINED_TILT_SECONDS = 0.5;
+
   public final Trigger becameLevel = new Trigger(() -> {
-    return RobotContainer.drive.isLevelOnGround();
-  }).onTrue(Commands.runOnce(this::armBumpRecovery));
+    return !RobotContainer.drive.isLevelOnGround();
+  }).debounce(SUSTAINED_TILT_SECONDS, DebounceType.kRising)
+      .onFalse(Commands.runOnce(this::armBumpRecovery));
 
   /**
    * Trusts the next few vision estimates far more than usual, to pull the pose
@@ -157,7 +167,7 @@ public class Vision extends VirtualSubsystem {
 
           // Compare before applying the measurement, otherwise the correction
           // pulls odometry towards the estimate and the check answers itself.
-          updatePoseAgreement(estimate.pose);
+          updatePoseAgreement(estimate.pose, estimate.odometryAtTimestamp);
 
           Matrix<N3, N1> chosenDeviations = estimate.standardDeviation;
           if (highTrustEstimatesLeft > 0) {
@@ -175,8 +185,10 @@ public class Vision extends VirtualSubsystem {
     EpochTimer.EndEpoch("Vision");
   }
 
-  // Directly taken from FRC 254's 2025 codebase
-  private Optional<TagPoseEstimate> combineEstimates(TagPoseEstimate a, TagPoseEstimate b) {
+  // Adapted from FRC 254's 2025 codebase, with the heading fusion fixed (issue
+  // #12)
+  /* Package-private and static so the fusion can be tested without a robot. */
+  static Optional<TagPoseEstimate> combineEstimates(TagPoseEstimate a, TagPoseEstimate b) {
     // Ensure A is the most recent pose
     if (a.timestampSeconds < b.timestampSeconds) {
       var tmp = a;
@@ -195,14 +207,32 @@ public class Vision extends VirtualSubsystem {
     var varianceA = a.standardDeviation.elementTimes(a.standardDeviation);
     var varianceB = b.standardDeviation.elementTimes(b.standardDeviation);
 
-    Rotation2d fusedHeading = poseB.getRotation();
-    if (varianceA.get(2, 0) < VisionConstants.LARGE_VARIANCE
-        && varianceB.get(2, 0) < VisionConstants.LARGE_VARIANCE) {
+    // The heading and its standard deviation must come from the same source.
+    // Gyro-derived estimates carry a deliberately untrusted yaw; fusing by
+    // inverse variance makes that estimate's contribution to the std vanish, so
+    // returning its heading would report it with the other estimate's confidence.
+    boolean trustYawA = varianceA.get(2, 0) < VisionConstants.LARGE_VARIANCE;
+    boolean trustYawB = varianceB.get(2, 0) < VisionConstants.LARGE_VARIANCE;
+
+    Rotation2d fusedHeading;
+    double fusedYawStdDev;
+    if (trustYawA && trustYawB) {
       fusedHeading = new Rotation2d(
           poseA.getRotation().getCos() / varianceA.get(2, 0)
               + poseB.getRotation().getCos() / varianceB.get(2, 0),
           poseA.getRotation().getSin() / varianceA.get(2, 0)
               + poseB.getRotation().getSin() / varianceB.get(2, 0));
+      fusedYawStdDev = Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0)));
+    } else if (trustYawA) {
+      fusedHeading = poseA.getRotation();
+      fusedYawStdDev = a.standardDeviation.get(2, 0);
+    } else if (trustYawB) {
+      fusedHeading = poseB.getRotation();
+      fusedYawStdDev = b.standardDeviation.get(2, 0);
+    } else {
+      // Neither camera knows the heading; keep odometry's and say so.
+      fusedHeading = a.odometryAtTimestamp.getRotation();
+      fusedYawStdDev = VisionConstants.LARGE_VARIANCE;
     }
 
     double weightAx = 1.0 / varianceA.get(0, 0);
@@ -223,7 +253,7 @@ public class Vision extends VirtualSubsystem {
     Matrix<N3, N1> fusedStdDev = VecBuilder.fill(
         Math.sqrt(1.0 / (weightAx + weightBx)),
         Math.sqrt(1.0 / (weightAy + weightBy)),
-        Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0))));
+        fusedYawStdDev);
 
     int numTags = a.numTags + b.numTags;
     double time = a.timestampSeconds;
@@ -243,8 +273,15 @@ public class Vision extends VirtualSubsystem {
    */
   /* Package-private so the agreement logic can be driven directly from a test. */
   void updatePoseAgreement(Pose2d estimatePose) {
-    double error = estimatePose.getTranslation()
-        .getDistance(RobotContainer.state.getPose().getTranslation());
+    updatePoseAgreement(estimatePose, RobotContainer.state.getPose());
+  }
+
+  /**
+   * Compares against the pose at the estimate's own timestamp, so the distance
+   * driven during the camera's latency does not count as disagreement.
+   */
+  void updatePoseAgreement(Pose2d estimatePose, Pose2d poseAtEstimate) {
+    double error = estimatePose.getTranslation().getDistance(poseAtEstimate.getTranslation());
 
     if (error < VisionConstants.POSE_AGREEMENT_EPSILON) {
       poseStableUpdates++;
@@ -258,6 +295,7 @@ public class Vision extends VirtualSubsystem {
       if (poseBadSince < 0) {
         poseBadSince = Timer.getTimestamp();
       }
+      poseBadLatest = Timer.getTimestamp();
     } else {
       poseBadSince = -1;
     }
@@ -285,14 +323,15 @@ public class Vision extends VirtualSubsystem {
    * the drive team actually reports.
    *
    * <p>
-   * Nothing but driver feedback consumes this yet, on purpose. It wants watching
-   * across a few practice matches before anything is allowed to move the turret
-   * on the strength of it.
+   * Besides the driver's rumble, this hands the turret to pose recovery in
+   * StateOrchestrator, unless the driver is shooting or has just been.
    */
   @AutoLogOutput(key = "Vision/Pose Likely Lost")
   public boolean poseLikelyLost() {
+    // Measured to the latest disagreeing estimate rather than to now, so one
+    // outlier followed by a quiet camera cannot run the clock out on its own.
     return poseBadSince > 0
-        && Timer.getTimestamp() - poseBadSince >= VisionConstants.POSE_LOST_TIME;
+        && poseBadLatest - poseBadSince >= VisionConstants.POSE_LOST_TIME;
   }
 
   /** How many consecutive accepted estimates have agreed with odometry. */

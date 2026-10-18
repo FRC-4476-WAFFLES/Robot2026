@@ -19,6 +19,7 @@ import frc.robot.SimHarness;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.RobotState.ShooterState;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.VisionConstants;
 
 /**
@@ -62,7 +63,9 @@ public class PoseRecoverySimTest {
     Pose2d wrong = new Pose2d(ROBOT_POSE.getX() + VisionConstants.POSE_LOST_DISTANCE * 4,
         ROBOT_POSE.getY(), Rotation2d.kZero);
     RobotContainer.vision.updatePoseAgreement(wrong);
-    Thread.sleep((long) (VisionConstants.POSE_LOST_TIME * 1000) + 200);
+    // The AdvantageKit clock, which is what Vision times against. A plain sleep
+    // leaves it frozen, so both estimates would land at the same instant.
+    SimHarness.advanceClockOnly(VisionConstants.POSE_LOST_TIME + 0.2);
     RobotContainer.vision.updatePoseAgreement(wrong);
     SimHarness.step(3);
   }
@@ -103,6 +106,25 @@ public class PoseRecoverySimTest {
 
     SimHarness.setAxis(SimHarness.DRIVER, SHOOT_TRIGGER, 0.0);
     SimHarness.step(3);
+  }
+
+  @Test
+  void recoveryWaitsAfterTheTriggerIsReleased() throws InterruptedException {
+    // Drivers let go between shots in a cycle. Recovery taking the turret and
+    // parking the flywheel on every release is what made it feel touchy.
+    loseThePose();
+    SimHarness.setAxis(SimHarness.DRIVER, SHOOT_TRIGGER, 1.0);
+    SimHarness.step(3);
+    SimHarness.setAxis(SimHarness.DRIVER, SHOOT_TRIGGER, 0.0);
+
+    SimHarness.stepSeconds(CodeConstants.POSE_RECOVERY_SHOOT_GRACE_TIME / 2);
+    assertTrue(RobotContainer.vision.poseLikelyLost(), "setup: the pose should still read as lost");
+    assertNotEquals(ShooterState.RECOVER_POSE, RobotContainer.state.shooterState,
+        "recovery must not take the turret straight after a shot");
+
+    SimHarness.stepSeconds(CodeConstants.POSE_RECOVERY_SHOOT_GRACE_TIME / 2 + 0.2);
+    assertEquals(ShooterState.RECOVER_POSE, RobotContainer.state.shooterState,
+        "recovery should take over once the driver has stopped shooting for a while");
   }
 
   @Test
