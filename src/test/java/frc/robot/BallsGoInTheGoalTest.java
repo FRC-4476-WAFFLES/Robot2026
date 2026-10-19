@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,6 +16,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.FieldConstants;
 import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.utils.sim.SimShooter;
@@ -112,6 +114,8 @@ public class BallsGoInTheGoalTest {
 
   @Test
   void ballsGoInFromEveryAttitudeTheBumpProduces() {
+    // Judges the tilt correction, so there is nothing to judge while it is off.
+    assumeTrue(CodeConstants.COMPENSATE_FOR_TILT, "tilt compensation is turned off");
     double hubX = FieldConstants.Hub.topCenterPoint.getX();
     double hubY = FieldConstants.Hub.topCenterPoint.getY();
     System.out.printf("aiming at the hub at (%.2f, %.2f)%n", hubX, hubY);

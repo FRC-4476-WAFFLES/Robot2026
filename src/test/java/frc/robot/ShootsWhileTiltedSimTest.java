@@ -52,6 +52,11 @@ public class ShootsWhileTiltedSimTest {
 
   @AfterAll
   static void putItBack() {
+    // Nothing was booted if boot() was skipped, and touching the HAL then crashes
+    // the JVM.
+    if (!CodeConstants.COMPENSATE_FOR_TILT) {
+      return;
+    }
     GyroIOSim.reset();
     SimHarness.disable();
   }
