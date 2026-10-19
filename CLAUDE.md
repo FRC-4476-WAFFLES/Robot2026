@@ -11,7 +11,7 @@ WPILib + AdvantageKit robot code. Java 17, Gradle (GradleRIO), CTRE Phoenix 6, P
 ./gradlew replayWatch      # AdvantageKit log replay watcher
 ```
 
-On Windows use `gradlew.bat`. There is no test suite — `src/test/` does not exist.
+On Windows use `gradlew.bat`. Tests live in `src/test/` (JUnit 5) and run as part of `build`; the sim tests boot the whole robot through `SimHarness`.
 
 ## Layout
 
