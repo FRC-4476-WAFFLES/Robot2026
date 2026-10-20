@@ -360,7 +360,7 @@ public class RobotContainer {
     // Intake rollers run while pressed
     Controls.driverController.leftTrigger().whileTrue(IntakeCommands.intakeCommand());
 
-    Controls.operatorController.leftBumper()
+    Controls.operatorController.leftBumper().or(Controls.driverController.leftBumper())
         .whileTrue(Commands.startEnd(() -> state.setOuttakeDesired(true), () -> state.setOuttakeDesired(false)));
 
     // Intake

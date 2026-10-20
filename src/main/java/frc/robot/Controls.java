@@ -72,7 +72,7 @@ public class Controls {
    * have a single source of truth
    */
   public static final Trigger shootButton = driverController.rightTrigger().or(operatorController.rightTrigger());
-  public static final Trigger beachButton = operatorController.rightBumper();
+  public static final Trigger beachButton = operatorController.rightBumper().or(driverController.rightBumper());
 
   public static class DriverConstants {
     public static final int kDriverControllerPort = 0;
