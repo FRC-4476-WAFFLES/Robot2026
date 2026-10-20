@@ -378,7 +378,12 @@ public class RobotContainer {
     state.expanderAgitating().whileTrue(Commands.run(
         () -> {
           if (state.getExpanderState() == ExpanderState.FULLY_AGITATING) {
-            intake.setExpanderSetpoint(ExpanderPosition.STOWED);
+            // Pull all the way in, but only come back out to mid rather than fully extended
+            if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
+              intake.setExpanderSetpoint(ExpanderPosition.STOWED);
+            } else {
+              intake.setExpanderSetpoint(ExpanderPosition.AGITATION_MID);
+            }
           } else {
             if (agitationTimer.get() % ExpanderConstants.AGITATION_CYCLE_TIME < 0.5) {
               if (state.isOuttakeDesired()) {
