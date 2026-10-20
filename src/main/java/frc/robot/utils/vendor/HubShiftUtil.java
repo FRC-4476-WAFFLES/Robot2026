@@ -43,13 +43,12 @@ public class HubShiftUtil {
   private static final double[] shiftEndTimes = { 10.0, 35.0, 60.0, 85.0, 110.0, 140.0 };
 
   private static final double minFuelCountDelay = 1.0;
-  private static final double maxFuelCountDelay = 2.0;
+  // Time from entering the hub to passing its sensor array. A guess: most balls look to count within a second.
+  private static final double maxFuelCountDelay = 1.0;
+  // Game manual 6.5: fuel is still assessed for 3 s after the hub deactivates.
   private static final double shiftEndFuelCountExtension = 3.0;
   private static final double minTimeOfFlight = CodeConstants.MIN_TOF;
-  private static final double maxTimeOfFlight = 0;
   private static final double approachingActiveFudge = -1 * (minTimeOfFlight + minFuelCountDelay);
-  private static final double endingActiveFudge = shiftEndFuelCountExtension
-      + -1 * (maxTimeOfFlight + maxFuelCountDelay);
 
   public static final double autoEndTime = 20.0;
   public static final double teleopDuration = 140.0;
@@ -159,7 +158,12 @@ public class HubShiftUtil {
     return getShiftInfo(getSchedule(), shiftStartTimes, shiftEndTimes);
   }
 
-  public static ShiftInfo getShiftedShiftInfo() {
+  /**
+   * Shift info shifted for when a ball fired now would be counted. The end of an active shift moves by the shot's
+   * own flight time, so a long shot stops earlier than a close one.
+   */
+  public static ShiftInfo getShiftedShiftInfo(double timeOfFlight) {
+    double endingActiveFudge = shiftEndFuelCountExtension - (timeOfFlight + maxFuelCountDelay);
     boolean[] shiftSchedule = getSchedule();
     // Starting active
     if (shiftSchedule[1] == true) {

@@ -464,6 +464,11 @@ public class ShotPlanner {
     return parameters == null ? 0 : parameters.distanceToTarget;
   }
 
+  /** Time of flight for the current shot's distance, clamped to the map. */
+  public static double timeOfFlight() {
+    return timeOfFlightMap.interpolate(distanceToTarget());
+  }
+
   /** The latest shot's flywheel speed without the response-time lead. */
   public static double getReadyFlywheelSpeed() {
     return readyFlywheelRps;

@@ -29,6 +29,7 @@ import frc.robot.data.Constants.CodeConstants;
 import frc.robot.data.Constants.CodeConstants.ManualOverrideTarget;
 import frc.robot.data.Constants.Mode;
 import frc.robot.subsystems.intake.Intake.ExpanderState;
+import frc.robot.subsystems.shooter.ShotPlanner;
 import frc.robot.utils.lib.BeachDetector;
 import frc.robot.utils.vendor.HubShiftUtil;
 import lombok.Getter;
@@ -347,7 +348,7 @@ public class RobotState {
     // being closed, which is indistinguishable from a broken robot at the desk.
     hubEnabled = Constants.getMode() == Mode.SIM
         || !CodeConstants.LIMIT_TO_HUB_SHIFTS
-        || HubShiftUtil.getShiftedShiftInfo().active();
+        || HubShiftUtil.getShiftedShiftInfo(ShotPlanner.timeOfFlight()).active();
   }
 
   public ShooterState getShooterState() {
