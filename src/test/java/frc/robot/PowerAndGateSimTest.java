@@ -123,8 +123,13 @@ public class PowerAndGateSimTest {
     SimHarness.stepSeconds(3.0);
     assertTrue(RobotContainer.flywheel.atSetpoint(), "gate never opened, so this proves nothing");
 
-    // Twice the loosest tolerance, so the dip is out of tolerance at any range.
-    SimHarness.takeShot(FlywheelConstants.MAX_VELOCITY_TOLERANCE * 2);
+    // A 75th-percentile ball: past the loosest tolerance, so the dip is out of
+    // tolerance at any range. The 90th percentile (about twice the loosest
+    // tolerance) keeps the simulated wheel out long enough to close the gate,
+    // and since 2026-10-18 that is intended -- dips that long were the ones
+    // that came with balls landing short.
+    SimHarness.takeShot(12.8);
+    assertTrue(12.8 > FlywheelConstants.MAX_VELOCITY_TOLERANCE, "setup: the ball must exceed every tolerance");
     assertTrue(Math.abs(40.0 - RobotContainer.flywheel.getVelocity()) > RobotContainer.flywheel.velocityTolerance(),
         "setup: the shot did not take the wheel out of tolerance");
     for (int i = 0; i < 30; i++) {

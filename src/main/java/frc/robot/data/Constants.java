@@ -605,8 +605,17 @@ public final class Constants {
      * a shot is wanted; at 0.20 s it is open 64 %, and past 0.30 s it stops
      * improving and starts tolerating genuine sag. Normal recovery is 0.07 s, so
      * this ignores a ball dip and still catches a battery that cannot keep up.
+     *
+     * <p>
+     * It was 0.25 s, which also hid the sag. Balls fed back to back each reset
+     * the timer, so on 2026-10-18 the gate stayed open through whole volleys with
+     * the wheel 3 to 7 rps slow, and the video shows those balls landing short.
+     * Across that match's scoring volleys, 23 of 26 ball dips cleared in under
+     * 0.10 s; in the volleys that missed, half the dips lasted 0.11 to 0.17 s.
+     * Replayed at 0.08 s, the gate keeps 86 % of the firing in the volleys that
+     * scored and 34 % of it in the volleys that missed.
      */
-    public static final double READY_FALLING_DEBOUNCE = 0.25;
+    public static final double READY_FALLING_DEBOUNCE = 0.08;
     /** How long the wheel must be inside tolerance before the gate opens. */
     public static final double READY_RISING_DEBOUNCE = 0.25;
 
@@ -823,7 +832,12 @@ public final class Constants {
         new NodePoint(15.5, 21) // Super long passing
     };
 
-    public static final double ANGLE_RANGE = 2.0;
+    /**
+     * How far the hood may be from its goal, in degrees, and still fire a hub
+     * shot. 3 kept more of the 2026-10-18 scoring volleys in replay than 2 did,
+     * and blocked the same share of the ones that missed.
+     */
+    public static final double ANGLE_RANGE = 3.0;
   }
 
   public static class ClimberConstants {

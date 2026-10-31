@@ -434,6 +434,9 @@ public class RobotState {
         .and(() -> shooterState == ShooterState.TARGET_HUB
             ? RobotContainer.flywheel.atSetpoint()
             : RobotContainer.flywheel.atLooseSetpoint())
+        // Shooting on the move swings the hood goal by several degrees between
+        // loops, and the hood lags it; a ball fired mid-swing falls short.
+        .and(() -> shooterState == ShooterState.TARGET_HUB ? RobotContainer.hood.atSetpoint() : true)
         .and(() -> shooterState == ShooterState.TARGET_HUB ? hubEnabled() : true);
   }
 
