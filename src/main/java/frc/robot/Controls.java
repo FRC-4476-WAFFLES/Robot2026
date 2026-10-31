@@ -54,8 +54,8 @@ public class Controls {
    * rather than reshape the whole range. Rotation is the more linear of the two
    * at the driver's request.
    */
-  public static final double TRANSLATION_CURVE = 0.35;
-  public static final double ROTATION_CURVE = 0.25;
+  public static final double TRANSLATION_CURVE = 0.42;
+  public static final double ROTATION_CURVE = 0.35;
 
   /*
    * Stick deflection past which the driver is taken to mean "all of it".
