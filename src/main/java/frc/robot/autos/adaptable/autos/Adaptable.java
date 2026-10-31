@@ -49,8 +49,16 @@ public class Adaptable extends AdaptableBase {
   public static final BlueRelativeTarget shootingCenter = new BlueRelativeTarget(3, 4, Rotation2d.fromDegrees(0))
       .withMaxVelocity(0.8); // Too lazy to flip coords
 
+  public static final BlueRelativeTarget centerStart = new BlueRelativeTarget(3.450, 4, Rotation2d.fromDegrees(90));
+  public static final BlueRelativeTarget depot = new BlueRelativeTarget(0.60, 5.95, Rotation2d.fromDegrees(180));
+
   // NT
   private final AutoNetworkNumber autoDelay = new AutoNetworkNumber(autoClass + "/Auto Delay", 0)
+      .onChange(() -> InvalidateCache());
+
+  private final AutoDropdownChooser<Boolean> depotRoute = new AutoDropdownChooser<Boolean>(autoClass + "/Route")
+      .addOption("Normal", false)
+      .addOption("Center to Depot", true)
       .onChange(() -> InvalidateCache());
 
   private final AutoDropdownChooser<Boolean> autoMirroring = new AutoDropdownChooser<Boolean>(
@@ -116,6 +124,11 @@ public class Adaptable extends AdaptableBase {
 
   @Override
   protected void GenerateAuto(boolean immediate) {
+    if (Boolean.TRUE.equals(depotRoute.get())) {
+      generateDepotAuto(immediate);
+      return;
+    }
+
     Boolean pathMirrored = autoMirroring.get();
     if (pathMirrored == null) {
       return;
@@ -257,6 +270,32 @@ public class Adaptable extends AdaptableBase {
     } else {
       farFromStart.set(false);
     }
+  }
+
+  /** Starts at the Preload spot, so Side and the attack and sweep choosers don't apply. */
+  private void generateDepotAuto(boolean immediate) {
+    AutoPath toDepot = new AutoPath(depot).withPreciseFinish();
+
+    cmd = Commands.sequence(
+        AutoUtils.resetOdometry(centerStart),
+        Commands.waitSeconds(autoDelay.getAsDouble()),
+
+        Commands.deadline(
+            toDepot.follow(),
+            IntakeCommands.intakeCommand()
+        ),
+
+        ShooterCommands.shootAutoCommand(shootTime.getAsDouble() - 2)
+    );
+
+    if (!immediate) {
+      AutoVisualizer.VisualizeAuto(centerStart, Arrays.asList(toDepot.getTargets()));
+    }
+
+    SmartDashboard.putBoolean(autoClass + "/Cached", true);
+
+    farFromStart.set(RobotContainer.state.getPose().getTranslation()
+        .getDistance(centerStart.getFieldRelativePose().getTranslation()) > 0.3);
   }
 
   // Attacks

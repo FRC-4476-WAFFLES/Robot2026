@@ -156,6 +156,19 @@
                 }
               },
               {
+                "title": "Route",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "ComboBox Chooser",
+                "properties": {
+                  "topic": "/SmartDashboard/AdaptableStandard/Route",
+                  "period": 0.06,
+                  "sort_options": false
+                }
+              },
+              {
                 "title": "Shoot Timeout",
                 "x": 0.0,
                 "y": 0.0,
