@@ -614,10 +614,13 @@ public final class Constants {
      * 0.10 s; in the volleys that missed, half the dips lasted 0.11 to 0.17 s.
      * Replayed at 0.08 s, the gate keeps 86 % of the firing in the volleys that
      * scored and 34 % of it in the volleys that missed.
+     *
+     * As if STEMley this has been more loose - as shooting in general is just good :)
+     * Ideally this leads to a net of balls
      */
-    public static final double READY_FALLING_DEBOUNCE = 0.08;
+    public static final double READY_FALLING_DEBOUNCE = 0.25;
     /** How long the wheel must be inside tolerance before the gate opens. */
-    public static final double READY_RISING_DEBOUNCE = 0.25;
+    public static final double READY_RISING_DEBOUNCE = 0.2;
 
     /**
      * The old fixed tolerance, 20 rps. Far too loose to gate a hub shot — it
